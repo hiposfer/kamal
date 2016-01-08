@@ -1,75 +1,65 @@
 (ns sagacious-woof.core
-  (:require [sagacious-woof.distance :refer [haversine]]
-            [frechet-dist.core :as curve])
+  (:require [sagacious-woof.broker :as broker]
+            [sagacious-woof.curve :as curve]
+            [sagacious-woof.simulator :as sim]
+            [sagacious-woof.util :refer [combinations]]
+
+            [incanter.charts :as chart]
+            [incanter.core :as incanter])
   (:gen-class))
 
-(defn- weighted-point
-  "computes the weighted interpolation of points p1 and p2 according to weights w1 and w2"
-  [w1 p1 w2 p2]
-  (/ (+ (* p1 w1) (* p2 w2)) (+ w1 w2)))
+(defn good-match
+  [index [dist coupling similarity]]
+  (if (and (> similarity 0.7) (< dist 1))
+    [index coupling] nil))
 
-(defn- interpolate-curve
-  "interpolate two curves A, B using the weights Wa, Wb and following the
-  given coupling. Note that the coupling MUST contain a mapping of the complete
-  curve to interpolate"
-  [A Wa B Wb coupling]
-  (for [[i j] coupling]
+(defn merge-curves
+  [hypo asample coupling]
+  (let [full-coupling   (curve/full-coupling (dec (count hypo)) coupling)]
+    (curve/make-path hypo asample full-coupling)))
+
+(defn examinate-sample
+  [hypotcs asample]
+  (for [hypo hypotcs
+    :let [[dist coupling similarity] (curve/compare-curves hypo asample)]]
     (cond
-     (nil? i) (B j)
-     (nil? j) (A i)
-     :else (weighted-point (Wa i) (A i) (Wb j) (B j)))))
-
-(defn how-similar
-  "compute the similarity between A and B using the partial frechet distance
-  and the percentage of the curve that was coupled"
-  [A B]
-  (let [[dist coupling] (curve/partial-frechet-dist A B haversine)
-        [Ao Bo]         (first coupling)
-        [Az Bz]         (last coupling)
-        pA              (/ (- Az Ao) (dec (count A))); percentage of A
-        pB              (/ (- Bz Bo) (dec (count B)))]
-    (/ dist (max pA pB))))
-
-(defn make-hypothesis
-  "based on the similarity of two curves decide if they should be merged
-  or not and how. returns a sequence of [pi ci] where pi is the probability
-  that each point belongs to the real route"
-  [hypotcs similarities A pa]
-  (let [disimilar  (every? #(< % 0.3) similarities)
-        similars   (keep-indexed #(if (> %2 0.7) (hypotcs %1) nil)
-                                  similarities)
-        ambiguous  (keep-indexed #(if (and (> %2 0.3) (< %2 0.7)) (hypotcs %1) nil)
-                                  similarities)]
-    (cond
-     disimilar (conj hypotcs [pa A]) ; unique curve
-     (not-empty similars) (comment merge each similar hypotcs with A) ; ignore the ambigous hypotcs
-     (not-empty ambiguous) (comment merge each ambiguous hypotcs with A) ; ignore the very disimilar hypotcs
-     :else "ERROR")))
+     ; similar curves
+     (and (> similarity 0.7) (< dist 0.1)) (merge-curves hypo asample coupling)
+     ; ambiguous situation
+     ;(< 0.3 similarity 0.7) hypo ; TODO !!
+     ;(comment merge hypo-curve with sample and sample with hypo-curve)
+     ; dissimilar curves
+     :default (concat hypo asample))))
 
 (defn check-hypothesis
-  "base on a sequence of current possible routes 'cresult' check if the new
-  curve A confirms cresult or not and decide wether or not to create new
-  beliefs based on it. returns a sequence of beliefs '[pi ci]'"
-  [hypotcs [pa A]]
-  (if (empty? hypotcs) [[pa A]]
-    (let [similarities   (for [[po cmerge] hypotcs]
-                           (comment compute-similarity with A))
-          nresult        (comment check similarities and decide if A should be a
-                           new belief or if it should be merge with a current belief)
-          confidences    (comment compute each confidence)]
-      (comment base on the confidence of each hypotcs increase its point
-        probability and return the new hypotcs))))
-      ; NOTE: once you have 'enough' confidence about your hypotcs, filter out
-      ; those that are below a threshold
+  [hypotcs asample]
+  (let [new-hypos     (examinate-sample hypotcs asample)
+        combi-pairs   (combinations 2 new-hypos)
+        comparisons   (mapv #(apply curve/compare-curves %) combi-pairs)
+        similars      (keep-indexed good-match comparisons)
+        merged-hypos  (for [[index coupling] similars
+                            :let [[P Q] (nth combi-pairs index)]]
+                        (merge-curves P Q coupling))
+        matched       (->> (map first similars)
+                           (map #(nth combi-pairs %))
+                           (apply concat)
+                           (distinct)
+                           (into (hash-set)))
+        unmatched     (filter #(not (matched %)) new-hypos)]
+    (concat matched unmatched)))
 
+; TODO after a check up with the new curve is finish. Check if the hypotcs changed
+; if so then compare the hypotcs themselves but only merge those that are very similar
 (defn -main
   "simulate"
-  [sample]
-  (let [pcurves         (comment partial-curves simulator)
-        tcurves         (comment find out how much do I trust this sample)]
-    (reduce (comment check-hypothesis) tcurves [])))
+  [sample num-samples]
+  (let [pcurves            (sim/subcurves sample num-samples)
+        ;pcurves      (vector (take 10 coordinates) (take 5 coordinates) (take-last 10 coordinates) (take-last 12 coordinates))
+        [fst-curve & nth-curves] (map broker/find-trust pcurves)]
+    (reduce check-hypothesis [fst-curve] nth-curves)))
 
-(def coordinates [[-75.578556,6.254853],
+(def coordinates
+            [[-75.578556,6.254853],
             [-75.586194,6.258479],
             [-75.584177,6.262275],
             [-75.586495,6.265091],
@@ -83,3 +73,9 @@
             [-75.593147,6.273324],
             [-75.594906,6.27085],
             [-75.59658,6.264238]])
+
+(def foo (-main coordinates 3))
+(def bar (map second (first foo)))
+(incanter/view (chart/scatter-plot (map first bar) (map second bar)))
+
+;(incanter/view (chart/scatter-plot (map first coordinates) (map second coordinates)))

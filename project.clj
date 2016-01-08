@@ -4,11 +4,12 @@
   :license {:name "LGPLv3"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.7.0"]
-                 [frechet-dist "0.4.5"]
-                 ;[net.mikera/vectorz-clj "0.37.0"] ; probalbe NECESSARY ...
-                 ;[org.clojure/math.numeric-tower "0.0.4"] ; NECESSARY?
+                 [frechet-dist "0.4.7"]
+                 [net.mikera/vectorz-clj "0.40.0"]
                  [org.clojure/test.check "0.9.0"]
-                 ]
+
+                 [incanter/incanter-charts "1.5.5"]
+                 [incanter/incanter-core "1.5.5"]]
   :main ^:skip-aot sagacious-woof.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})

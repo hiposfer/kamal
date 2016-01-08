@@ -6,7 +6,8 @@
   (let [start      (gen/choose 0 length)
         end        (gen/choose 0 length)
         interval   (gen/such-that (fn [[a b]] (>= (- b a) 2))
-                                  (gen/tuple start end))]
+                                  (gen/tuple start end)
+                                  100)]
     (gen/sample interval num-curves)))
 
 (defn subcurves

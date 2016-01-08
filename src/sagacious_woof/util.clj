@@ -1,4 +1,4 @@
-(ns sagacious-woof.distance
+(ns sagacious-woof.util
   "Distance function computations.")
 
 (defn- grad->rad
@@ -33,3 +33,11 @@
 ; distance between paris and san francisco
 ; (* (haversine [2.33 48.87] [-122.4 37.8]) (/ 3440.069 6372))
 ; => 4831.502535634215 nauticals miles
+
+(defn combinations
+  [n coll]
+  (if (= 1 n)
+    (map list coll)
+    (lazy-seq (when-let [[head & tail] (seq coll)]
+                (concat (for [x (combinations (dec n) tail)] (cons head x))
+                        (combinations n tail))))))
