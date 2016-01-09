@@ -1,11 +1,11 @@
 (ns sagacious-woof.util
-  "Distance function computations.")
+  "collection of utility functions")
 
 (defn- grad->rad
   [number]
   (Math/toRadians number))
 
-(defn rad-haversine
+(defn- rad-haversine
   "Compute the great-circle distance between two points on Earth given their
   longitude and latitude in RADIANS. The distance is computed in kilometers
   by default.
@@ -21,7 +21,7 @@
 
 (defn haversine
   "Compute the great-circle distance between two points on Earth given their
-  longitude and latitude in degrees. The distance is computed in kilometers
+  longitude and latitude in DEGREES. The distance is computed in kilometers
   by default.
   This function takes two vectors as argument, each one should be in the form
   [long lat]"
@@ -35,9 +35,14 @@
 ; => 4831.502535634215 nauticals miles
 
 (defn combinations
+  "returns a lazy sequence of all the possible combinations of the elements in
+  coll in groups of n members"
   [n coll]
   (if (= 1 n)
     (map list coll)
     (lazy-seq (when-let [[head & tail] (seq coll)]
                 (concat (for [x (combinations (dec n) tail)] (cons head x))
                         (combinations n tail))))))
+
+;(combinations 2 [:a :b :c])
+;((:a :b) (:a :c) (:b :c))

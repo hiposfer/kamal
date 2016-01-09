@@ -12,9 +12,6 @@
      :else [(tA i) (tB j)])))
 
 ; TODO: compute a real trust
-; NOTE: it is probably better to count the frequency of ocurrence of
-;       a point than to inmediately have its probability. This is due
-;       to the difficulty in calculate its posterior probability.
 (defn find-trust
   "get the trust of a curve in their points"
   [points]
