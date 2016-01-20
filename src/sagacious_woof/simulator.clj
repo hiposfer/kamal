@@ -19,12 +19,12 @@
 (defn subcurves
   "base of a sample curve, create num-curves that span random continous
   intervals of the original one"
+  ([sample num-curves]
+   (subcurves sample num-curves 2))
   ([sample num-curves span]
    (let [length     (count sample)
          intervals  (rand-intervals length num-curves span)]
-     (map #(apply subvec sample %) intervals)))
-  ([sample num-curves]
-   (subcurves sample num-curves 2)))
+     (map #(apply subvec sample %) intervals))))
 
 ;(subcurves [[1 2] [3 4] [5 6] [7 8]] 3)
 ;([[5 6] [7 8]]
