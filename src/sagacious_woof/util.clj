@@ -9,14 +9,13 @@
   "Compute the great-circle distance between two points on Earth given their
   longitude and latitude in RADIANS. The distance is computed in kilometers
   by default.
-  This function takes two vectors as argument, each one should be in the form
-  [long lat]"
-  [[long1 lat1] [long2 lat2]]
+  This function takes two hash-maps as argument with keys :lat :long"
+  [p1 p2]
   (let [R  6372.8 ; kilometers
-        h  (+ (Math/pow (Math/sin (/ (- lat2 lat1) 2)) 2)
-              (* (Math/pow (Math/sin (/ (- long2 long1) 2)) 2)
-                 (Math/cos lat2)
-                 (Math/cos lat1)))]
+        h  (+ (Math/pow (Math/sin (/ (- (:lat p2) (:lat p1)) 2)) 2)
+              (* (Math/pow (Math/sin (/ (- (:long p2) (:long p1)) 2)) 2)
+                 (Math/cos (:lat p2))
+                 (Math/cos (:lat p1))))]
     (* R 2 (Math/asin (Math/sqrt h)))))
 
 (defn haversine
@@ -26,7 +25,8 @@
   This function takes two vectors as argument, each one should be in the form
   [long lat]"
   [p1 p2]
-  (rad-haversine (mapv grad->rad p1) (mapv grad->rad p2)))
+  (rad-haversine {:lat (Math/toRadians (:lat p1)) :long (Math/toRadians (:long p1))}
+                 {:lat (Math/toRadians (:lat p2)) :long (Math/toRadians (:long p2))}))
 
 ; (haversine [-86.67 36.12] [-118.40 33.94])
 ;=> 2887.2599506071106
@@ -43,6 +43,16 @@
     (lazy-seq (when-let [[head & tail] (seq coll)]
                 (concat (for [x (combinations (dec n) tail)] (cons head x))
                         (combinations n tail))))))
-
 ;(combinations 2 [:a :b :c])
 ;((:a :b) (:a :c) (:b :c))
+(defn all-pairs [coll] (combinations 2 coll))
+
+(defn vec->map
+  [point]
+  {:long (first point) :lat  (second point)})
+
+(defn coords->geo
+  [coll]
+  (map vec->map coll))
+
+(def last-index (comp dec count))

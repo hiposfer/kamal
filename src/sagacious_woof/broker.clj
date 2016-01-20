@@ -14,5 +14,5 @@
 ; TODO: compute a real trust
 (defn find-trust
   "get the trust of a curve in their points"
-  [points]
-  (map #(vector 1 %) points))
+  [geo-curve]
+  (map #(into % {:w 1}) geo-curve))
