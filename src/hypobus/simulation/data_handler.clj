@@ -15,10 +15,16 @@
      :journey-pattern-id :time-frame :vehicle-journey-id :operator
      :congestion :lon :lat :delay :block-id :vehicle-id :stop-id :at-stop]))
 
-(defn- filter-line [line-id] (filter #(= (:line-id %) line-id)))
-(defn- filter-journey [journeys] (filter #((set journeys) (:journey-pattern-id %))))
+(defn journey-id
+  [{journey-pattern-id :journey-pattern-id}]
+  (cond
+    (zero? (count journey-pattern-id)) "EMPTY-ID"
+    (< (count journey-pattern-id) 4) journey-pattern-id
+    :else (let [line-pattern (seq (subs journey-pattern-id 0 4))
+                journey-seq  (drop-while #(= \0 %) line-pattern)]
+            (apply str journey-seq))))
 
-(defn- fetch-data
+(defn fetch-data
   ([filename]
    (fetch-data filename nil))
   ([filename xform]
@@ -33,9 +39,10 @@
                            data-reader)]
       (into [] processesor raw-data)))))
 
-(defn fetch-line [filename line-id] (fetch-data filename (filter-line line-id)))
-(defn fetch-journeys [filename journeys] (fetch-data filename (filter-journey journeys)))
+(defn fetch-line [filename line-id] (fetch-data filename (filter #(= (:line-id %) line-id))))
+(defn fetch-journeys [filename journeys] (fetch-data filename (filter #((set journeys) (:journey-pattern-id %)))))
 (defn fetch-all [filename] (fetch-data filename (map #(select-keys % [:lat :lon :journey-pattern-id :vehicle-journey-id]))))
+(defn fetch-parsed-id [filename line-id] (fetch-data filename (filter #(=  (journey-id %) line-id))))
 
 (defn organize-journey
   [data]
@@ -45,12 +52,3 @@
         prepare-data   (comp gap-remover trans-curves remove-fault)
         raw-trajectories (vals (group-by :vehicle-journey-id data))]
         (into [] prepare-data raw-trajectories)))
-
-(defn journey-id
-  [{journey-pattern-id :journey-pattern-id}]
-  (cond
-    (zero? (count journey-pattern-id)) "EMPTY-ID"
-    (< (count journey-pattern-id) 4) journey-pattern-id
-    :else (let [line-pattern (seq (subs journey-pattern-id 0 4))
-                journey-seq  (drop-while #(= \0 %) line-pattern)]
-            (apply str journey-seq))))
