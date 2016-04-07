@@ -4,40 +4,74 @@
             [hypobus.mapbox :as mapbox]
             [hypobus.basics.geometry :as geo]
             [hypobus.simulation.data-handler :as sim]
-            [hypobus.visuals.plotter :as plotter])
+            [hypobus.visuals.plotter :as plotter]
+
+            [clojure.core.matrix.stats :as stats])
   (:gen-class))
 
+; ================== NOT NAMESPACED YET ====================;
+
+(defn- avg-distrust
+  "calculate the average distrust in a geo-curve"
+  [curve]
+  (stats/mean (map :distrust curve)))
+
+(defn- avg-trust
+  "calculate the average trust in a geo-curve"
+  [curve]
+  (- 1 (avg-distrust curve)))
+
+(defn- sd-distrust
+  "calculate the standard deviation of the trust in a geo-curve"
+  [curve]
+  (stats/sd (map :distrust curve)))
+
+(defn- remove-untrusted
+  "takes a sequence of curves and removes those whose average distrust exceeds
+  0.9. The removal only happens in any one curve has an average distrust less
+  than 0.1, otherwise all curves are returned as they are"
+  [curves]
+  (let [dists    (map avg-distrust curves)
+        min-dist (apply min dists)]
+    (if-not (< min-dist 0.1) curves
+      (remove #(< 0.9 (avg-distrust %)) curves))))
+
+(defn- remove-outliers
+  "takes a sequence of curves and remove the points of each curves that are
+  more than 3 standard deviations apart from the mean distrust of the curve.
+  If the new curve doesn't have more than 3 points, it is also removed"
+  [curves]
+  (let [ncurves (for [curve curves
+                      :let [dt    (avg-distrust curve)
+                            sd-dt (sd-distrust curve)]]
+                  (remove #(> (:distrust %) (* 3 sd-dt)) curve))]
+    (remove #(> 3 (count %)) ncurves)))
+
+; ================== NORMAL CORE FUNCTIONS ====================;
+
 (defn check-trace
-  "merge the new-curve with any similar hypothesis."
+  "compare all the hypothesis with a given trace, if they match they are
+  merged, otherwise they are returned as they are."
   [hypos trace]
   (for [hypo hypos
     :let [result (route/similarity hypo trace)]]
     (if-not (:similar? result) hypo
       (route/fuse hypo trace (:couple result)))))
 
-(defn reduce-hypos
-  "compare all possible combinations of hypothesis:
-  - merge them if they match
-  - keep them otherwise"
-  [hypos]
-;;   (println "hypothesis: " (count hypos))
-  (if (empty? (rest hypos)) hypos
-    (let [new-hypos (check-trace (rest hypos) (first hypos))]
-      (if (= new-hypos (rest hypos))
-        (conj (reduce-hypos (rest hypos)) (first hypos))
-        (recur new-hypos)))))
-
 (defn check-hypos
-  "compare the newly arrived curve with the current hypothesis and merge them
-  if necessary"
-  [hypos trace]
-;;   (println "hypothesis: " (count hypos))
+  "compare a trace with the current hypothesis. If any of them matches they are
+  merged, otherwise returned as they are. In case a merge occurs, the new
+  hypothesis are re-checked for any possible new match among them"
+  [hypos trace] ;;   (println "hypothesis: " (count hypos))
   (let [new-hypos    (check-trace hypos trace)]
     (if (= new-hypos hypos)
-      (conj new-hypos trace)
-      (reduce-hypos new-hypos))))
+      (conj hypos trace)
+      (reduce check-hypos [(first new-hypos)] (rest new-hypos)))))
 
 (defn conjecture
+  "takes a sequence of traces and tries to reduce them by merging similar ones
+  and keeping unique ones. This is mainly an utility function used for batch
+  processing. In normal cases prefer the direct use of check-hypos"
   [traces]
   (reduce check-hypos [(first traces)] (rest traces)))
 
@@ -48,15 +82,15 @@
 (defn simulate-journey
   [filename & journeys]
   (newline)
-  (println "[FILE] read started")
+  (println "---- file read started")
   (let [data-points  (time (sim/fetch-journeys filename journeys))
-        _ (println "[FILE] data fetched")
+        _ (println "---- file read ended")
         trajectories (sim/organize-journey data-points)
-        _ (println "\n[START] parallel processing")
+        _ (println "---- starting parallel processing")
         pre-result  (tool/pbatch conjecture trajectories)]
-    (println "\n[END] parallel processing !")
+    (println "---- finalizing hypothesis")
     (map #(geo/tidy 20 100 geo/haversine %)
-         (conjecture pre-result))))
+         (conjecture (remove-outliers (remove-untrusted pre-result))))))
 
 (defn simulate-day
   [filename]
@@ -71,8 +105,8 @@
                 pre-result (tool/pbatch conjecture traces)
                 _ (println "---- finalizing hypothesis")
                 result     (map #(geo/tidy 20 100 geo/haversine %)
-                                (conjecture pre-result))
-                best-result (first (reverse (sort-by tool/general-trust result)))]]
+                                (conjecture (remove-outliers (remove-untrusted pre-result))))
+                best-result (first (sort-by avg-distrust result))]]
       (do (mapbox/write-geojson (str "assets/" jid ".geojson") best-result)
           (println "DONE !! with: " jid "\n")
           (newline)
@@ -86,22 +120,22 @@
 (defn -main
   ([]
    (simulate-day "resources/dublin/siri.20130116.csv")))
-  ;([filename]
-   ;(simulate-journey filename "00070001"))
-  ;([filename & journeys]
-   ;(simulate-journey filename journeys)))
 
-; TODO: create a mapbox-feature to poly-line function
+; TODO: create a mapbox to poly-line function
 
 ;; (defonce co (sim/fetch-line "resources/dublin/siri.20130116.csv" "9"))
 ;; (map count (sim/organize-journey co))
 
-;; (def foo (reverse (sort-by tool/general-trust
-;;      (time (simulate-journey "resources/dublin/siri.20130116.csv" "00070001")))))
-;; (count foo)
-;; (map-indexed vector (map tool/general-trust foo))
+(def foo (sort-by avg-distrust
+     (time (simulate-journey "resources/dublin/siri.20130116.csv" "00070001"))))
+(count foo)
+(map-indexed vector (map avg-distrust foo))
+(System/gc)
+
+;; (mapbox/write-geojson "assets/00070001.geojson" (nth foo 0))
 
 ;; (plotter/show-polyline (nth foo 0))
-
 ;; (map geo/distance (nth foo 0) (rest (nth foo 0)))
+
+; USE CORE.MATRIX STATS LIBRARY FOR MEAN, DEVIATION AND MORE
 

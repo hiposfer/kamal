@@ -27,14 +27,6 @@ coll in groups of n members. Example: (combinations 2 [:a :b :c])
   [coll mkeys f]
   (reduce (fn [m mk] (update m mk f)) coll mkeys))
 
-(defn general-trust
-  "calculate the average trust in a geo-curve"
-  [geo-curve]
-  (->> (map :distrust geo-curve)
-       (map #(- 1 %))
-       (reduce +)
-       (#(/ % (count geo-curve)))))
-
 (def last-index
   "returns the last index of a collection"
   (comp dec count))
