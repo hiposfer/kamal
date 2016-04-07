@@ -113,15 +113,16 @@
   ([f coll]
    (tidy MIN-DIST MAX-DIST f coll))
   ([min-dist max-dist f coll]
-  (let [rawcoll (map #(vector (:lat %) (:lon %)) coll)
-        pij-dist (map f coll (rest coll))
-        judge    (fn [index dist]
-                   (cond
-                     (> dist max-dist) (map #(apply point %) (interpolate (nth rawcoll index)
-                                                                (nth rawcoll (inc index))
-                                                                (Math/ceil (/ dist max-dist))))
-                     (< dist min-dist) nil ; prepare for filtering
-                     :else (list (point (nth coll index))))) ; OK point between the limits
-        sampler  (comp (map-indexed judge) (remove nil?) (mapcat identity))
-        new-coll (into [] sampler pij-dist)]
-    (conj new-coll (point (last coll))))))
+   (when-not (empty? coll)
+     (let [rawcoll (map #(vector (:lat %) (:lon %)) coll)
+           pij-dist (map f coll (rest coll))
+           judge    (fn [index dist]
+                      (cond
+                        (> dist max-dist) (map #(apply point %) (interpolate (nth rawcoll index)
+                                                                             (nth rawcoll (inc index))
+                                                                             (Math/ceil (/ dist max-dist))))
+                        (< dist min-dist) nil ; prepare for filtering
+                        :else (list (point (nth coll index))))) ; OK point between the limits
+           sampler  (comp (map-indexed judge) (remove nil?) (mapcat identity))
+           new-coll (into [] sampler pij-dist)]
+       (conj new-coll (point (last coll)))))))
