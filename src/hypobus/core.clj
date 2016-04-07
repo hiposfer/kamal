@@ -16,11 +16,6 @@
   [curve]
   (stats/mean (map :distrust curve)))
 
-(defn- avg-trust
-  "calculate the average trust in a geo-curve"
-  [curve]
-  (- 1 (avg-distrust curve)))
-
 (defn- sd-distrust
   "calculate the standard deviation of the trust in a geo-curve"
   [curve]
@@ -31,8 +26,7 @@
   0.9. The removal only happens in any one curve has an average distrust less
   than 0.1, otherwise all curves are returned as they are"
   [curves]
-  (let [dists    (map avg-distrust curves)
-        min-dist (apply min dists)]
+  (let [min-dist (apply min (map avg-distrust curves))]
     (if-not (< min-dist 0.1) curves
       (remove #(< 0.9 (avg-distrust %)) curves))))
 
@@ -42,9 +36,9 @@
   If the new curve doesn't have more than 3 points, it is also removed"
   [curves]
   (let [ncurves (for [curve curves
-                      :let [dt    (avg-distrust curve)
-                            sd-dt (sd-distrust curve)]]
-                  (remove #(> (:distrust %) (* 3 sd-dt)) curve))]
+                  :let [dt    (avg-distrust curve)
+                        sd-dt (sd-distrust curve)]]
+                  (remove #(> (Math/abs (- (:distrust %) dt)) (* 3 sd-dt)) curve))]
     (remove #(> 3 (count %)) ncurves)))
 
 ; ================== NORMAL CORE FUNCTIONS ====================;
@@ -126,10 +120,10 @@
 ;; (defonce co (sim/fetch-line "resources/dublin/siri.20130116.csv" "9"))
 ;; (map count (sim/organize-journey co))
 
-(def foo (sort-by avg-distrust
-     (time (simulate-journey "resources/dublin/siri.20130116.csv" "00070001"))))
-(count foo)
-(map-indexed vector (map avg-distrust foo))
+;; (def foo (sort-by avg-distrust
+;;      (time (simulate-journey "resources/dublin/siri.20130116.csv" "00070001"))))
+;; (count foo)
+;; (map-indexed vector (map avg-distrust foo))
 (System/gc)
 
 ;; (mapbox/write-geojson "assets/00070001.geojson" (nth foo 0))
