@@ -5,7 +5,7 @@
             [frechet-dist.core :refer [partial-frechet-dist]]))
 
 ; damping factor
-(def ^:const ^:private EPSILON 0.8)
+(def ^:const ^:private EPSILON 1)
 ; Maximum value admited to consider two curves similar
 (def ^:const ^:private MAX-DISIM (/ 50 0.6))
 
