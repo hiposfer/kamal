@@ -1,4 +1,5 @@
-(ns hypobus.util)
+(ns hypobus.util
+  (:require [clojure.data.json :as json]))
 
 (defn combinations
 "returns a lazy sequence of all the possible combinations of the elements in
@@ -10,8 +11,6 @@ coll in groups of n members. Example: (combinations 2 [:a :b :c])
     (lazy-seq (when-let [[head & tail] (seq coll)]
                 (concat (for [x (combinations (dec n) tail)] (cons head x))
                         (combinations n tail))))))
-
-(def all-pairs (partial combinations 2))
 
 (defn fmap
   "takes a hash-map and a function and returns a hash-map with the same keys
@@ -60,3 +59,7 @@ coll in groups of n members. Example: (combinations 2 [:a :b :c])
     (if (> n-cores length)
       (f coll)
       (apply concat (pmap f batches)))))
+
+(defn read-curve [filename] (json/read-str (slurp filename) :key-fn keyword))
+
+(defn geojson->curve [filename] (-> (read-curve filename) :geometry :coordinates))
