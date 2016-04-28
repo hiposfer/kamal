@@ -3,12 +3,14 @@
             [hypobus.route :as route]
             [hypobus.mapbox :as mapbox]
             [hypobus.basics.geometry :as geo]
-            [hypobus.simulation.data-handler :as sim]
             [hypobus.visuals.plotter :as plotter]
-
+            [hypobus.simulation.data-handler :as sim]
+            [clojure.data :refer [diff]]
             [clojure.core.matrix.stats :as stats]
             [clojure.core.reducers :as red])
   (:gen-class))
+
+(set! *warn-on-reflection* true)
 
 (def ^:const ^:private THREAD-GROUP 20)
 
@@ -55,7 +57,25 @@
     (if-not (:similar? result) hypo
       (route/fuse hypo trace (:couple result)))))
 
-(defn check-hypos
+(defn- with-similar
+  "utility function to use inside recombine"
+  [_ [c1 c2]]
+  (let [res (route/similarity c1 c2)]
+    (when (:similar? res)
+      (reduced [c1 c2 res]))))
+
+(defn recombine
+  "takes a sequence of hypotheses and compares them all (all possible combinations).
+  If any of those are similars, they are merge and the function recurs with
+  the new hypotheses"
+  [hypos]
+  (let [combis                  (tool/combinations 2 hypos)
+        [c1 c2 res :as a-match] (reduce with-similar nil combis)
+        old-hypos               (some-> a-match (set) (remove hypos))]
+    (if-not a-match hypos
+      (recur (cons (route/fuse c1 c2 (:couple res)) old-hypos)))))
+
+(defn hypothize
   "compare a trace with the current hypothesis. If any of them matches they are
   merged, otherwise returned as they are. In case a merge occurs, the new
   hypothesis are re-checked for any possible new match among them"
@@ -63,7 +83,7 @@
   (let [new-hypos    (check-trace hypos trace)]
     (if (= new-hypos hypos)
       (conj hypos trace)
-      (reduce check-hypos [(first new-hypos)] (rest new-hypos)))))
+      (recombine new-hypos))))
 
 (defn conjectures
   "takes a sequence of traces and tries to reduce them by merging similar ones
@@ -72,7 +92,7 @@
   ([] (vector))
   ([traces]
    (if (empty? traces) traces
-     (reduce check-hypos [(first traces)] (rest traces))))
+     (recombine traces)))
   ([tr1 tr2]
    (let [traces  (concat tr1 tr2)
          rtraces (remove-untrusted traces)]
@@ -108,7 +128,7 @@
             _           (println "---- parallel processing")
             pre-result  (red/fold THREAD-GROUP conjectures check-hypos traces)
             _           (println "---- finalizing hypothesis")
-            result      (map (partial geo/tidy 20 100 geo/haversine) pre-result)
+            result      (remove-outliers (map (partial geo/tidy 20 100 geo/haversine) pre-result))
             best-result (first (sort-by avg-distrust result))]]
       (do (mapbox/write-geojson (str "assets/" jid ".geojson") best-result)
           (println "DONE !! with: " jid "\n")
@@ -124,15 +144,31 @@
   ([]
    (simulate-day "resources/dublin/siri.20130116.csv")))
 
+(defonce trajectories (sim/organize-journey
+                        (sim/fetch-journeys
+                          "resources/dublin/siri.20130116.csv"
+                          ["00070001"])))
+
+(count trajectories)
+
+(System/gc)
+(def tmp (time (sort-by avg-distrust
+    (red/fold THREAD-GROUP conjectures check-hypos trajectories))))
+(count tmp)
+(System/gc)
+
+;; (def foo (time (sort-by avg-distrust (conjectures trajectories))))
+;; (count foo)
+
 ; TODO: create a mapbox to poly-line function
 
 ;; (def foo (sort-by avg-distrust
 ;;      (time (simulate-journey "resources/dublin/siri.20130116.csv" "00070001"))))
 ;; (count foo)
-;; (map-indexed vector (map avg-distrust foo))
-;; (plotter/show-polyline (nth foo 0))
+
+(map-indexed vector (map avg-distrust tmp))
+(plotter/show-polyline (nth tmp 1))
 
 (System/gc)
 
 ;; (mapbox/write-geojson "assets/00070001.geojson" (nth foo 0))
-
