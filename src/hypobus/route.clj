@@ -5,9 +5,9 @@
             [frechet-dist.core :refer [partial-frechet-dist]]))
 
 ; damping factor
-(def ^:const ^:private EPSILON 1)
+(def ^:const ^:private EPSILON 1.0)
 ; Maximum value admited to consider two curves similar
-(def ^:const ^:private MAX-DISIM (/ 50 0.6))
+(def ^:const ^:private MAX-DISIM (/ 50.0 0.6))
 
 (defn- arch-length
   "computes the partial arch-length as the sum of the point to point distances
@@ -91,13 +91,15 @@
   mean and for Polygonal lines it fuses then by fusing each point on each curve
   with its equivalent according to the coupling sequence."
   ([p1 p2] ;"computes the weighted interpolation of points p1 and p2 according to weights w1 and w2"
-   (let [{:keys [weight lat lon distrust]}              p1
-         {w2 :weight lat2 :lat lon2 :lon dt2 :distrust} p2]
+   (let [{:keys [^double weight ^double lat
+                 ^double lon ^double distrust]} p1
+         {^double w2   :weight ^double lat2 :lat
+          ^double lon2 :lon    ^double dt2  :distrust} p2]
      (geo/point
-       (/ (+ (* lat weight) (* lat2 w2)) (+ weight w2)) ; :lat
-       (/ (+ (* lon weight) (* lon2 w2)) (+ weight w2)) ; :lon
-       (+ weight w2)                                    ; :weight
-       (/ 1 (+ (/ 1 distrust) (/ EPSILON dt2))))))      ; :distrust
+       (/ (+ (* lat weight) (* lat2 w2)) (+ weight w2)); :lat
+       (/ (+ (* lon weight) (* lon2 w2)) (+ weight w2)); :lon
+       (+ weight w2)                                   ; :weight
+       (/ 1.0 (+ (/ 1.0 distrust) (/ EPSILON dt2)))))) ; :distrust
   ([P Q coupling] ; a polygonal line is just a collection of points
    (let [real-coupling (full-coupling P Q coupling)]
      (for [[i j] real-coupling]
