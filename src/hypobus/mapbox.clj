@@ -9,7 +9,7 @@
 (def ^:private json-template
   {:type "Feature",
    :properties nil,
-   :geometry {:type "LineString",
+   :geometry {:type "MultiLineString" ;"LineString",
               :coordinates nil}})
 
 (defn- gps-precision
@@ -29,6 +29,17 @@
   [filename curve]
   (with-open [out (clojure.java.io/writer filename)]
     (json/write (->geo-json curve) out)))
+
+(defn- ->multigeo-json
+  [curves]
+  (assoc-in json-template [:geometry :coordinates]
+            (mapv (fn [line] (mapv #(vector (:lon %) (:lat %)) line))
+                  curves)))
+
+(defn write-multiline
+  [filename curves]
+  (with-open [out (clojure.java.io/writer filename)]
+    (json/write (->multigeo-json curves) out)))
 
 (defn- match-curve
   [poly-line access-key]
