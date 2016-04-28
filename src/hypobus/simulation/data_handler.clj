@@ -2,14 +2,15 @@
   (:require [hypobus.basics.geometry :as geo]
             [hypobus.util :as tool]
             [clojure.java.io :as io]
-            [clojure.data.csv :as csv]))
+            [clojure.data.csv :as csv]
+            [clojure.core.reducers :as red]
+            [clojure.edn :as edn]))
 
 (defn- parse-number
   "coerces a string containing either an integer or a floating point number"
   [^String str-number]
-  (if (.contains str-number ".")
-    (float (bigdec str-number))
-    (int (bigint str-number))))
+  (let [res (edn/read-string str-number)]
+    (when (number? res) res)))
 
 (def ^:cons ^:private csv->hash-map (partial zipmap [:timestamp :line-id :direction
      :journey-pattern-id :time-frame :vehicle-journey-id :operator
@@ -34,9 +35,8 @@
           ;taker          (take 1000)
           remove-null    (remove #(= (:journey-pattern-id %) "null"))
           str->num       (map #(tool/update-vals % [:lat :lon] parse-number))
-          data-reader    (comp vec->hashmap remove-null str->num)
-          processesor    (if xform (comp data-reader xform)
-                           data-reader)]
+          processesor    (if xform (comp vec->hashmap xform remove-null str->num)
+                           (comp vec->hashmap remove-null str->num))]
       (into [] processesor raw-data)))))
 
 (defn fetch-line [filename line-id] (fetch-data filename (filter #(= (:line-id %) line-id))))
@@ -52,3 +52,36 @@
         prepare-data   (comp gap-remover trans-curves remove-fault)
         raw-trajectories (vals (group-by :vehicle-journey-id data))]
         (into [] prepare-data raw-trajectories)))
+
+;; -------------------- GTFS files related functions -------------------------;
+;; -------------------- GTFS files related functions -------------------------;
+
+(defn raw-shapes
+  [filename]
+  (with-open [in-file (io/reader filename)]
+    (let [fielder  (partial zipmap [:id :lat :lon :sequence :dist-traveled])
+          raw-data (rest (csv/read-csv in-file :separator \,))]
+      (into [] (red/map fielder raw-data)))))
+
+(defn shape-id [id] (second (re-find #"0-(.*?)-" id)))
+(defn shapes [filename] (group-by :id (raw-shapes filename)))
+
+(defn geo-names [dpath] (map str (rest (file-seq (clojure.java.io/file dpath)))))
+(defn fname->line-id [fname] (second (re-find #".*\/(.*?)\.geojson" fname)))
+
+(defn geocurves
+  [dpath]
+  (into {}
+    (for [fname (geo-names dpath)]
+      [(fname->line-id fname)
+       (map #(zipmap [:lon :lat] %) (tool/geojson->curve fname))])))
+
+(defn geoshapes [fname]
+  (into {}
+    (for [[id points] (shapes fname)]
+      [(shape-id id) (map #(tool/update-vals % [:lat :lon] parse-number) points)])))
+
+;(def baz (into #{} (map shape-id (keys foo))))
+;(def foo (shapes "assets/gtfs/shapes.txt"))
+;(diff bar baz)
+
