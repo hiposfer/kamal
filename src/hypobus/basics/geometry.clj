@@ -2,7 +2,7 @@
   (:require [hypobus.util :as tool]
             [frechet-dist.core :refer [partial-frechet-dist]]))
 
-(def ^:const ^:private MAX-DISTRUST 1)
+(def ^:const ^:private MAX-DISTRUST 1.0)
 (def ^:const ^:private MIN-WEIGHT (/ 1 (* 100 100))); 100 meters radious as deviation
 (def ^:const ^:private RADIOUS 6372800); radious of the Earth in meters
 
@@ -14,7 +14,7 @@
   "Compute the great-circle distance between two points on Earth given their
   longitude and latitude in RADIANS. The distance is computed in meters
   by default."
-  [lat-1 lon-1 lat-2 lon-2]
+  [^double lat-1 ^double lon-1 ^double lat-2 ^double lon-2]
   (let [h  (+ (Math/pow (Math/sin (/ (- lat-2 lat-1) 2)) 2)
               (* (Math/pow (Math/sin (/ (- lon-2 lon-1) 2)) 2)
                  (Math/cos lat-2)
@@ -48,17 +48,17 @@
 
 (defrecord GeoPoint [lat lon weight distrust])
 
+(extend-type clojure.lang.PersistentArrayMap GeoDistance
+  (-dist ([point-1 point-2] (haversine point-1 point-2))
+         ([point-1 point-2 f] (f point-1 point-2))))
+
 (extend-type GeoPoint GeoDistance
-  (-dist ([point-1 point-2]
-          (haversine point-1 point-2))
-         ([point-1 point-2 f]
-          (f point-1 point-2))))
+  (-dist ([point-1 point-2] (haversine point-1 point-2))
+         ([point-1 point-2 f] (f point-1 point-2))))
 
 (extend-type clojure.lang.Sequential GeoDistance
-  (-dist ([coll coll2]
-          (partial-frechet-dist coll coll2 haversine))
-         ([coll coll2 f]
-          (f coll coll2))))
+  (-dist ([coll coll2] (partial-frechet-dist coll coll2 haversine))
+         ([coll coll2 f] (f coll coll2))))
 
 (defn point
   "create a point record. Two options are allowed; either a hash-map with the
@@ -78,10 +78,8 @@
   "computes the distance between two objects using function f.
   f defaults to the great-circle distance for points and the partial frechet
   distance for polygonal lines "
-  ([o1 o2]
-   (-dist o1 o2))
-  ([o1 o2 f]
-   (-dist o1 o2 f)))
+  ([o1 o2] (-dist o1 o2))
+  ([o1 o2 f] (-dist o1 o2 f)))
 
 (defn split-at-gaps
   "splits a curve into several ones if the distance between two consecutive
