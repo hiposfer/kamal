@@ -3,7 +3,7 @@
   (:require [clojure.data.codec.base64 :as b64]
             [incanter.charts :as chart]))
 
-(defn- plot
+(defn plot
   [^JFreeChart chart & options]
   (let [opts      (when options (apply assoc {} options))
         width     (or (:width opts) 400)
@@ -20,5 +20,3 @@
   (let [image (chart/scatter-plot (map :lon coll) (map :lat coll)
                                   :group-by groups)]
     (plot image))))
-
-;; (apply str (map char (b64/encode (.getBytes (slurp "https://raw.githubusercontent.com/carocad/nerdy-painter/master/resources/sprout-chart.svg")))))
