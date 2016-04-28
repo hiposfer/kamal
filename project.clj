@@ -22,5 +22,5 @@
                          ; encode charts to base64
                          [org.clojure/data.codec "0.1.0"]
                          ; profiler
-                         ;[com.taoensso/timbre "4.3.1"]
+                         [criterium "0.4.4"]
                           ]}})
