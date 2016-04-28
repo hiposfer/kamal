@@ -112,7 +112,7 @@
         _            (println "---- file read ended")
         trajectories (sim/organize-journey data-points)
         _            (println "---- parallel processing")
-        result       (red/fold THREAD-GROUP conjectures check-hypos trajectories)]
+        result       (red/fold THREAD-GROUP conjectures hypothize trajectories)]
     (println "---- done")
     (map (partial geo/tidy 20 100 geo/haversine) result)))
 
@@ -126,7 +126,7 @@
       :let [_           (println "---- organizing journey: " jid)
             traces      (sim/organize-journey points)
             _           (println "---- parallel processing")
-            pre-result  (red/fold THREAD-GROUP conjectures check-hypos traces)
+            pre-result  (red/fold THREAD-GROUP conjectures hypothize traces)
             _           (println "---- finalizing hypothesis")
             result      (remove-outliers (map (partial geo/tidy 20 100 geo/haversine) pre-result))
             best-result (first (sort-by avg-distrust result))]]
@@ -134,7 +134,7 @@
           (println "DONE !! with: " jid "\n")
           (newline)
           (System/gc)
-          (Thread/sleep 10000)))))
+          (Thread/sleep 1000)))))
 
 ; ===================================================================
 ;                             MAIN
@@ -144,18 +144,18 @@
   ([]
    (simulate-day "resources/dublin/siri.20130116.csv")))
 
-(defonce trajectories (sim/organize-journey
-                        (sim/fetch-journeys
-                          "resources/dublin/siri.20130116.csv"
-                          ["00070001"])))
+;; (defonce trajectories (sim/organize-journey
+;;                         (sim/fetch-journeys
+;;                           "resources/dublin/siri.20130116.csv"
+;;                           ["00070001"])))
 
-(count trajectories)
+;; (count trajectories)
 
-(System/gc)
-(def tmp (time (sort-by avg-distrust
-    (red/fold THREAD-GROUP conjectures check-hypos trajectories))))
-(count tmp)
-(System/gc)
+;; (System/gc)
+;; (def tmp (time (sort-by avg-distrust
+;;     (red/fold THREAD-GROUP conjectures check-hypos trajectories))))
+;; (count tmp)
+;; (System/gc)
 
 ;; (def foo (time (sort-by avg-distrust (conjectures trajectories))))
 ;; (count foo)
@@ -166,8 +166,10 @@
 ;;      (time (simulate-journey "resources/dublin/siri.20130116.csv" "00070001"))))
 ;; (count foo)
 
-(map-indexed vector (map avg-distrust tmp))
-(plotter/show-polyline (nth tmp 1))
+;; (map-indexed vector (map avg-distrust tmp))
+;; (plotter/show-polyline (nth tmp 1))
+
+(simulate-day "resources/dublin/siri.20130116.csv")
 
 (System/gc)
 
