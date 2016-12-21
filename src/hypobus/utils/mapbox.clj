@@ -1,6 +1,6 @@
-(ns hypobus.mapbox
+(ns hypobus.utils.mapbox
   "mapbox map matching functions"
-  (:require [hypobus.util :as tool]
+  (:require [hypobus.utils.tool :as tool]
             [org.httpkit.client :as http]
             [clojure.data.json :as json]))
 

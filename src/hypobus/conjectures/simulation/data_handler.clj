@@ -1,10 +1,10 @@
-(ns hypobus.simulation.data-handler
-  (:require [hypobus.basics.geometry :as geo]
-            [hypobus.util :as tool]
+(ns hypobus.conjectures.simulation.data-handler
+  (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.data.csv :as csv]
             [clojure.core.reducers :as red]
-            [clojure.edn :as edn]))
+            [hypobus.basics.geometry :as geo]
+            [hypobus.utils.tool :as tool]))          
 
 (defn- parse-number
   "coerces a string containing either an integer or a floating point number"
@@ -13,8 +13,8 @@
     (when (number? res) res)))
 
 (def ^:cons ^:private csv->hash-map (partial zipmap [:timestamp :line-id :direction
-     :journey-pattern-id :time-frame :vehicle-journey-id :operator
-     :congestion :lon :lat :delay :block-id :vehicle-id :stop-id :at-stop]))
+                                                     :journey-pattern-id :time-frame :vehicle-journey-id :operator
+                                                     :congestion :lon :lat :delay :block-id :vehicle-id :stop-id :at-stop]))
 
 (defn journey-id
   [{journey-pattern-id :journey-pattern-id}]
@@ -29,15 +29,15 @@
   ([filename]
    (fetch-data filename nil))
   ([filename xform]
-  (with-open [in-file (io/reader filename)]
-    (let [raw-data       (csv/read-csv in-file :separator \,)
-          vec->hashmap   (map csv->hash-map)
+   (with-open [in-file (io/reader filename)]
+     (let [raw-data       (csv/read-csv in-file :separator \,)
+           vec->hashmap   (map csv->hash-map)
           ;taker          (take 1000)
-          remove-null    (remove #(= (:journey-pattern-id %) "null"))
-          str->num       (map #(tool/update-vals % [:lat :lon] parse-number))
-          processesor    (if xform (comp vec->hashmap xform remove-null str->num)
-                           (comp vec->hashmap remove-null str->num))]
-      (into [] processesor raw-data)))))
+           remove-null    (remove #(= (:journey-pattern-id %) "null"))
+           str->num       (map #(tool/update-vals % [:lat :lon] parse-number))
+           processesor    (if xform (comp vec->hashmap xform remove-null str->num)
+                            (comp vec->hashmap remove-null str->num))]
+       (into [] processesor raw-data)))))
 
 (defn fetch-line [filename line-id] (fetch-data filename (filter #(= (:line-id %) line-id))))
 (defn fetch-journeys [filename journeys] (fetch-data filename (filter #((set journeys) (:journey-pattern-id %)))))
@@ -51,7 +51,7 @@
         remove-fault   (remove #(< (count %) 5))
         prepare-data   (comp gap-remover trans-curves remove-fault)
         raw-trajectories (vals (group-by :vehicle-journey-id data))]
-        (into [] prepare-data raw-trajectories)))
+       (into [] prepare-data raw-trajectories)))
 
 ;; -------------------- GTFS files related functions -------------------------;
 ;; -------------------- GTFS files related functions -------------------------;
@@ -84,4 +84,3 @@
 ;(def baz (into #{} (map shape-id (keys foo))))
 ;(def foo (shapes "assets/gtfs/shapes.txt"))
 ;(diff bar baz)
-
