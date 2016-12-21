@@ -118,21 +118,20 @@
   (println "[FILE] read started")
   (let [data-points (time (sim/fetch-all filename))]
     (println "[FILE] data fetched")
-    (for [[jid points] (group-by sim/journey-id data-points)]
-      :when (not= jid "EMPTY-ID")
-      :let [_           (println "---- organizing journey: " jid)
-            traces      (sim/organize-journey points)
-            _           (println "---- parallel processing")
-            pre-result  (red/fold THREAD-GROUP conjectures hypothize traces)
-            _           (println "---- finalizing hypothesis")
-            result      (remove-outliers (map (partial geo/tidy 20 100 geo/haversine) pre-result))
-            best-result (first (sort-by avg-distrust result))]
+    (for [[jid points] (group-by sim/journey-id data-points)
+          :when (not= jid "EMPTY-ID")
+          :let [_           (println "---- organizing journey: " jid)
+                traces      (sim/organize-journey points)
+                _           (println "---- parallel processing")
+                pre-result  (red/fold THREAD-GROUP conjectures hypothize traces)
+                _           (println "---- finalizing hypothesis")
+                result      (remove-outliers (map (partial geo/tidy 20 100 geo/haversine) pre-result))
+                best-result (first (sort-by avg-distrust result))]]
       (do (mapbox/write-geojson (str "assets/" jid ".geojson") best-result)
           (println "DONE !! with: " jid "\n")
           (newline)
           (System/gc)
           (Thread/sleep 1000)))))
-
 
 ;; (defonce trajectories (sim/organize-journey
 ;;                         (sim/fetch-journeys

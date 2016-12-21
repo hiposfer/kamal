@@ -18,8 +18,7 @@
                  [http-kit "2.1.19"]]
   ;; Sets the values of global vars within Clojure.
   :global-vars {*warn-on-reflection* true}
-  :plugins [[jonase/eastwood "0.2.3"]
-	    [lein-kibit "0.1.3"]]
+  :plugins [[jonase/eastwood "0.2.3"]]
   :jvm-opts ["-Xmx2g"]
   :profiles {:dev {:dependencies [; generate test data
                                   [org.clojure/test.check "0.9.0"]

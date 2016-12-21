@@ -1,6 +1,6 @@
 (ns hypobus.routing.algorithms
-  (:require [clojure.data.priority-map :as data]
-            [proto-repl.saved-values :as proto]))
+  (:require [clojure.data.priority-map :as data]))
+            ;[proto-repl.saved-values :as proto]))
 
 (set! *warn-on-reflection* true)
 
