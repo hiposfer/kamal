@@ -1,6 +1,7 @@
 (ns hypobus.utils.tool
-  (:require [clojure.data.json :as json]
-            [clojure.edn :as edn]))
+  (:require [clojure.edn :as edn]
+            [clojure.data.json :as json]))
+
 
 (defn combinations
  "returns a lazy sequence of all the possible combinations of the elements in

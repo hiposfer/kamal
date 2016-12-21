@@ -1,4 +1,4 @@
-(ns hypobus.routing.algorithms
+(ns hypobus.routing.core
   (:require [clojure.data.priority-map :as data]))
             ;[proto-repl.saved-values :as proto]))
 

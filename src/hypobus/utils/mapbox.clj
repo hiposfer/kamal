@@ -1,7 +1,6 @@
 (ns hypobus.utils.mapbox
   "mapbox map matching functions"
-  (:require [hypobus.utils.tool :as tool]
-            [org.httpkit.client :as http]
+  (:require [org.httpkit.client :as http]
             [clojure.data.json :as json]))
 
 (def ^:const ^:private MAX-POINTS 100)

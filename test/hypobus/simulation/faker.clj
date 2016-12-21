@@ -1,4 +1,4 @@
-(ns hypobus.conjectures.simulation.faker
+(ns hypobus.simulation.faker
   "functions used to create fake curves"
   (:import [java.util Random])
   (:require [hypobus.utils.tool :as tool]
@@ -46,7 +46,7 @@ must span"
   [deviation point]
   (let [new-point (tool/fmap #(+ % (rand-gauss deviation)) point)
         p-dist    (geo/distance point new-point)]
-    (conj new-point {:weigth (/ 1 (* p-dist p-dist))})))
+    (conj new-point {:weight (/ 1 (* p-dist p-dist))})))
 
 (defn add-noise
   "add gaussian noise with sigma=deviation to all points in a curve. The curve
@@ -78,12 +78,12 @@ must span"
 
 (defn rand-2Dcurve
   "create a random 2 dimensional curve inside the given bounds. The resulting
-  curve is on the form {:lat y :lon x :weigth z}"
+  curve is on the form {:lat y :lon x :weight z}"
   [size {:keys [min-long max-long min-lat max-lat]}]
   (let [longitude      (gen/double* {:infinite? false :NaN? false :min min-long :max max-long})
         latitude       (gen/double* {:infinite? false :NaN? false :min min-lat :max max-lat})
         point          (gen/tuple longitude latitude)]
-    (map #(conj % {:weigth (rand)})
+    (map #(conj % {:weight (rand)})
          (map #(zipmap [:lon :lat] %) (gen/sample point size)))))
 
 (defn bandal-curves

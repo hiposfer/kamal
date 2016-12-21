@@ -1,11 +1,8 @@
-(ns hypobus.conjectures.simulation.comparisons
+(ns hypobus.simulation.comparisons
   (:require [clojure.data :refer [diff]]
-            [clojure.core.reducers :as red]
-            [hypobus.utils.tool :as tool]
             [hypobus.basics.geometry :as geo]
-            [hypobus.conjectures.route :as route]
-            [hypobus.conjectures.simulation.data-handler :as sim]))
-            ;[hypobus.visuals.plotter :as plotter]
+            [hypobus.simulation.data-handler :as sim]
+            [hypobus.simulation.visuals.plotter :as plotter]))
 
 (defn- comp-dist
   [geo-dpath shape-fname]

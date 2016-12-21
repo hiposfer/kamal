@@ -1,4 +1,4 @@
-(ns hypobus.conjectures.visuals.plotter)
+(ns hypobus.simulation.visuals.plotter)
 ; (:import  [org.jfree.chart ChartUtilities JFreeChart])
 ; (:require [clojure.data.codec.base64 :as b64]
 ;           [incanter.charts :as chart]))

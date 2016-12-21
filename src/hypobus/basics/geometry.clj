@@ -2,14 +2,17 @@
   (:require [frechet-dist.core :refer [partial-frechet-dist]]))
 
 ;; TODO: most of these declarations should be dynamic at some point
-(def ^:const ^:private MAX-DISTRUST 1.0)
-(def ^:const ^:private MIN-WEIGHT (/ 1 (* 100 100))); 100 meters radious as deviation
-(def ^:const ^:private RADIOUS 6372800); radious of the Earth in meters
+(def ^:private MAX-DISTRUST 1.0)
+(def ^:private MIN-WEIGHT (/ 1 (* 100 100))); 100 meters radious as deviation
+(def ^:private RADIOUS 6372800); radious of the Earth in meters
 
-(def ^:const ^:private MIN-DIST 30); meters
-(def ^:const ^:private MAX-DIST 100); meters
-(def ^:const ^:private MAX-GAP  300); meters
+(def ^:private MIN-DIST 30); meters
+(def ^:private MAX-DIST 100); meters
+(def ^:private MAX-GAP  300); meters
 
+
+;; TODO: Do I really need the type hints here even after I put them
+;;      on the record ?
 (defn- rad-haversine
   "Compute the great-circle distance between two points on Earth given their
   longitude and latitude in RADIANS. The distance is computed in meters
@@ -46,7 +49,10 @@
   (-dist [object-1 object-2]
          [object-1 object-2 dist-fn]))
 
-(defrecord GeoPoint [lat lon weight distrust])
+(defrecord GeoPoint [^double lat
+                     ^double lon
+                     ^double weight
+                     ^double distrust])
 
 (extend-type clojure.lang.PersistentArrayMap
   GeoDistance
@@ -63,18 +69,16 @@
   (-dist ([coll coll2] (partial-frechet-dist coll coll2 haversine))
          ([coll coll2 f] (f coll coll2))))
 
+;; TODO: replace :pre conditions with proper spec definitions in Clojure v1.9
 (defn point
   "create a point record. Two options are allowed; either a hash-map with the
   required key-vals or a direct lat lon instantiation."
   ([{lat :lat lon :lon dt :distrust w :weight :or {w MIN-WEIGHT, dt MAX-DISTRUST}}]
-   {:pre  [(and (number? lat) (number? lon))]}
+   ;; {:pre  [(and (number? lat) (number? lon))]}
    (->GeoPoint lat lon w dt))
   ([lat lon]
-   {:pre  [(and (number? lat) (number? lon))]}
-   (->GeoPoint lat lon MIN-WEIGHT MAX-DISTRUST))
-  ([lat lon weight distrust]
-   {:pre  [(and (number? lat) (number? lon))]}
-   (->GeoPoint lat lon weight distrust)))
+   ;; {:pre  [(and (number? lat) (number? lon))]}
+   (->GeoPoint lat lon MIN-WEIGHT MAX-DISTRUST)))
 
 
 (defn distance

@@ -1,10 +1,10 @@
-(ns hypobus.conjectures.simulation.data-handler
+(ns hypobus.simulation.data-handler
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.data.csv :as csv]
             [clojure.core.reducers :as red]
-            [hypobus.basics.geometry :as geo]
-            [hypobus.utils.tool :as tool]))          
+            [hypobus.utils.tool :as tool]
+            [hypobus.basics.geometry :as geo]))
 
 (defn- parse-number
   "coerces a string containing either an integer or a floating point number"
