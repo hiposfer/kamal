@@ -1,7 +1,7 @@
 (ns hypobus.basics.geometry
-  (:require [hypobus.util :as tool]
-            [frechet-dist.core :refer [partial-frechet-dist]]))
+  (:require [frechet-dist.core :refer [partial-frechet-dist]]))
 
+;; TODO: most of these declarations should be dynamic at some point
 (def ^:const ^:private MAX-DISTRUST 1.0)
 (def ^:const ^:private MIN-WEIGHT (/ 1 (* 100 100))); 100 meters radious as deviation
 (def ^:const ^:private RADIOUS 6372800); radious of the Earth in meters
@@ -48,15 +48,18 @@
 
 (defrecord GeoPoint [lat lon weight distrust])
 
-(extend-type clojure.lang.PersistentArrayMap GeoDistance
+(extend-type clojure.lang.PersistentArrayMap
+  GeoDistance
   (-dist ([point-1 point-2] (haversine point-1 point-2))
          ([point-1 point-2 f] (f point-1 point-2))))
 
-(extend-type GeoPoint GeoDistance
+(extend-type GeoPoint
+  GeoDistance
   (-dist ([point-1 point-2] (haversine point-1 point-2))
          ([point-1 point-2 f] (f point-1 point-2))))
 
-(extend-type clojure.lang.Sequential GeoDistance
+(extend-type clojure.lang.Sequential
+  GeoDistance
   (-dist ([coll coll2] (partial-frechet-dist coll coll2 haversine))
          ([coll coll2 f] (f coll coll2))))
 
@@ -68,10 +71,10 @@
    (->GeoPoint lat lon w dt))
   ([lat lon]
    {:pre  [(and (number? lat) (number? lon))]}
-  (->GeoPoint lat lon MIN-WEIGHT MAX-DISTRUST))
+   (->GeoPoint lat lon MIN-WEIGHT MAX-DISTRUST))
   ([lat lon weight distrust]
    {:pre  [(and (number? lat) (number? lon))]}
-  (->GeoPoint lat lon weight distrust)))
+   (->GeoPoint lat lon weight distrust)))
 
 
 (defn distance

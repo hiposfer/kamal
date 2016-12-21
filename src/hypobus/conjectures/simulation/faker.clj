@@ -1,7 +1,7 @@
-(ns hypobus.simulation.faker
+(ns hypobus.conjectures.simulation.faker
   "functions used to create fake curves"
   (:import [java.util Random])
-  (:require [hypobus.util :as tool]
+  (:require [hypobus.utils.tool :as tool]
             [hypobus.basics.geometry :as geo]
             [clojure.test.check.generators :as gen]))
 
@@ -11,7 +11,7 @@
   "Returns the next pseudorandom, Gaussian ('normally') distributed double
   value with mean 0.0 and standard deviation 1.0 from this random number
   generator's sequence."
-  ([] rand-gauss 1)
+  ([] (rand-gauss 1))
   ([deviation] (* deviation (.nextGaussian ^Random rand-gen))))
 
 
@@ -30,7 +30,7 @@
 ;([0 4] [2 4] [0 2] [0 3] [0 4] [0 3] [2 4] [0 2] [1 3] [2 4])
 
 (defn subcurves
-"create an amount of subcurves that span random continous intervals of the
+ "create an amount of subcurves that span random continous intervals of the
 original one. percentage is the minimum percentage of the curve that the curves
 must span"
   ([sample amount]

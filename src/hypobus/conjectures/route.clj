@@ -1,8 +1,8 @@
-(ns hypobus.route
+(ns hypobus.conjectures.route
   "functions related to the comparison of two curves, as well as how to merge them"
-  (:require [hypobus.basics.geometry :as geo]
-            [hypobus.util :refer [last-index]]
-            [frechet-dist.core :refer [partial-frechet-dist]]))
+  (:require [frechet-dist.core :refer [partial-frechet-dist]]
+            [hypobus.basics.geometry :as geo]
+            [hypobus.utils.tool :refer [last-index]]))
 
 ; damping factor
 (def ^:const ^:private EPSILON 1.0)
@@ -52,9 +52,9 @@
   (let [non-overlap-start (range (ffirst coupling))
         ; from the last overlaping point until the end of the curve
         non-overlap-end   (range (inc (first (last coupling))) length)]
-  (concat (for [i non-overlap-start] [i nil])
-          coupling
-          (for [j non-overlap-end]   [j nil]))))
+   (concat (for [i non-overlap-start] [i nil])
+           coupling
+           (for [j non-overlap-end]   [j nil]))))
 
 (defn- overlap
   "extend the coupling sequence for the case of one curve overlaping another
@@ -64,9 +64,9 @@
   (let [non-overlap-start (range (ffirst coupling))
         ; from the last overlaping point until the end of the other curve
         non-overlap-end   (range (inc (second (last coupling))) length)]
-  (concat (for [i non-overlap-start] [i nil])
-          coupling
-          (for [j non-overlap-end]   [nil j]))))
+   (concat (for [i non-overlap-start] [i nil])
+           coupling
+           (for [j non-overlap-end]   [nil j]))))
 
 (defn full-coupling
   "takes the coupling of P with Q and returns a sequence of coupling

@@ -1,16 +1,13 @@
 (ns hypobus.core
-  (:require [hypobus.util :as tool]
-            [hypobus.route :as route]
-            [hypobus.mapbox :as mapbox]
-            [hypobus.basics.geometry :as geo]
-            [hypobus.visuals.plotter :as plotter]
-            [hypobus.simulation.data-handler :as sim]
-            [clojure.data :refer [diff]]
+  (:require [clojure.data :refer [diff]]
             [clojure.core.matrix.stats :as stats]
-            [clojure.core.reducers :as red])
-  (:gen-class))
-
-(set! *warn-on-reflection* true)
+            [clojure.core.reducers :as red]
+            [hypobus.utils.tool :as tool]
+            [hypobus.utils.mapbox :as mapbox]
+            [hypobus.basics.geometry :as geo]
+            ;[hypobus.visuals.plotter :as plotter]
+            [hypobus.conjectures.route :as route]
+            [hypobus.conjectures.simulation.data-handler :as sim]))
 
 (def ^:const ^:private THREAD-GROUP 20)
 
@@ -41,8 +38,8 @@
   If the new curve doesn't have more than 3 points, it is also removed"
   [curves]
   (let [ncurves (for [curve curves
-                  :let [dt    (avg-distrust curve)
-                        sd-dt (sd-distrust curve)]]
+                      :let [dt    (avg-distrust curve)
+                            sd-dt (sd-distrust curve)]]
                   (remove #(> (Math/abs (double (- (:distrust %) dt))) (* 3 sd-dt)) curve))]
     (remove #(> 3 (count %)) ncurves)))
 
@@ -53,7 +50,7 @@
   merged, otherwise they are returned as they are."
   [hypos trace]
   (for [hypo hypos
-    :let [result (route/similarity hypo trace)]]
+        :let [result (route/similarity hypo trace)]]
     (if-not (:similar? result) hypo
       (route/fuse hypo trace (:couple result)))))
 
@@ -121,7 +118,7 @@
   (println "[FILE] read started")
   (let [data-points (time (sim/fetch-all filename))]
     (println "[FILE] data fetched")
-    (for [[jid points] (group-by sim/journey-id data-points)
+    (for [[jid points] (group-by sim/journey-id data-points)]
       :when (not= jid "EMPTY-ID")
       :let [_           (println "---- organizing journey: " jid)
             traces      (sim/organize-journey points)
@@ -129,20 +126,13 @@
             pre-result  (red/fold THREAD-GROUP conjectures hypothize traces)
             _           (println "---- finalizing hypothesis")
             result      (remove-outliers (map (partial geo/tidy 20 100 geo/haversine) pre-result))
-            best-result (first (sort-by avg-distrust result))]]
+            best-result (first (sort-by avg-distrust result))]
       (do (mapbox/write-geojson (str "assets/" jid ".geojson") best-result)
           (println "DONE !! with: " jid "\n")
           (newline)
           (System/gc)
           (Thread/sleep 1000)))))
 
-; ===================================================================
-;                             MAIN
-;====================================================================
-
-(defn -main
-  ([]
-   (simulate-day "resources/dublin/siri.20130116.csv")))
 
 ;; (defonce trajectories (sim/organize-journey
 ;;                         (sim/fetch-journeys
@@ -169,8 +159,7 @@
 ;; (map-indexed vector (map avg-distrust tmp))
 ;; (plotter/show-polyline (nth tmp 1))
 
-(simulate-day "resources/dublin/siri.20130116.csv")
-
-(System/gc)
+;; (simulate-day "resources/dublin/siri.20130116.csv")
+;; (System/gc)
 
 ;; (mapbox/write-geojson "assets/00070001.geojson" (nth foo 0))
