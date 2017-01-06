@@ -1,6 +1,10 @@
 (ns hypobus.conjectures.specs
   (:require [clojure.spec :as s]
-            [hypobus.conjectures.core]))
+            [frechet-dist.protocols :as frepos]))
+
+(defn arc-length
+  [curve]
+  (reduce + (subvec (mapv frepos/distance curve (rest curve)) 0 (dec (count curve)))))
 
 (s/def ::dist  (s/and number? (comp not neg?)))
 (s/def ::index (s/and integer? (comp not neg?)))
@@ -14,10 +18,11 @@
 (s/def ::hypo-point (s/keys :req-un [::lat ::lon ::weight ::distrust]))
 
 ;;(s/def ::geo-curve  (s/coll-of ::geo-point  :kind sequential? :min-count 2))
-(s/def ::hypo-curve (s/coll-of ::hypo-point
-                               :kind sequential?
-                               :min-count 2
-                               :distinct true))
+(s/def ::hypo-curve (s/and (s/coll-of ::hypo-point
+                                      :kind sequential?
+                                      :min-count 2
+                                      :distinct true)
+                           #(> (arc-length %) 0)))
 
 (s/def ::hypothesis (s/coll-of ::hypo-curve
                                :kind sequential?
@@ -35,9 +40,7 @@
   :ret ::hypothesis)
 
 (s/fdef hypobus.conjectures.core/conjectures
-  :args (s/alt :traces (s/nilable ::hypothesis)
-               :trace-sets (s/cat :trace-1 ::hypothesis
-                                  :trace-2 ::hypothesis))
+  :args (s/cat :tr1 ::hypothesis :tr2 ::hypothesis)
   :ret ::hypothesis)
 
 (s/fdef hypobus.conjectures.core/recombine

@@ -18,6 +18,8 @@
                  [http-kit "2.1.19"]]
   ;; Sets the values of global vars within Clojure.
   :global-vars {*warn-on-reflection* true}
+  ;;https://github.com/technomancy/leiningen/issues/2173
+  :monkeypatch-clojure-test false
   :plugins [[jonase/eastwood "0.2.3"]]
   :jvm-opts ["-Xmx2g"]
   :profiles {:dev {:dependencies [; generate test data

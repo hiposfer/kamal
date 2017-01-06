@@ -10,7 +10,7 @@
 ; Maximum value admited to consider two curves similar
 (def MAX-DISIM (/ 50.0 0.6)) ;; 50 meters with 60 % similarity
 
-(defn- arc-length
+(defn arc-length
   "computes the partial arc-length as the sum of the point to point distances
   of a subcurve determined by the start, end limits"
   [p2p-dist start end]
