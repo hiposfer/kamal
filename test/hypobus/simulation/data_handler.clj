@@ -3,6 +3,7 @@
             [clojure.java.io :as io]
             [clojure.data.csv :as csv]
             [clojure.core.reducers :as red]
+            [frechet-dist.protocols :as frepos]
             [hypobus.utils.tool :as tool]
             [hypobus.basics.geometry :as geo]))
 
@@ -46,8 +47,8 @@
 
 (defn organize-journey
   [data]
-  (let [gap-remover    (mapcat #(geo/split-at-gaps geo/haversine %))
-        trans-curves   (map #(geo/tidy geo/haversine %))
+  (let [gap-remover    (mapcat #(partition-by (geo/gaps)))
+        trans-curves   (map geo/tidy)
         remove-fault   (remove #(< (count %) 5))
         prepare-data   (comp gap-remover trans-curves remove-fault)
         raw-trajectories (vals (group-by :vehicle-journey-id data))]

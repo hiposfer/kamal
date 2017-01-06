@@ -1,21 +1,23 @@
 (ns hypobus.conjectures.core
   (:require [clojure.core.matrix.stats :as stats]
+            [frechet-dist.core :as frechet]
             [hypobus.utils.tool :as tool]
             [hypobus.conjectures.route :as route]))
 
+
 ; ================== NOT NAMESPACED YET ====================;
 
-(defn- avg-distrust
+(defn avg-distrust
   "calculate the average distrust in a geo-curve"
   [curve]
   (stats/mean (map :distrust curve)))
 
-(defn- sd-distrust
+(defn sd-distrust
   "calculate the standard deviation of the trust in a geo-curve"
   [curve]
   (stats/sd (map :distrust curve)))
 
-(defn- remove-untrusted
+(defn remove-untrusted
   "takes a sequence of curves and removes those whose average distrust exceeds
   0.9. The removal only happens in any one curve has an average distrust less
   than 0.1, otherwise all curves are returned as they are"
@@ -24,7 +26,7 @@
     (if (< 0.1 min-dt) curves
       (remove #(< 0.9 (avg-distrust %)) curves))))
 
-(defn- remove-outliers
+(defn remove-outliers
   "takes a sequence of curves and remove the points of each curves that are
   more than 3 standard deviations apart from the mean distrust of the curve.
   If the new curve doesn't have more than 3 points, it is also removed"
@@ -42,16 +44,18 @@
   merged, otherwise they are returned as they are."
   [hypos trace]
   (for [hypo hypos
-        :let [result (route/similarity hypo trace)]]
-    (if-not (:similar? result) hypo
-      (route/fuse hypo trace (:couple result)))))
+        :let [fredis (frechet/partial-distance hypo trace)
+              match  (route/overlap hypo trace (:couple fredis))]]
+    (if-not (> route/MAX-DISIM (/ (:dist fredis) match)) hypo
+      (route/fuse hypo trace (:couple fredis)))))
 
 (defn- with-similar
-  "utility function to use inside recombine"
+  "reducing function. Compare c1 with c2 and stop the reduction if they are similar"
   [_ [c1 c2]]
-  (let [res (route/similarity c1 c2)]
-    (when (:similar? res)
-      (reduced [c1 c2 res]))))
+  (let [fredis (frechet/partial-distance c1 c2)
+        match  (route/overlap c1 c2 (:couple fredis))]
+    (when (> route/MAX-DISIM (/ (:dist fredis) match))
+      (reduced [c1 c2 fredis]))))
 
 (defn recombine
   "takes a sequence of hypotheses and compares them all (all possible combinations).

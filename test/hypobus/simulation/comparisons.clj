@@ -1,5 +1,7 @@
 (ns hypobus.simulation.comparisons
   (:require [clojure.data :refer [diff]]
+            [frechet-dist.core :as frechet]
+            [frechet-dist.protocols :as frepos]
             [hypobus.basics.geometry :as geo]
             [hypobus.simulation.data-handler :as sim]
             [hypobus.simulation.visuals.plotter :as plotter]))
@@ -12,9 +14,9 @@
     (println "only in curves: " (first comparables))
     (println "only in shapes: " (second comparables))
     (for [id (nth comparables 2)
-          :let [tid-shape (geo/tidy geo/haversine (get shapes id))]]
-      {:id id :dist (min (:dist (geo/distance (get curves id) tid-shape))
-                         (:dist (geo/distance (reverse (get curves id)) tid-shape)))})))
+          :let [tid-shape (geo/tidy (get shapes id))]]
+      {:id id :dist (min (:dist (frechet/distance (get curves id) tid-shape))
+                         (:dist (frechet/distance (reverse (get curves id)) tid-shape)))})))
 
 ;; (defonce tmp (comp-dist "/home/camilo/Proyectos/hypobus/assets/filtered/" "assets/gtfs/shapes.txt"))
 

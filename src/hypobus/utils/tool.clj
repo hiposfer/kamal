@@ -14,19 +14,16 @@ coll in groups of n members. Example: (combinations 2 [:a :b :c])
                 (concat (for [x (combinations (dec n) tail)] (cons head x))
                         (combinations n tail))))))
 
-(defn fmap
-  "takes a hash-map and a function and returns a hash-map with the same keys
-  and with (function value) as each value"
-  [f coll]
-  (into {} (for [[kname value] coll]
-             [kname (f value)])))
-
 (defn update-vals
-  "takes a hash-map, a vector of keys and a function and returns the hash-map
-  with the values of mkeys updated by applying f to them.
-  Example: (update-vals {:a 2 :b 3} [:a :b] str) ;=> {:a '2', :b '3'}"
-  [coll mkeys f]
-  (reduce (fn [m mk] (update m mk f)) coll mkeys))
+  "takes an associative structure, a vector of keys and a function and returns
+  the structure with the values of keys updated by applying f to them. Note that
+  reduce-kv is supported on vectors, where the keys will be the ordinals.
+  example (update-vals [:a 2 :b 3] str)"
+  ([coll f]
+   (if (vector? coll) ;; or map?
+    (update-vals coll (range (count coll)) f)
+    (update-vals coll (keys coll) f)))
+  ([coll keys f] (reduce (fn [m k] (update m k f)) coll keys)))
 
 (def last-index
   "returns the last index of a collection"

@@ -1,5 +1,6 @@
 (ns hypobus.simulation.core
   (:require [clojure.core.reducers :as red]
+            [frechet-dist.protocols :as frepos]
             [hypobus.utils.mapbox :as mapbox]
             [hypobus.basics.geometry :as geo]
             [hypobus.conjectures.core :as hypo]
@@ -10,7 +11,7 @@
 (def remove-outliers #'hypo/remove-outliers)
 (def avg-distrust #'hypo/avg-distrust)
 
-(def ^:const ^:private THREAD-GROUP 20)
+(def THREAD-GROUP 20)
 
 (defn simulate-journey
   [filename & journeys]
@@ -22,7 +23,7 @@
         _            (println "---- parallel processing")
         result       (red/fold THREAD-GROUP hypo/conjectures hypo/hypothize trajectories)]
     (println "---- done")
-    (map (partial geo/tidy 20 100 geo/haversine) result)))
+    (map geo/tidy result)))
 
 (defn simulate-day
   [filename]
@@ -36,7 +37,7 @@
                 _           (println "---- parallel processing")
                 pre-result  (red/fold THREAD-GROUP hypo/conjectures hypo/hypothize traces)
                 _           (println "---- finalizing hypothesis")
-                result      (remove-outliers (map (partial geo/tidy 20 100 geo/haversine) pre-result))
+                result      (remove-outliers (map geo/tidy pre-result))
                 best-result (first (sort-by avg-distrust result))]]
       (do (mapbox/write-geojson (str "assets/" jid ".geojson") best-result)
           (println "DONE !! with: " jid "\n")

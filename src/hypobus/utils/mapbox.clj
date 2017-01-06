@@ -3,7 +3,7 @@
   (:require [org.httpkit.client :as http]
             [clojure.data.json :as json]))
 
-(def ^:const ^:private MAX-POINTS 100)
+(def MAX-POINTS 100)
 
 (def ^:private json-template
   {:type "Feature",

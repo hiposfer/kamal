@@ -3,6 +3,7 @@
   (:import [java.util Random])
   (:require [hypobus.utils.tool :as tool]
             [hypobus.basics.geometry :as geo]
+            [frechet-dist.protocols :as frepos]
             [clojure.test.check.generators :as gen]))
 
 (def ^:private rand-gen (new Random))
@@ -43,10 +44,10 @@ must span"
 (defn- point-noise
   "add gaussian noise with sigma=deviation to a point and return the point with
   an estimate of the weight = 1/sigma^2"
-  [deviation point]
-  (let [new-point (tool/fmap #(+ % (rand-gauss deviation)) point)
-        p-dist    (geo/distance point new-point)]
-    (conj new-point {:weight (/ 1 (* p-dist p-dist))})))
+  [deviation hypopoint]
+  (let [new-point (tool/update-vals hypopoint #(+ % (rand-gauss deviation)))
+        p-dist    (frepos/distance hypopoint new-point)]
+    (assoc new-point :weight (/ 1 (* p-dist p-dist)))))
 
 (defn add-noise
   "add gaussian noise with sigma=deviation to all points in a curve. The curve
@@ -77,14 +78,13 @@ must span"
    :max-lat  (apply max (map second curve))})
 
 (defn rand-2Dcurve
-  "create a random 2 dimensional curve inside the given bounds. The resulting
-  curve is on the form {:lat y :lon x :weight z}"
+  "create a random 2 dimensional hypo curve inside the given bounds"
   [size {:keys [min-long max-long min-lat max-lat]}]
   (let [longitude      (gen/double* {:infinite? false :NaN? false :min min-long :max max-long})
         latitude       (gen/double* {:infinite? false :NaN? false :min min-lat :max max-lat})
         point          (gen/tuple longitude latitude)]
-    (map #(conj % {:weight (rand)})
-         (map #(zipmap [:lon :lat] %) (gen/sample point size)))))
+    (map (fn [[lon lat]] (geo/->HypoPoint lon lat geo/MIN-WEIGHT geo/MAX-DISTRUST))
+         (gen/sample point size))))
 
 (defn bandal-curves
   "create a certain amount of random 2 dimensional curves using the bounding

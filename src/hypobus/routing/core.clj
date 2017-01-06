@@ -2,8 +2,6 @@
   (:require [clojure.data.priority-map :as data]))
             ;[proto-repl.saved-values :as proto]))
 
-(set! *warn-on-reflection* true)
-
 (def graph {:a {:out {:b {:weight 7}
                       :c {:weight 9}
                       :f {:weight 14}}}

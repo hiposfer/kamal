@@ -1,61 +1,133 @@
 (ns hypobus.basic-test
   (:require [clojure.test :as test]
+            [clojure.spec.test :as stest]
             [frechet-dist.core :as frechet]
+            [frechet-dist.protocols :as frepos]
             [frechet-dist.sampler :as sampler]
             [hypobus.basics.geometry :as geo]
             [hypobus.conjectures.core :as hypo]
-            [hypobus.simulation.faker :as sim]))
+            [hypobus.conjectures.specs :as hypec]
+            [hypobus.conjectures.route :as route]
+            [hypobus.simulation.faker :as faker]))
 
-;******************************* TEST DATA *******************************;
+
+;; 06.01.2017
+;; http://stackoverflow.com/questions/40697841/howto-include-clojure-specd-functions-in-a-test-suite
+;; macro defined in order to use the instrumented functions in a test suite
+(defmacro defspec-test
+  ([name sym-or-syms] `(defspec-test ~name ~sym-or-syms nil))
+  ([name sym-or-syms opts]
+   (when test/*load-tests*
+     `(def ~(vary-meta name assoc
+                       :test `(fn []
+                                (let [check-results# (clojure.spec.test/check ~sym-or-syms ~opts)
+                                      checks-passed?# (every? nil? (map :failure check-results#))]
+                                  (if checks-passed?#
+                                    (test/do-report {:type    :pass
+                                                     :message (str "Generative tests pass for "
+                                                                (clojure.string/join ", " (map :sym check-results#)))})
+                                    (doseq [failed-check# (filter :failure check-results#)
+                                            :let [r# (clojure.spec.test/abbrev-result failed-check#)
+                                                  failure# (:failure r#)]]
+                                      (test/do-report
+                                        {:type     :fail
+                                         :message  (with-out-str (clojure.spec/explain-out failure#))
+                                         :expected (->> r# :spec rest (apply hash-map) :ret)
+                                         :actual   (if (instance? Throwable failure#)
+                                                     failure#
+                                                     (:clojure.spec.test/val failure#))})))
+                                  checks-passed?#)))
+        (fn [] (test/test-var (var ~name)))))))
+
+;(stest/abbrev-result (first (stest/check `hypobus.conjectures.route/fuse)))
+; (stest/check `hypobus.conjectures.core/recombine
+;              {:clojure.spec.test.check/opts {:num-tests 50}})
+; (stest/check `hypobus.conjectures.core/hypothize
+;              {:clojure.spec.test.check/opts {:num-tests 50}})
+; (stest/check `hypobus.conjectures.core/conjectures
+;              {:clojure.spec.test.check/opts {:num-tests 50}})
+; (stest/check `hypobus.basics.geometry/haversine
+;               {:clojure.spec.test.check/opts {:num-tests 50}})
+
+;; TODO: all of these tests comply which seems weird since some of them fail
+;; when being tested with stest/check
+(defspec-test test-haversine      [hypobus.basics.geometry/haversine] {:clojure.spec.test.check/opts {:num-tests 50}})
+(defspec-test test-recombine      [hypobus.conjectures.core/recombine] {:clojure.spec.test.check/opts {:num-tests 50}})
+(defspec-test test-hypothize      [hypobus.conjectures.core/hypothize] {:clojure.spec.test.check/opts {:num-tests 50}})
+(defspec-test test-conjectures    [hypobus.conjectures.core/conjectures] {:clojure.spec.test.check/opts {:num-tests 50}})
+
+;************************ MANUALLY WRITTEN TEST DATA **************************;
 ;; data manually created based on a mapbox route created manually
 (def connatra-trace [[-75.578556,6.254853],[-75.586194,6.258479],[-75.584177,6.262275],[-75.586495,6.265091],[-75.587568,6.270167],[-75.5904,6.272129],[-75.590271,6.272727],[-75.591173,6.272513],[-75.592546,6.27038],[-75.59452,6.27294],[-75.593919,6.273537],[-75.593147,6.273324],[-75.594906,6.27085],[-75.59658,6.264238]])
 
 (def max-dist 40); meters
-(def num-subcurves 10) ; amount of subcurves
+(def num-subcurves 100) ; amount of subcurves
 (def min-span 0.3); minimum percentage of the original curve
-(def normal-noise 0.0001); degrees. Standard deviation of the location
+(def normal-noise 0.00025); degrees. Standard deviation of the location
 (def burst-noise 0.01); degrees. standard deviation of the burst noise
-(def num-vandals 1)
+(def num-vandals 3)
 
-(def coordinates (sampler/refine connatra-trace max-dist geo/vhaversine))
-(def subcurves (sim/subcurves coordinates num-subcurves min-span))
-(def geo-subcurves (map (fn [s] (map #(zipmap [:lon :lat] %) s))
-                        subcurves))
+; (def coordinates (sampler/refine connatra-trace max-dist frepos/distance))
+; (def hypocurve   (mapv (fn [[lon lat]] (geo/->HypoPoint lon lat geo/MIN-WEIGHT geo/MAX-DISTRUST))
+;                     coordinates))
+; (def subcurves (faker/subcurves hypocurve num-subcurves min-span))
+; (def noisy-curves (map #(faker/add-noise normal-noise %) subcurves))
+; (def spam-curves  (faker/bandal-curves num-vandals coordinates))
+; (def burst-curves (faker/add-burst burst-noise (last noisy-curves)))
+; (def traces (shuffle (concat (butlast noisy-curves) spam-curves (vector burst-curves))))
+;
+; (def foo (sort-by hypo/avg-distrust (hypo/conjectures traces)))
+; (frechet/distance hypocurve (nth foo 0))
+; ;; TODO: make a real test using the test data
+; (require '[proto-repl-charts.charts])
+; (require '[proto-repl-charts.table])
+;
+; (proto-repl-charts.charts/custom-chart
+;   "hypos"
+;   {:data {:xs {"hypo-lat" "hypo-lon"
+;                "lat" "lon"};; y x axis
+;           :columns [(cons "hypo-lat" (map :lat (second (nth foo 0))))
+;                     (cons "hypo-lon" (map :lon (second (nth foo 0))))
+;                     (cons "lat" (map second coordinates))
+;                     (cons "lon" (map first coordinates))]
+;           :type "scatter"}})
 
-(def noisy-curves (map #(sim/add-noise normal-noise %) geo-subcurves))
-(def spam-curves  (sim/bandal-curves num-vandals coordinates))
-(def burst-curves (sim/add-burst burst-noise (last noisy-curves)))
-(def traces (shuffle (concat (butlast noisy-curves) spam-curves (vector burst-curves))))
+(test/deftest connatra
+    (let [coordinates  (sampler/refine connatra-trace max-dist frepos/distance)
+          hypocurve    (mapv (fn [[lon lat]] (geo/->HypoPoint lon lat geo/MIN-WEIGHT geo/MAX-DISTRUST))
+                             coordinates)
+          subcurves    (faker/subcurves hypocurve num-subcurves min-span)
+          noisy-curves (map #(faker/add-noise normal-noise %) subcurves)
+          spam-curves  (faker/bandal-curves num-vandals coordinates)
+          burst-curves (faker/add-burst burst-noise (last noisy-curves))
+          traces       (shuffle (concat (butlast noisy-curves)
+                                        spam-curves
+                                        (vector burst-curves)))
+          result    (sort-by hypo/avg-distrust (hypo/conjectures traces))
+          best-hypo (first result)
+          fredis    (frechet/partial-distance hypocurve best-hypo)
+          match     (route/overlap hypocurve best-hypo (:couple fredis))]
+     (test/is (> route/MAX-DISIM (/ (:dist fredis) match)))
+     (test/is (>= match 0.8)))) ;; more than 80% overlap
 
-;; TODO: make a real test using the test data
-; (def foo (hypo/recombine traces))
-; (map (fn [curve] (frechet/frechet-dist (map #(apply geo/point %) connatra-trace)
-;                                        curve
-;                                        geo/haversine))
-;     foo)
-
-(test/deftest hypothize
-  (let [connatra-trace [[-75.578556,6.254853],[-75.586194,6.258479],[-75.584177,6.262275],[-75.586495,6.265091],[-75.587568,6.270167],[-75.5904,6.272129],[-75.590271,6.272727],[-75.591173,6.272513],[-75.592546,6.27038],[-75.59452,6.27294],[-75.593919,6.273537],[-75.593147,6.273324],[-75.594906,6.27085],[-75.59658,6.264238]]
-        max-dist      40; meters
-        num-subcurves 10 ; amount of subcurves
-        min-span      0.3; minimum percentage of the original curve
-        normal-noise  0.0001; degrees. Standard deviation of the location
-        burst-noise   0.01; degrees. standard deviation of the burst noise
-        num-vandals   1
-
-        coordinates   (sampler/refine connatra-trace max-dist geo/vhaversine)
-        subcurves     (sim/subcurves coordinates num-subcurves min-span)
-        geo-subcurves (map (fn [s] (map #(zipmap [:lon :lat] %) s))
-                           subcurves)
-
-        noisy-curves  (map #(sim/add-noise normal-noise %) geo-subcurves)
-        spam-curves   (sim/bandal-curves num-vandals coordinates)
-        burst-curves  (sim/add-burst burst-noise (last noisy-curves))
-        traces        (shuffle (concat (butlast noisy-curves)
-                                       spam-curves
-                                       (vector burst-curves)))]
-   (test/is (not (nil? traces))))
- (test/is (= 4 (+ 2 2)))
- (test/is (= 7 (+ 3 4))))
-
-(test/run-tests 'hypobus.basic-test)
+; (def hypogenerator (s/gen ::hypec/hypo-curve))
+;
+; (test/deftest any-curve
+;   (let [coordinates  (sampler/refine connatra-trace max-dist frepos/distance)
+;         hypocurve    (mapv (fn [[lon lat]] (geo/->HypoPoint lon lat geo/MIN-WEIGHT geo/MAX-DISTRUST))
+;                            coordinates)
+;         subcurves    (faker/subcurves hypocurve num-subcurves min-span)
+;         noisy-curves (map #(faker/add-noise normal-noise %) subcurves)
+;         spam-curves  (faker/bandal-curves num-vandals coordinates)
+;         burst-curves (faker/add-burst burst-noise (last noisy-curves))
+;         traces       (shuffle (concat (butlast noisy-curves)
+;                                       spam-curves
+;                                       (vector burst-curves)))
+;         result    (sort-by hypo/avg-distrust (hypo/conjectures traces))
+;         best-hypo (first result)
+;         fredis    (frechet/partial-distance hypocurve best-hypo)
+;         match     (route/overlap hypocurve best-hypo (:couple fredis))]
+;    (test/is (> route/MAX-DISIM (/ (:dist fredis) match)))
+;    (test/is (>= match 0.8)))) ;; more than 80% overlap
+;
+; ;;(test/run-tests 'hypobus.basic-test)
