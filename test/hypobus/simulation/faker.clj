@@ -61,8 +61,8 @@ must span"
   [deviation curve]
   (let [vcurve (vec curve)
         length (count vcurve)
-        size   (first (gen/sample (gen/choose 1 (Math/floor (* 0.2 length))) 1))
-        start  (first (gen/sample (gen/choose 0 (- length size)) 1))
+        size   (rand-int (Math/ceil (* 0.2 length)))
+        start  (rand-int (+ 1 (- length size)))
         burst  (add-noise deviation (subvec vcurve start (+ start size)))]
     (concat (subvec vcurve 0 start)
             burst
