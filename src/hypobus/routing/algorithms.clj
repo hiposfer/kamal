@@ -5,44 +5,36 @@
             [hypobus.routing.core :as route])
   (:import (java.util PriorityQueue)))
 
-;; TODO: router/cost should have access to the previously computed paths not just
-;; to the queue
-(defn- relax-arc
-  "Compares the current cost to reach dst against reaching it over
-  edge (alternative). Return [dst cost] when the alternative is cheaper
-  otherwise nil"
-  [router queue curr-id dst edge]
-  (let [alternative (+ (:cost (get queue curr-id))
-                       (route/cost router edge queue)) ;; from-to cost
-        current     (-> (get queue dst)
-                        (get :cost Double/POSITIVE_INFINITY))] ;; current cost
-    (when (> current alternative)
-      [dst (route/->Trace alternative curr-id)])))
+(defn- fast-forward!
+  "moves the queue's head to an unsettled node"
+  [^PriorityQueue queue settled]
+  (while (and (not (.isEmpty queue)) (contains? settled (first (.peek queue))))
+    (.poll queue))) ;; ignore settled nodes
 
-;; NOTE: prefer zero? count over empty?. See priority-map src code.
-;;       This was found out using VisualVm CPU profiler
-;; TODO: try a java PriorityQueue for better performance
-;; TODO: ------ PROFILE ----------------
-;; TODO: check https://github.com/clojure/clojure/blob/master/src/jvm/clojure/lang/PersistentQueue.java
 (defn dijkstra
   "computes the shortest path between src-id and any other node in graph
   using Dijkstra's algorithm with a priority queue. Stops whenever the router
   fulfills its matching criteria or when no more nodes can be reached.
   Returns whatever the router decides to."
   [graph src-id router]
-  (loop [traces (transient (imap/int-map src-id (route/->Trace 0 nil)))
-         queue  (data/priority-map-keyfn :cost src-id (route/->Trace 0 nil))]
-    (if (or (route/stop? router traces) (zero? (count queue)))
-      (route/return router (persistent! traces))
-      (let [[curr-id trz] (peek queue)
-            arcs          (:out-arcs (get graph curr-id))
-            settler       (fn [q k v]
-                            (if (contains? traces k) q
-                              (let [settled (relax-arc router q curr-id k v)]
-                                (if (nil? settled) q
-                                  (conj q settled)))))]
-          (recur (assoc! traces curr-id trz)
-                 (pop (reduce-kv settler queue arcs)))))))
+  (loop [settled (imap/int-map)
+         queue   (doto (new PriorityQueue (fn [[_ tr1] [_ tr2]]
+                                            (compare (:cost tr1) (:cost tr2))))
+                       (.add [src-id (route/->Trace 0 nil)]))]
+    (fast-forward! queue settled) ;; ignore settled nodes
+    (if (or (route/stop? router settled) (.isEmpty queue))
+      (route/return router settled)
+      (let [[curr-id trz] (.poll queue)
+            relax         (fn [_ dst arc]
+                            (if (contains? settled dst) queue
+                              (let [alt-cost (+ (route/cost router arc settled)
+                                                (:cost trz))]
+                                (.add queue [dst (route/->Trace alt-cost curr-id)]))))]
+           ;; add new neighbors
+           (reduce-kv relax queue (:out-arcs (get graph curr-id)))
+           (recur (persistent! (assoc! (transient settled) curr-id trz))
+                  queue)))))
+
 
 (defn path
   "uses the traces structure to reconstruct the path taken to reach the
@@ -63,8 +55,8 @@
         end    (System/currentTimeMillis)]
     (- end start)))
 
-(time (let [res (map #(random-path %) (repeat 50 @osm/foo))]
-           (double (/ (reduce + res) 50))))
+(time (let [res (map #(random-path %) (repeat 100 @osm/foo))]
+           (double (/ (reduce + res) 100))))
 
 ;(random-path @osm/foo)
 
@@ -88,3 +80,4 @@
 ;   (sequence (comp (map #(get @osm/foo %))
 ;                   (map #(select-keys % [:lon :lat])))
 ;             foo))
+
