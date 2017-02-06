@@ -16,6 +16,7 @@
   ;;https://github.com/technomancy/leiningen/issues/2173
   :monkeypatch-clojure-test false
   :plugins [[jonase/eastwood "0.2.3"]]
-  :jvm-opts ["-Xmx2g"]
+  :jvm-opts ["-Xmx2g" "-XX:-OmitStackTraceInFastThrow"]
+                      ;; prevents NullPointerException   [trace missing]
   :profiles {:dev {:dependencies [[org.clojure/test.check "0.9.0"] ; generate test data
                                   [org.clojure/data.csv "0.1.3"]]}}) ; read test data

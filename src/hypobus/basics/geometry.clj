@@ -1,7 +1,8 @@
 (ns hypobus.basics.geometry
   (:require [frechet-dist.core :as frechet]
             [frechet-dist.protocols :as frepos]
-            [hypobus.utils.tool :as tool]))
+            [hypobus.utils.tool :as tool])
+  (:import (clojure.lang IPersistentMap Sequential)))
 
 ;; TODO: most of these declarations should be dynamic at some point
 (def MAX-DISTRUST 1.0)
@@ -12,13 +13,11 @@
 (def MAX-DIST 100); meters
 (def MAX-GAP  300); meters
 
-;; TODO: Do I really need the type hints here even after I put them
-;;      on the record ?
 (defn haversine
   "Compute the great-circle distance between two points on Earth given their
   longitude and latitude in RADIANS. The distance is computed in meters
   by default."
-  [^double lon-1 ^double lat-1 ^double lon-2 ^double lat-2]
+  [lon-1 lat-1 lon-2 lat-2]
   (let [h  (+ (Math/pow (Math/sin (/ (- lat-2 lat-1) 2)) 2)
               (* (Math/pow (Math/sin (/ (- lon-2 lon-1) 2)) 2)
                  (Math/cos lat-2)
@@ -41,22 +40,21 @@
   (frepos/distance [p1 p2]
     (haversine (Math/toRadians (:lon p1)) (Math/toRadians (:lat p1))
                (Math/toRadians (:lon p2)) (Math/toRadians (:lat p2))))
-  clojure.lang.IPersistentMap ;; point as hash-map
+  IPersistentMap ;; point as hash-map
   (frepos/distance [p1 p2]
     (haversine (Math/toRadians (:lon p1)) (Math/toRadians (:lat p1))
                (Math/toRadians (:lon p2)) (Math/toRadians (:lat p2))))
-  clojure.lang.Sequential ;; point as a lat,lon tuple
+  Sequential ;; point as a lat,lon tuple
   (frepos/distance [[lon lat] [lon2 lat2]]
     (haversine (Math/toRadians lon)  (Math/toRadians lat)
                (Math/toRadians lon2) (Math/toRadians lat2))))
 
-;; TODO: do I need to provide an init value for the gaps function?
 (defn gaps
   "returns a reducing function to use with partition-by such that a curve can
   be partitioned into several onees if the distance between two consecutive
   points is greater than max-gap. f is the function used to calculate the
-  distance between two points in the curve. f defaults to the
-  frechet.protocols/distance and max-gap defaults to hypobus.basics.geometry/MAX-GAP"
+  distance between two points in the curve. f defaults to frechet.protocols/distance
+  and max-gap defaults to hypobus.basics.geometry/MAX-GAP"
   ([]
    (gaps MAX-GAP frepos/distance))
   ([max-gap]
@@ -85,7 +83,6 @@
 ;; example
 ;; (interpolate {:a 0 :b 0} {:a 5 :b 5} 3)
 
-;; TODO: why do I need to provide a distance function?
 (defn tidy
   "tidy up a curve such that the distance between two points is not smaller
   than min-dist and not greater than max-dist. f is the function used to
