@@ -8,7 +8,6 @@
                  [org.clojure/data.json "0.2.6"] ; create geojson objects
                  [org.clojure/data.xml "0.0.8"] ; parse xml lazily
                  [org.clojure/data.int-map "0.2.2"] ; fast integers-map
-                 [org.clojure/data.priority-map "0.0.7"] ; for dijkstra algorithm
                  [http-kit "2.1.19"]] ; to send http requests to mapbox
   ;; Sets the values of global vars within Clojure.
   :global-vars {*warn-on-reflection* true
