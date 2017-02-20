@@ -53,12 +53,14 @@
   "updates arc with the length between its nodes and, associates arc
   into graph (transient)"
   [graph arc]
-  (let [src (get graph (:src-id arc))
-        dst (get graph (:dst-id arc))
+  (let [src (get graph (:src arc))
+        dst (get graph (:dst arc))
         ned (assoc arc :length (frepos/distance src dst))]
-    (-> graph (assoc! (:src-id arc) (assoc-in src [:out-arcs (:dst-id arc)] ned))
-              (assoc! (:dst-id arc) (assoc-in dst [:in-arcs (:src-id arc)] ned)))))
+    (-> graph (assoc! (:src arc) (assoc-in src [:out-arcs (:dst arc)] ned))
+              (assoc! (:dst arc) (assoc-in dst [:in-arcs  (:src arc)] ned)))))
 
+;; TODO: this can probably be optimized if we make the complete process lazy
+;;       instead of storing all nodes and then assoc them to the arcs
 ;; xml-parse: (element tag attrs & content)
 (defn osm->graph
   "takes an OSM-file and returns an int-map of Nodes representing the road
@@ -67,12 +69,12 @@
   (with-open [file-rdr (clojure.java.io/reader filename)]
     (let [elements   (xml-seq (xml/parse file-rdr))
           nodes&ways (sequence (comp (map #(cond (node-tag? %) (element->node-entry %)
-                                                 (highway? %) (highway->arcs %)
+                                                 (highway? %)  (highway->arcs %)
                                                  :else nil))
                                      (remove nil?))
                            elements)
-          arcs  (sequence (comp (filter vector?) (mapcat identity)) nodes&ways)
-          nodes  (into (imap/int-map) (filter map?) nodes&ways)]
+          arcs       (sequence (comp (filter vector?) (mapcat identity)) nodes&ways)
+          nodes      (into (imap/int-map) (filter map?) nodes&ways)]
       (persistent! (reduce upnodes! (transient nodes) arcs)))))
 
 (defn- unreachable
@@ -82,11 +84,12 @@
   (when (and (empty? (:out-arcs node)) (empty? (:in-arcs node)))
     id))
 
-;; TODO: it should check connected components but that is too complicated for directed graphs
+;; TODO: it should check connected components but I need to find a way for directed graphs
 (defn cleanup
   "disassociate every node from graph that is unreachable"
   [graph]
   (let [removable (sequence (comp (map unreachable) (remove nil?)) graph)]
     (persistent! (reduce dissoc! (transient graph) removable))))
 
-(def foo (future (time (cleanup (osm->graph "resources/osm/saarland.osm")))))
+;(def foo (future (time (cleanup (osm->graph "resources/osm/saarland.osm")))))
+;(apply + (map (comp count :dst second) @foo))
