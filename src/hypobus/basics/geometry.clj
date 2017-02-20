@@ -13,6 +13,20 @@
 (def MAX-DIST 100); meters
 (def MAX-GAP  300); meters
 
+(defn euclidean-pow2
+  "computes the squared euclidean distance between p1 and p2 being both of them
+  geo-points. Use only if you interested in performance and not on the real value
+  since the square root is an expensive computation"
+  [p1 p2]
+  (+ (Math/pow (- (:lat p1) (:lat p2)) 2)
+     (Math/pow (- (:lon p1) (:lon p2)) 2)))
+
+(defn euclidean
+  "computes the euclidean distance between p1 and p2 being both of them
+  geo-points"
+  [p1 p2]
+  (Math/sqrt (euclidean-pow2 p1 p2)))
+
 (defn haversine
   "Compute the great-circle distance between two points on Earth given their
   longitude and latitude in RADIANS. The distance is computed in meters
