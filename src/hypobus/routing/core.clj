@@ -49,7 +49,7 @@
    ::bidirectional executes a single-thread bidirectional traversal by interleaving
    the forward and backward search whereas ::parallel executes a multi-thread (2)
    traversal"
-  #{::forward ::backward ::bidirectional ::parallel})
+  #{::forward ::backward ::bidirectional}) ;::parallel})
 
 ;; ----------- ROUTERS for Graph traversal ------------------------------;
 ;; Search from One src to One dst
@@ -65,9 +65,8 @@
   (direction [this] "the direction in which the Dijkstra's traversal is executed.
                      See hypobus.routing.core/directions")
   (worth [this arc settled] "returns a tuple [cost time] for traversing this Arc")
-  (stop? [this settled settling]
-         [this settled-src curr-forward settled-dst curr-backward]
-         "stop relaxing arcs?. Note that settled does not contain (yet) the settling id"))
+  (stop? [this settled last-settled]
+         [this settled-src curr-forward settled-dst curr-backward] "stop relaxing arcs?"))
 
 ;; ------------ IMPLEMENTATIONS ---------------------------------;
 (extend-protocol frepos/Distance

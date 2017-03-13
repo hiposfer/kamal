@@ -2,11 +2,27 @@
   (:require [clojure.edn :as edn]
             [clojure.data.json :as json]))
 
+(defn unique-by
+  "Returns a lazy sequence of the elements of coll with duplicates attributes removed.
+   Returns a stateful transducer when no collection is provided."
+  ([attr coll]
+   (sequence (unique-by attr) coll))
+  ([attr]
+   (let [seen (volatile! (transient {}))
+         rf   (fn [v] (if (get @seen (attr v)) true
+                        (do (vswap! seen assoc! (attr v) true) false)))]
+     (remove rf))))
+
+(defn unique
+  "Returns a lazy sequence of the elements of coll with duplicates removed.
+   Returns a stateful transducer when no collection is provided."
+  ([] (unique-by identity))
+  ([coll] (unique-by identity coll)))
 
 (defn combinations
  "returns a lazy sequence of all the possible combinations of the elements in
-coll in groups of n members. Example: (combinations 2 [:a :b :c])
-                                      ;=> ((:a :b) (:a :c) (:b :c))"
+  coll in groups of n members.
+Example: (combinations 2 [:a :b :c]) ;;=> ((:a :b) (:a :c) (:b :c))"
   [n coll]
   (if (= 1 n)
     (map list coll)

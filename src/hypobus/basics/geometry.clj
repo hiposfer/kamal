@@ -13,6 +13,8 @@
 (def MAX-DIST 100); meters
 (def MAX-GAP  300); meters
 
+;; TODO: this is not generic enough as it implies knowing :lat and :lon. A real
+;; euclidean pow2 should be agnostic of that and only care about (diff x y)
 (defn euclidean-pow2
   "computes the squared euclidean distance between p1 and p2 being both of them
   geo-points. Use only if you interested in performance and not on the real value
