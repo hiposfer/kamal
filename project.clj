@@ -12,7 +12,7 @@
   ;; Sets the values of global vars within Clojure.
   :global-vars {*warn-on-reflection* true
                 *print-length* 50}
-  ;;https://github.com/technomancy/leiningen/issues/2173
+  ;;FIXME: https://github.com/technomancy/leiningen/issues/2173
   :monkeypatch-clojure-test false
   :plugins [[jonase/eastwood "0.2.3"]]
   :jvm-opts ["-Xmx4g" "-XX:-OmitStackTraceInFastThrow"]
