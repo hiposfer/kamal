@@ -1,6 +1,6 @@
-(ns hypobus.utils.tool
-  (:require [clojure.edn :as edn]
-            [clojure.data.json :as json]))
+(ns backend.utils.tool
+  "useful functions that have not found a proper place yet")
+
 
 (defn unique-by
   "Returns a lazy sequence of the elements of coll with duplicates attributes removed.
@@ -41,16 +41,38 @@ Example: (combinations 2 [:a :b :c]) ;;=> ((:a :b) (:a :c) (:b :c))"
     (update-vals coll (keys coll) f)))
   ([coll keys f] (reduce (fn [m k] (update m k f)) coll keys)))
 
-(def last-index
-  "returns the last index of a collection"
-  (comp dec count))
+;; TODO: this is not generic enough as it implies knowing :lat and :lon. A real
+;; euclidean pow2 should be agnostic of that and only care about (diff x y)
+(defn euclidean-pow2
+  "computes the squared euclidean distance between p1 and p2 being both of them
+  geo-points. Use only if you interested in performance and not on the real value
+  since the square root is an expensive computation"
+  [p1 p2]
+  (+ (Math/pow (- (:lat p1) (:lat p2)) 2)
+     (Math/pow (- (:lon p1) (:lon p2)) 2)))
 
-(defn parse-number
-  "coerces a string containing either an integer or a floating point number"
-  [^String str-number]
-  (let [res (edn/read-string str-number)]
-    (when (number? res) res)))
+(defn euclidean
+  "computes the euclidean distance between p1 and p2 being both of them
+  geo-points"
+  [p1 p2]
+  (Math/sqrt (euclidean-pow2 p1 p2)))
 
-(defn read-curve [filename] (json/read-str (slurp filename) :key-fn keyword))
+(def RADIOUS 6372800); radious of the Earth in meters
 
-(defn geojson->curve [filename] (-> (read-curve filename) :geometry :coordinates))
+(defn haversine
+  "Compute the great-circle distance between two points on Earth given their
+  longitude and latitude in RADIANS. The distance is computed in meters
+  by default."
+  [lon-1 lat-1 lon-2 lat-2]
+  (let [h  (+ (Math/pow (Math/sin (/ (- lat-2 lat-1) 2)) 2)
+              (* (Math/pow (Math/sin (/ (- lon-2 lon-1) 2)) 2)
+                 (Math/cos lat-2)
+                 (Math/cos lat-1)))]
+    (* RADIOUS 2 (Math/asin (Math/sqrt h)))))
+
+;; (frepos/distance [-86.67 36.12] [-118.40 33.94])
+;=> 2887.2599506071106 km
+; distance between paris and san francisco
+; (* (frepos/distance [2.33 48.87] [-122.4 37.8]) (/ 3440.069 6372))
+; => 4831.502535634215 nauticals miles
+

@@ -1,8 +1,7 @@
-(ns hypobus.routing.core
-  (:require [frechet-dist.protocols :as frepos]
-            [hypobus.basics.geometry :refer [haversine]]
-            [clojure.data.int-map :as imap]
+(ns backend.routing.core
+  (:require [clojure.data.int-map :as imap]
             [clojure.set :as set]))
+
 
 ;; TODO: consider replacing the uses of defprotocol with definterface+
 ;;       as described in https://github.com/ztellman/potemkin#definterface
@@ -63,18 +62,12 @@
   (destinations [this] "the set of node ids from which Dijkstra's algorithm would start
                         in a backward traversal")
   (direction [this] "the direction in which the Dijkstra's traversal is executed.
-                     See hypobus.routing.core/directions")
+                     See backend.routing.core/directions")
   (worth [this arc settled] "returns a tuple [cost time] for traversing this Arc")
   (stop? [this settled last-settled]
          [this settled-src curr-forward settled-dst curr-backward] "stop relaxing arcs?"))
 
 ;; ------------ IMPLEMENTATIONS ---------------------------------;
-(extend-protocol frepos/Distance
-  Node ;; graph node as a geographical point
-  (frepos/distance [p1 p2]
-    (haversine (Math/toRadians (:lon p1)) (Math/toRadians (:lat p1))
-               (Math/toRadians (:lon p2)) (Math/toRadians (:lat p2)))))
-
 (extend-protocol GraphTraversal
   ArcLengthRouter
   (sources [this] (imap/int-set [(:src this)]))
