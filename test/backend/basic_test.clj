@@ -1,4 +1,4 @@
-;(ns hypobus.basic-test
+(ns backend.basic-test)
 ;  (:require [clojure.test :as t]
 ;            [clojure.spec.test :as stest]
 ;            [frechet-dist.core :as frechet]
