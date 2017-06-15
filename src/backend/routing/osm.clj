@@ -1,6 +1,5 @@
 (ns backend.routing.osm
   (:require [clojure.data.xml :as xml]
-            [clojure.data.int-map :as i]
             [clojure.data.int-map :as imap]
             [backend.routing.core :as route]
             [backend.utils.tool :as utils]))

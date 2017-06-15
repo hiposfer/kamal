@@ -3,9 +3,9 @@
   :url "http://example.com/FIXME"
   :license {:name "LGPLv3"
             :url "https://github.com/carocad/backend/blob/master/LICENSE"}
-  :dependencies [[org.clojure/clojure "1.9.0-alpha14"]
+  :dependencies [[org.clojure/clojure "1.9.0-alpha17"]
                  [org.clojure/data.xml "0.0.8"] ; parse xml lazily
-                 [org.clojure/data.int-map "0.2.2"]] ; fast integers-map
+                 [org.clojure/data.int-map "0.2.4"]] ; fast integers-map
   ;; Sets the values of global vars within Clojure.
   :global-vars {*warn-on-reflection* true
                 *print-length* 50}
