@@ -1,12 +1,9 @@
-(ns hypobus.routing.osm
+(ns backend.routing.osm
   (:require [clojure.data.xml :as xml]
             [clojure.data.int-map :as i]
             [clojure.data.int-map :as imap]
-            [frechet-dist.protocols :as frepos]
-            [hypobus.routing.core :as route]))
-
-(comment certainly some work could be improved using clojure reducers
-         but does it worth it?)
+            [backend.routing.core :as route]
+            [backend.utils.tool :as utils]))
 
 ;; <node id="298884269" lat="54.0901746" lon="12.2482632" user="SvenHRO"
 ;;      uid="46882" visible="true" version="1" changeset="676636"
@@ -55,12 +52,11 @@
   [graph arc]
   (let [src (get graph (:src arc))
         dst (get graph (:dst arc))
-        ned (assoc arc :length (frepos/distance src dst))]
+        ned (assoc arc :length (utils/haversine (:lon src) (:lat src)
+                                                (:lon dst) (:lat dst)))]
     (-> graph (assoc! (:src arc) (assoc-in src [:out-arcs (:dst arc)] ned))
               (assoc! (:dst arc) (assoc-in dst [:in-arcs  (:src arc)] ned)))))
 
-;; TODO: this can probably be optimized if we make the complete process lazy
-;;       instead of storing all nodes and then assoc them to the arcs
 ;; xml-parse: (element tag attrs & content)
 (defn osm->graph
   "takes an OSM-file and returns an int-map of Nodes representing the road
@@ -90,6 +86,3 @@
   [graph]
   (let [removable (sequence (comp (map unreachable) (remove nil?)) graph)]
     (persistent! (reduce dissoc! (transient graph) removable))))
-
-;(def foo (future (time (cleanup (osm->graph "resources/osm/saarland.osm")))))
-;(apply + (map (comp count :dst second) @foo))
