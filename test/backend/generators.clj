@@ -53,9 +53,5 @@
         graph   (into {} (map reflect-arcs (gen/generate grapher)))]
     (into (sorted-map) (map #(clean-arcs graph %) graph))))
 
-(graph 100)
-
-;node    (s/gen :graph/node {:node/out-arcs arc})
-;ids   (set (concat (mapcat (comp keys :out-arcs) nodes)
-;                   (mapcat (comp keys :in-arcs)  nodes)))
-;(into {} (map vector ids nodes))
+;example usage
+;(graph 100)
