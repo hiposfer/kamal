@@ -4,7 +4,8 @@
             ;[clojure.test.check :as tc]
             [backend.routing.algorithms :as alg]
             [backend.routing.core :as core]
-            [backend.generators :as g]))
+            [backend.generators :as g]
+            [clojure.test.check.generators :as gen]))
 
 ; -------------------------------------------------------------------
 ; The Dijkstra algorithm is deterministic, therefore for the same src/dst
@@ -12,7 +13,7 @@
 ; path(src,dst) = path(src, dst)
 (defspec deterministic
   100; tries
-  (prop/for-all [graph (g/graph 100)]
+  (prop/for-all [graph (gen/such-that not-empty (g/graph 100))]
     (let [src    (rand-nth (keys graph))
           dst    (rand-nth (keys graph))]
       (apply = (repeatedly 10 #(alg/dijkstra graph (core/->ArcLengthRouter src dst ::core/forward)))))))
