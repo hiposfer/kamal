@@ -1,6 +1,6 @@
 (ns backend.specs
-  (:require [clojure.spec.alpha :as s]
-            [clojure.set :as set]
+  (:require [clojure.set :as set]
+            [clojure.spec.alpha :as s]
             [backend.routing.core :as core]))
 
 (s/def :arc/kind (set (keys core/speeds)))
