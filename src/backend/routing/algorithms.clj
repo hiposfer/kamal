@@ -32,6 +32,8 @@
                                                   curr-id)])))]
     (reduce-kv relax queue (arcs (get graph curr-id))))) ;; add new neighbors
 
+;TODO: this would probably be better as a reduction
+; http://insideclojure.org/2015/01/18/reducible-generators/
 (defn dijkstra-1d
   "computes the shortest path between a set of sources and any other node in graph
   using Dijkstra's algorithm with a priority queue. Stops whenever the router
