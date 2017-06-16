@@ -14,9 +14,10 @@
 (s/def :node/out-arcs :node/arcs)
 (s/def :node/in-arcs :node/arcs)
 
-(s/def :graph/arc (s/keys :req-un [:arc/src :arc/dst :arc/length :arc/kind]))
-(s/def :graph/node (s/keys :req-un [:node/lat :node/lon :node/out-arcs :node/in-arcs]))
-
+(s/def :graph/arc (s/and (s/keys :req-un [:arc/src :arc/dst :arc/length :arc/kind])
+                         (fn [arc] (not= (:src arc) (:dst arc)))))
+(s/def :graph/node (s/and (s/keys :req-un [:node/lat :node/lon :node/out-arcs :node/in-arcs])
+                          (fn [node] (or (not-empty (:out-arcs node)) (not-empty (:in-arcs node))))))
 (s/def :int-map/graph (s/map-of int? :graph/node))
 
 (defn- valid-ids?
