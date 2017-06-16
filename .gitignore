@@ -23,9 +23,6 @@ pom.xml.asc
 # CMake
 cmake-build-debug/
 
-# Mongo Explorer plugin:
-.idea/**/mongoSettings.xml
-
 ## File-based project format:
 *.iws
 
