@@ -13,7 +13,7 @@
 ; path(src,dst) = path(src, dst)
 (defspec deterministic
   100; tries
-  (prop/for-all [graph (gen/such-that not-empty (g/graph 100) 1000)]
+  (prop/for-all [graph (gen/such-that not-empty (g/graph 10) 1000)]
     (let [src    (rand-nth (keys graph))
           dst    (rand-nth (keys graph))]
       (apply = (repeatedly 10 #(alg/dijkstra graph (core/->ArcLengthRouter src dst ::core/forward)))))))
