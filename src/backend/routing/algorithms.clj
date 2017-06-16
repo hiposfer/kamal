@@ -5,6 +5,9 @@
             [backend.routing.core :as route])
   (:import (java.util PriorityQueue Queue)))
 
+; travis ci seems to complaint about not finding a matching constructor if the
+; init size is not there. Funnily the ctor with a single comparator is not defined
+; in the java docs .... hmmm :/
 (defn- init-queue
   "Returns a new MUTABLE priority queue and adds all the sources id to
   the beginning of the queue."
@@ -125,7 +128,6 @@
                             3 {:src 3 :length 2 :kind :other}
                             5 {:src 5 :length 9 :kind :other}}}})
 
-;(time (path rosetta (dijkstra rosetta 1 5) 5))
 ;(dijkstra rosetta (route/->ArcLengthRouter 1 5 ::route/forward))
 ;Distances from 1: ((1 0) (2 7) (3 9) (4 20) (5 26) (6 11))
 ;Shortest path: (1 3 4 5)
