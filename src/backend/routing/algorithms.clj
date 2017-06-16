@@ -12,7 +12,7 @@
   [init-set]
   (let [cheapest-path (fn [[_ tr1] [_ tr2]] (compare (:cost tr1) (:cost tr2)))]
     (reduce (fn [^PriorityQueue q id] (.add q [id (route/->Trace 0 0 nil)]) q)
-            (new PriorityQueue cheapest-path)
+            (new PriorityQueue 10 cheapest-path); 10 init size
             init-set)))
 
 (defn- fast-forward!
