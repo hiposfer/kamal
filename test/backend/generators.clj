@@ -32,10 +32,11 @@
                                    :arc/dst picker})
         arcs   #(gen/map (picker) arc)
         nodes   (s/gen :graph/node {:node/arcs arcs})]
-    (gen/map (picker) nodes)))
+    (gen/map (picker) nodes {:num-elements max, :max-tries 100})))
 
 (defn graph
-  "returns a graph generator with node's id between 0 and max"
+  "returns a graph generator with node's id between 0 and max.
+  The generator creates a maximum of max elements"
   [max]
   (gen/fmap clean-graph (grapher max)))
 

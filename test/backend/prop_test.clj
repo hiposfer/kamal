@@ -1,8 +1,7 @@
 (ns backend.prop-test
-  (:require [clojure.test.check :as tc]
-            [clojure.test.check.generators :as gen]
-            [clojure.test.check.properties :as prop]
+  (:require [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
+            ;[clojure.test.check :as tc]
             [backend.routing.algorithms :as alg]
             [backend.routing.core :as core]
             [backend.generators :as g]))
@@ -13,11 +12,10 @@
 ; path(src,dst) = path(src, dst)
 (defspec deterministic
   100; tries
-  (prop/for-all [graph (g/graph 10)]
-    (let [src (rand-nth (keys graph))
-          dst (rand-nth (keys graph))
-          router (core/->ArcLengthRouter src dst :out-arcs)
-          (apply = (repeatedly (alg/dijkstra-1d graph router (core/sources router) :out-arcs)
-                           10))])))
+  (prop/for-all [graph (g/graph 100)]
+    (let [src    (rand-nth (keys graph))
+          dst    (rand-nth (keys graph))]
+      (apply = (repeatedly 10 #(alg/dijkstra graph (core/->ArcLengthRouter src dst ::core/forward)))))))
 
 ;(tc/quick-check 100 deterministic)
+
