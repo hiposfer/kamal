@@ -27,31 +27,41 @@
   (println (count (set/difference (into out-ids in-ids) ids)))
   (set/intersection (into out-ids in-ids) ids))
 
-(defn reflect-arcs
+(defn- reflect-arcs
   [[id node]]
   (let [outs (map #(vector (:dst (second %)) (second %)) (:out-arcs node))
         ins  (map #(vector (:src (second %)) (second %)) (:in-arcs node))]
     [id (assoc node :out-arcs (into {} outs)
                     :in-arcs  (into {} ins))]))
 
-(defn clean-arcs
+(defn- clean-arcs
   [graph [id node]]
   (let [outs (filter #(contains? graph (first %)) (:out-arcs node))
         ins  (filter #(contains? graph (first %)) (:in-arcs node))]
     [id (assoc node :out-arcs (into {} outs)
                     :in-arcs  (into {} ins))]))
 
+(defn- clean-graph
+  [graph]
+  (let [graph2 (into {} (map reflect-arcs graph))]
+    (into (sorted-map) (map #(clean-arcs graph2 %) graph2))))
 
-(defn graph
+(defn- grapher
+  "returns a graph generator. WARNING: do not use this directly !!
+  The generated graph might not be consistent since its node ids are
+  randomly generated"
   [max]
   (let [picker #(gen/elements (range max))
         arc     (s/gen :graph/arc {:arc/src picker
                                    :arc/dst picker})
         arcs   #(gen/map (picker) arc)
-        nodes   (s/gen :graph/node {:node/arcs arcs})
-        grapher (gen/map (picker) nodes)
-        graph   (into {} (map reflect-arcs (gen/generate grapher)))]
-    (into (sorted-map) (map #(clean-arcs graph %) graph))))
+        nodes   (s/gen :graph/node {:node/arcs arcs})]
+    (gen/map (picker) nodes)))
+
+(defn graph
+  "generate a single graph with random integer node id in the 0 - max range"
+  [max]
+  (gen/fmap clean-graph (grapher max)))
 
 ;example usage
-;(graph 100)
+;(gen/generate (graph 10))
