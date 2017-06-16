@@ -1,8 +1,7 @@
 (ns backend.specs
   (:require [clojure.spec.alpha :as s]
             [clojure.set :as set]
-            [backend.routing.core :as core]
-            [backend.specs :as core.specs])) ;; loads the spec in the registry
+            [backend.routing.core :as core]))
 
 (s/def :arc/kind (set (keys core/speeds)))
 (s/def :arc/length (s/and int? pos?))
