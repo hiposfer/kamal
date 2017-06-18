@@ -27,18 +27,18 @@
   The generated graph might not be consistent since its node ids are
   randomly generated"
   [max]
-  (let [picker #(gen/elements (range max))
+  (let [picker #(gen/elements (range (* 3 max)))
         arc     (s/gen :graph/arc {:arc/src picker
                                    :arc/dst picker})
-        arcs   #(gen/map (picker) arc)
+        arcs   #(gen/map (picker) arc {:min-elements 3 :max-elements 5})
         nodes   (s/gen :graph/node {:node/arcs arcs})]
     (gen/map (picker) nodes {:num-elements max, :max-tries 100})))
 
 (defn graph
-  "returns a graph generator with node's id between 0 and max.
-  The generator creates a maximum of max elements"
-  [max]
-  (gen/fmap clean-graph (grapher max)))
+  "returns a graph generator with node's id between 0 and 3*size.
+  The generator creates a minimum of size elements"
+  [size]
+  (gen/fmap clean-graph (grapher size)))
 
 ;example usage
 ;(gen/generate (graph 10))
