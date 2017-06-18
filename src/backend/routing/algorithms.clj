@@ -37,6 +37,9 @@
 
 ;TODO: this would probably be better as a reduction
 ; http://insideclojure.org/2015/01/18/reducible-generators/
+
+;; NOTE: this would probably be way better is an eduction is returned
+;; that way I can avoid creating types and other weird stuff
 (defn dijkstra-1d
   "computes the shortest path between a set of sources and any other node in graph
   using Dijkstra's algorithm with a priority queue. Stops whenever the router
