@@ -1,0 +1,25 @@
+
+Testing backend.benchmark
+
+saarland graph: benchmarking 5 executions with random src/dst
+dijkstra forward with: 470230 nodes and 504460 edges
+amd64 Linux 4.4.0-79-generic 4 cpu(s)
+Evaluation count : 6 in 6 samples of 1 calls.
+             Execution time mean : 2,699925 sec
+    Execution time std-deviation : 858,855669 ms
+   Execution time lower quantile : 2,042567 sec ( 2,5%)
+   Execution time upper quantile : 3,753547 sec (97,5%)
+                   Overhead used : 1,475281 ns
+
+randomly generated graphs: benchmarking 5 execution with random src/dst
+dijkstra forward with: 1000 nodes and 1321 edges
+amd64 Linux 4.4.0-79-generic 4 cpu(s)
+Evaluation count : 216 in 6 samples of 36 calls.
+             Execution time mean : 3,043712 ms
+    Execution time std-deviation : 118,844758 µs
+   Execution time lower quantile : 2,914827 ms ( 2,5%)
+   Execution time upper quantile : 3,183136 ms (97,5%)
+                   Overhead used : 1,475281 ns
+
+Ran 2 tests containing 0 assertions.
+0 failures, 0 errors.
