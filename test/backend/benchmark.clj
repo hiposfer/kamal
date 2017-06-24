@@ -23,7 +23,7 @@
                    :let [src (rand-nth (keys graph))
                          dst (rand-nth (keys graph))]]
                (alg/dijkstra graph (core/->ArcLengthRouter src dst ::core/forward))))
-      :os)))
+      :os :runtime :verbose)))
 
 (def grapher (delay (osm/cleanup (osm/osm->graph "resources/osm/saarland.osm"))))
 
@@ -36,4 +36,4 @@
                    :let [src (rand-nth (keys graph))
                          dst (rand-nth (keys graph))]]
                (alg/dijkstra graph (core/->ArcLengthRouter src dst ::core/forward))))
-      :os)))
+      :os :runtime :verbose)))
