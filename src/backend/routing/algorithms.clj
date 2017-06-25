@@ -1,7 +1,8 @@
-(ns backend.routing.algorithms ;; TODO give a proper name
+(ns backend.routing.algorithms                              ;; TODO give a proper name
   (:require [backend.utils.tool :as utils]
             [backend.routing.core :as route]
-            [clojure.data.int-map :as imap]))
+            [clojure.data.int-map :as imap])
+  (:import (clojure.lang IPersistentMap)))
 
 (defn path
   "uses the traces structure to reconstruct the path taken to reach the
@@ -66,14 +67,44 @@
                             3 {:src 3 :length 2  :kind :other}
                             5 {:src 5 :length 9  :kind :other}}}})
 
-(def foo (into (imap/int-map) (map (fn [[k v]] [k (route/->Node 0 0 (:out-arcs v) (:in-arcs v))]))
-                              rosetta))
-
-;(dijkstra rosetta (route/->ArcLengthRouter 1 5 ::route/forward))
-(reduce (fn [res v] (println (route/id v) "->" (route/cost (route/worth v))))
-        nil
-        (route/dijkstra foo :worth route/length
-                            :direction ::route/forward
-                            :src   #{1}))
 ;Distances from 1: ((1 0) (2 7) (3 9) (4 20) (5 26) (6 11))
 ;Shortest path: (1 3 4 5)
+
+(defn length
+  [arc _]
+  (let [val (/ (:length arc) (get (:kind arc) route/speeds route/min-speed))]
+    (route/->SimpleValue val)))
+
+(extend-protocol route/Context
+  IPersistentMap
+  (predecessors [this] (:in-arcs this))
+  (successors    [this] (:out-arcs this)))
+
+;(dijkstra rosetta (route/->ArcLengthRouter 1 5 ::route/forward))
+
+(def performer (route/dijkstra rosetta :worth length
+                                       :direction ::route/forward
+                                       :src   #{1}))
+;; ------- examples
+;(reduce
+;  (fn [res v]
+;    (if-not (nil? res)
+;      (println (map route/id (route/path res))
+;               (map route/id (route/path v)))
+;      (println res (map route/id (route/path v)))))
+;  performer)
+;
+;(reduce
+;  (fn [res v] (println res (map route/id (route/path v))))
+;  nil
+;  performer)
+;
+;
+;(map (comp (partial map route/id) route/path) performer)
+;(map route/id (route/path (nth performer 6)))
+;
+;(transduce (halt-when (fn bar [v] (= 4 (route/id v))))
+;           (fn foo ([res] (println "res" res))
+;                   ([res v] (println "id" (route/id v))))
+;           nil
+;           performer)

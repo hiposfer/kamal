@@ -1,7 +1,7 @@
 (ns backend.routing.core
   (:require [clojure.data.int-map :as imap])
   (:import (java.util PriorityQueue Queue)
-           (clojure.lang IReduceInit))
+           (clojure.lang IReduceInit Seqable Sequential IReduce))
   (:refer-clojure :exclude [time]))
 
 ;; TODO: consider replacing the uses of defprotocol with definterface+
@@ -32,7 +32,6 @@
    ::unsurfaced 30,     ::living_street 10, ::service 5})
 
 (def min-speed 1) ;;km/h
-(def directions #{::forward ::backward})
 
 ;; Protocols for Inductive graph implementation as defined by Martin Erwig
 ;; https://web.engr.oregonstate.edu/~erwig/papers/InductiveGraphs_JFP01.pdf
@@ -48,7 +47,7 @@
   ; functionality simply implement the `Clojure.lang.Ilookup` interface
 
 ;; NOTE: I intentionally left the ID out of the Context protocol in order to avoid
-;;       carrying to much information simulatanously. For example if you just want
+;;       carrying to much information simultaneously. For example if you just want
 ;;       to know the id and worth of an element, having more than that is only noise.
 ;;       This way (hopefully) allows the algorithm developer to leverage more flexibility
 ;;       while providing maximum performance
@@ -58,7 +57,7 @@
 ;; ------ special protocols for Dijkstra graph traversal
 (defprotocol Traceable
   (worth [this] "see Worth protocol")
-  (path  [this] "the sequence of nodes taken to get here"))
+  (path  [this] "the sequence of Identifiable elements taken to get here"))
 
 (defprotocol Valuable
   (cost [this] "a number indicating how difficult it is to get to a specific node")
@@ -79,23 +78,26 @@
 
 (deftype SimpleValue [^double value]
   Valuable
-  (cost [this] value)
-  (time [this] value)
-  (sum  [this that] (SimpleValue. (+ value (.-value ^SimpleValue that)))))
+  (cost [_] value)
+  (time [_] value)
+  (sum  [_ that] (SimpleValue. (+ value (.-value ^SimpleValue that)))))
 
-(deftype IdentifiableTrace [^long id trace path]
+(deftype IdentifiableTrace [^long id footprint prior]
   Identifiable
-  (id [this] id)
+  (id [_] id)
   Traceable
-  (worth [this] trace)
-  (path  [this] path))
+  (worth [_] footprint)
+  (path  [this]
+    (if (nil? prior) (list this)
+      (cons this (lazy-seq (path prior))))))
+
+;(defmethod print-method IdentifiableTrace [^IdentifiableTrace v ^java.io.Writer w]
+;  (.write w (str "${:id " (.-id v) " "
+;                   ":worth " (.-footprint v) " "
+;                   ":path " (.-prior v) " "
+;                 "}")))
 
 ;; --------------------------------------------------------
-
-(defn length
-  [arc _]
-  (let [val (/ (:length arc) (get (:kind arc) speeds min-speed))]
-    (->SimpleValue val)))
 
 ; travis-ci seems to complaint about not finding a matching constructor if the
 ; init size is not there. Funnily the ctor with a single comparator is not defined
@@ -108,11 +110,12 @@
   (let [cheapest-path (fn [trace1 trace2] (compare (cost (worth trace1))
                                                    (cost (worth trace2))))
         queue  ^Queue (new PriorityQueue 10 cheapest-path)]; 10 init size
-    (run! (fn [id] (.add queue (->IdentifiableTrace id (->SimpleValue 0) '()))) init-set)
+    (run! (fn [id] (.add queue (->IdentifiableTrace id (->SimpleValue 0) nil))) init-set)
     queue))
 
 (defn- poll-unsettled!
-  "moves the queue's head to an unsettled node and returns it"
+  "moves the queue's head to an unsettled node id and returns the element
+  containing it"
   [^PriorityQueue queue settled]
   (let [trace (.poll queue)]
     (cond
@@ -120,31 +123,83 @@
       (contains? settled (id trace)) (recur queue settled)
       :return trace)))
 
+(defn- step!
+  "utility function: DO NOT USE DIRECTLY.
+  polls the next unsettled trace from the queue and adds all its neighbours
+  to it"
+  [graph settled value arcs ^Queue queue]
+  (let [trace (poll-unsettled! queue settled)]
+    (when trace
+      (reduce-kv (fn [_ dst arc]
+                     (let [weight (sum (value arc trace)
+                                       (worth trace))]
+                       (.add queue (->IdentifiableTrace dst weight trace))))
+                 queue
+                 (arcs (get graph (id trace))))
+      trace)))
+
+(defn- produce!
+  "utility function: DO NOT USE DIRECTLY
+  returns a lazy sequence of traces by sequentially mutating the
+  queue (step!(ing) into it) and concatenating the latest poll with
+  the rest of them"
+  [graph value arcs ^Queue queue settled trace]
+  (if (nil? trace) (list)
+    (cons trace
+          (lazy-seq (produce! graph value arcs queue (assoc! settled (id trace) trace)
+                                                     (step! graph settled value arcs queue))))))
+
 ; inspired by
 ; http://insideclojure.org/2015/01/18/reducible-generators/
 (deftype Dijkstra [graph ids value arcs]
-  ;clojure.lang.Seqable
-  IReduceInit ;; NOTE: simple reduce?
-  (reduce [this rf init]
+  Seqable
+  (seq [_]
+    (let [queue   (init-queue ids)
+          settled (transient (imap/int-map))]
+      (produce! graph value arcs queue settled (step! graph settled value arcs queue))))
+  ;; ------
+  IReduceInit
+  (reduce [_ rf init]
     (loop [ret     init
            queue   (init-queue ids)
            settled (transient (imap/int-map))]
-      (let [trace (poll-unsettled! queue settled)]
+      (let [trace (step! graph settled value arcs queue)]
         (if (nil? trace) ret ;; empty queue
           (let [rr (rf ret trace)]
             (if (reduced? rr) @rr
-              (do (reduce-kv (fn [_ dst arc]
-                               (let [weight (sum (value arc trace)
-                                                 (worth trace))]
-                                 (.add queue (->IdentifiableTrace dst weight '()))))
-                             queue
-                             (arcs (get graph (id trace))))
-                  (recur rr queue (assoc! settled (id trace) trace))))))))))
+              (recur rr queue (assoc! settled (id trace) trace))))))))
+  ;; ------
+  IReduce
+  (reduce [_ rf]
+    (loop [ret     ::unknown
+           queue   (init-queue ids)
+           settled (transient (imap/int-map))]
+      (let [trace (step! graph settled value arcs queue)]
+        (cond
+          (nil? trace) ret ;; empty queue
+          (= 2 (count settled)) (let [previous (path trace)] ;; call rf with the first two items in coll
+                                  (recur (apply rf previous)
+                                         queue
+                                         (assoc! settled (id trace) trace)))
+          (> 2 (count settled)) (recur ret queue (assoc! settled (id trace) trace)) ;; ignore ret and keep making items
+          :default ;; normal reduction steps, just like in IReduceInit
+          (let [rr (rf ret trace)]
+            (if (reduced? rr) @rr
+              (recur rr queue (assoc! settled (id trace) trace))))))))
+  ;; declaring as Sequential will cause the seq to be used for nth, etc
+  Sequential)
 
 (defn dijkstra
-  "returns a reducible object which yields inputs implementing Identifiable
+  "returns a reducible sequence which yields inputs implementing Identifiable
    and Traceable. In other words something similar to
-   {:id number :worth {:cost number :time number} :path traces}"
+   {:id number :worth {:cost number :time number} :path traces}
+
+  Parameters:
+   - :worth is a function that takes an Arc and an Identifiable Trace
+            and returns a Valuable from Arc src to dst
+   - :src is a set of node ids to start searching from
+   - :direction is one of ::forward or ::backward and determines whether
+     to use the outgoing or incoming arcs of each node"
   [graph & {:keys [src direction worth]}]
   (let [arcs (condp = direction ::forward  successors
                                 ::backward predecessors)]

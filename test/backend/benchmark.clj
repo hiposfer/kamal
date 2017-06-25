@@ -21,8 +21,13 @@
     (c/quick-bench
       (dorun (for [_ (range 5)
                    :let [src (rand-nth (keys graph))
-                         dst (rand-nth (keys graph))]]
-               (alg/dijkstra graph (core/->ArcLengthRouter src dst ::core/forward))))
+                         dst (rand-nth (keys graph))
+                         coll (core/dijkstra graph :src #{src}
+                                                   :direction ::core/forward
+                                                   :worth alg/length)]]
+               (reduce (fn [_ v] (when (= dst (core/id v)) (reduced v)))
+                       nil
+                       coll)))
       :os :runtime :verbose)))
 
 (def grapher (delay (osm/cleanup (osm/osm->graph "resources/osm/saarland.osm"))))
@@ -34,6 +39,11 @@
     (c/quick-bench
       (dorun (for [_ (range 5)
                    :let [src (rand-nth (keys graph))
-                         dst (rand-nth (keys graph))]]
-               (alg/dijkstra graph (core/->ArcLengthRouter src dst ::core/forward))))
+                         dst (rand-nth (keys graph))
+                         coll (core/dijkstra graph :src #{src}
+                                                   :direction ::core/forward
+                                                   :worth alg/length)]]
+               (reduce (fn [_ v] (when (= dst (core/id v)) (reduced v)))
+                       nil
+                       coll)))
       :os :runtime :verbose)))
