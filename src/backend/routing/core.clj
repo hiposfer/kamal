@@ -1,7 +1,8 @@
 (ns backend.routing.core
   (:require [clojure.data.int-map :as imap])
   (:import (java.util PriorityQueue Queue)
-           (clojure.lang IReduceInit Seqable Sequential IReduce))
+           (clojure.lang IReduceInit Seqable Sequential IReduce ILookup)
+           (java.io Writer))
   (:refer-clojure :exclude [time]))
 
 ;; TODO: consider replacing the uses of defprotocol with definterface+
@@ -80,7 +81,18 @@
   Valuable
   (cost [_] value)
   (time [_] value)
-  (sum  [_ that] (SimpleValue. (+ value (.-value ^SimpleValue that)))))
+  (sum  [_ that] (SimpleValue. (+ value (.-value ^SimpleValue that))))
+  ILookup
+  (valAt [this k] (.valAt this k nil))
+  (valAt [_ k default]
+    (case k
+      :cost value
+      :time value
+      default)))
+
+(defmethod print-method SimpleValue [^SimpleValue v ^Writer w]
+  (.write w (str "{:cost " (:cost v) " "
+                 ":time " (:time v) " }")))
 
 (deftype IdentifiableTrace [^long id footprint prior]
   Identifiable
@@ -89,13 +101,21 @@
   (worth [_] footprint)
   (path  [this]
     (if (nil? prior) (list this)
-      (cons this (lazy-seq (path prior))))))
+      (cons this (lazy-seq (path prior)))))
+  ILookup
+  (valAt [this k] (.valAt this k nil))
+  (valAt [this k default]
+    (case k
+      :id    id
+      :worth footprint
+      :path  (path this)
+      default)))
 
-;(defmethod print-method IdentifiableTrace [^IdentifiableTrace v ^java.io.Writer w]
-;  (.write w (str "${:id " (.-id v) " "
-;                   ":worth " (.-footprint v) " "
-;                   ":path " (.-prior v) " "
-;                 "}")))
+
+(defmethod print-method IdentifiableTrace [^IdentifiableTrace v ^Writer w]
+  (.write w (str "{:id " (:id v) " "
+                   ":worth " (:worth v) " "
+                   ":path " (:path v) " }")))
 
 ;; --------------------------------------------------------
 

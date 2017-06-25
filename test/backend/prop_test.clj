@@ -19,7 +19,7 @@
           coll (core/dijkstra graph :src #{src}
                                     :direction ::core/forward
                                     :worth alg/length)]
-      (apply = (repeatedly 10 #(reduce (fn [_ v] (when (= dst (core/id v)) (reduced (core/id v))))
+      (apply = (repeatedly 10 #(reduce (fn [_ v] (when (= dst (:id v)) (reduced (:id v))))
                                        nil
                                        coll))))))
 

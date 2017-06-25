@@ -43,7 +43,7 @@
                          coll (core/dijkstra graph :src #{src}
                                                    :direction ::core/forward
                                                    :worth alg/length)]]
-               (reduce (fn [_ v] (when (= dst (core/id v)) (reduced v)))
+               (reduce (fn [_ v] (when (= dst (:id v)) (reduced v)))
                        nil
                        coll)))
       :os :runtime :verbose)))

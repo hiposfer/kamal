@@ -82,9 +82,9 @@
 
 ;(dijkstra rosetta (route/->ArcLengthRouter 1 5 ::route/forward))
 
-(def performer (route/dijkstra rosetta :worth length
-                                       :direction ::route/forward
-                                       :src   #{1}))
+;(def performer (route/dijkstra rosetta :worth length
+;                                       :direction ::route/forward
+;                                       :src   #{1}))
 ;; ------- examples
 ;(reduce
 ;  (fn [res v]
@@ -102,9 +102,8 @@
 ;
 ;(map (comp (partial map route/id) route/path) performer)
 ;(map route/id (route/path (nth performer 6)))
-;
-;(transduce (halt-when (fn bar [v] (= 4 (route/id v))))
-;           (fn foo ([res] (println "res" res))
-;                   ([res v] (println "id" (route/id v))))
+
+;(transduce (halt-when (fn bar [v] (= 4 (:id v))))
+;           (fn foo [_ v] (println "id" (:id v)))
 ;           nil
 ;           performer)
