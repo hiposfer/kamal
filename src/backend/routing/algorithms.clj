@@ -1,10 +1,8 @@
 (ns backend.routing.algorithms ;; TODO give a proper name
   (:require [backend.utils.tool :as utils]
             [backend.routing.core :as route]
-            [clojure.data.int-map :as imap]
-            [clojure.set :as set]
-            ;[clojure.spec.gen.alpha :as gen]
-            ;[backend.generators :as g])
+            [clojure.spec.gen.alpha :as gen]
+            [backend.generators :as g]
             [backend.routing.osm :as osm])
   (:import (clojure.lang IPersistentMap)))
 
@@ -124,26 +122,22 @@
              graph
              (route/successors (get graph id))))
 
-;; TODO: this functions seem to be extremely slow. A proper
-;; optimization is needed here
 (defn components
   "returns a sets of nodes' ids of each weakly connected component of a graph"
   [graph]
   (let [undirected (reduce-kv (fn [res id _] (reflect-arcs res id))
                               graph
                               graph)]
-    (loop [result     []
-           start-from (ffirst undirected)]
-      (let [component   (into (imap/int-set)
-                              (map route/id)
-                              (route/dijkstra undirected :src #{start-from}
-                                :direction ::route/forward, :worth length))
-            next-result       (conj result component)
-            start-candidates  (apply set/difference (cons (set (keys undirected))
-                                                          next-result))]
-        (if (empty? start-candidates)
+    (loop [remaining-graph undirected
+           result          []]
+      (let [component   (sequence (map route/id)
+                                  (route/dijkstra undirected :src #{(ffirst remaining-graph)}
+                                    :direction ::route/forward, :worth length))
+            next-result (conj result component)
+            next-graph  (apply dissoc remaining-graph component)]
+        (if (empty? next-graph)
           next-result
-          (recur next-result (first start-candidates)))))))
+          (recur next-graph next-result))))))
 
 ;; note for specs: the biggest component of a biggest component should
 ;; be the passed graph (= graph (bc graph)) => true for all
@@ -155,6 +149,11 @@
         ids     (apply max-key count subsets)]
     (select-keys graph ids)))
 
-;(def grapher (osm/osm->graph "resources/osm/saarland.osm"))
-;
-;(count (biggest-component (osm/cleanup grapher)))
+;(def grapher (osm/cleanup (osm/osm->graph "resources/osm/saarland.osm")))
+
+;(time (count (biggest-component grapher)))
+
+;(let [graph (biggest-component (gen/generate (g/graph 10)))]
+;  (= (biggest-component graph) graph))
+
+;(biggest-component rosetta)

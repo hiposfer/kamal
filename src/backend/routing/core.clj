@@ -57,7 +57,7 @@
 
 ;; ------ special protocols for Dijkstra graph traversal
 (defprotocol Traceable
-  (worth [this] "see Worth protocol")
+  (worth [this] "see Valuable protocol")
   (path  [this] "the sequence of Identifiable elements taken to get here"))
 
 (defprotocol Valuable
