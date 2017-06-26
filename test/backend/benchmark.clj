@@ -16,8 +16,9 @@
 ;; finds a path (really fast)
 (test/deftest ^:benchmark dijkstra-random-graph
   (let [graph (gen/generate (g/graph 1000))]
-    (println "\nrandomly generated graphs: benchmarking 5 execution with random src/dst")
-    (println "dijkstra forward with:" (count graph) "nodes and" (reduce + (map (comp count :out-arcs) (vals graph))) "edges")
+    (println "\nrandomly generated graphs: 5 execution with random src/dst")
+    (println "dijkstra forward with:" (count graph) "nodes and"
+             (reduce + (map (comp count :out-arcs) (vals graph))) "edges")
     (c/quick-bench
       (dorun (for [_ (range 5)
                    :let [src (rand-nth (keys graph))
@@ -34,8 +35,9 @@
 
 (test/deftest ^:benchmark dijkstra-saarland-graph
   (let [graph @grapher] ;; force read
-    (println "\nsaarland graph: benchmarking 5 executions with random src/dst")
-    (println "dijkstra forward with:" (count graph) "nodes and" (reduce + (map (comp count :out-arcs) (vals graph))) "edges")
+    (println "\nsaarland graph: 5 executions with random src/dst")
+    (println "dijkstra forward with:" (count graph) "nodes and"
+             (reduce + (map (comp count :out-arcs) (vals graph))) "edges")
     (c/quick-bench
       (dorun (for [_ (range 5)
                    :let [src (rand-nth (keys graph))
@@ -43,6 +45,24 @@
                          coll (core/dijkstra graph :src #{src}
                                                    :direction ::core/forward
                                                    :worth alg/length)]]
+               (reduce (fn [_ v] (when (= dst (:id v)) (reduced v)))
+                       nil
+                       coll)))
+      :os :runtime :verbose)))
+
+(test/deftest ^:benchmark dijkstra-saarland-biggest-component
+  (let [graph (alg/biggest-component @grapher)] ;; only the connected nodes
+    (println "\nsaarland graph: 5 executions with random src/dst")
+    (println "using only weakly connected components of the original graph")
+    (println "dijkstra forward with:" (count graph) "nodes and"
+             (reduce + (map (comp count :out-arcs) (vals graph))) "edges")
+    (c/quick-bench
+      (dorun (for [_ (range 5)
+                   :let [src (rand-nth (keys graph))
+                         dst (rand-nth (keys graph))
+                         coll (core/dijkstra graph :src #{src}
+                                             :direction ::core/forward
+                                             :worth alg/length)]]
                (reduce (fn [_ v] (when (= dst (:id v)) (reduced v)))
                        nil
                        coll)))

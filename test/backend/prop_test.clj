@@ -1,7 +1,7 @@
 (ns backend.prop-test
   (:require [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
-            [clojure.test.check :as tc]
+            ;[clojure.test.check :as tc]
             [backend.routing.algorithms :as alg]
             [backend.routing.core :as core]
             [backend.generators :as g]
