@@ -1,3 +1,4 @@
+
 Testing backend.benchmark
 
 saarland graph: 5 executions with random src/dst
@@ -5,46 +6,47 @@ using only weakly connected components of the original graph
 dijkstra forward with: 468101 nodes and 502402 edges
 amd64 Linux 4.4.0-81-generic 4 cpu(s)
 OpenJDK 64-Bit Server VM 25.131-b11
-Runtime arguments: -Dfile.encoding=UTF-8 -Xmx4g -Dclojure.compile.path=/home/carocad/Proyectos/backend.ro
-uting/target/classes -Dbackend.routing.version=0.1.0 -Dclojure.debug=false
+Runtime arguments: -Dfile.encoding=UTF-8 -Xmx6g -Dclojure.compile.path=/home/carocad/Proyectos/backend.routing/target/classes -Dbackend.routing.version=0.1.0 -Dclojure.debug=false
 Evaluation count : 6 in 6 samples of 1 calls.
-      Execution time sample mean : 1,130051 sec
-             Execution time mean : 1,128940 sec
-Execution time sample std-deviation : 209,528376 ms
-    Execution time std-deviation : 219,111544 ms
-   Execution time lower quantile : 818,454349 ms ( 2,5%)
-   Execution time upper quantile : 1,345818 sec (97,5%)
-                   Overhead used : 1,779198 ns
+      Execution time sample mean : 1,198869 sec
+             Execution time mean : 1,191948 sec
+Execution time sample std-deviation : 180,930158 ms
+    Execution time std-deviation : 203,104596 ms
+   Execution time lower quantile : 900,767563 ms ( 2,5%)
+   Execution time upper quantile : 1,413856 sec (97,5%)
+                   Overhead used : 1,769728 ns
+
+Found 1 outliers in 6 samples (16,6667 %)
+	low-severe	 1 (16,6667 %)
+ Variance from outliers : 47,7578 % Variance is moderately inflated by outliers
 
 saarland graph: 5 executions with random src/dst
 dijkstra forward with: 470230 nodes and 504460 edges
 amd64 Linux 4.4.0-81-generic 4 cpu(s)
 OpenJDK 64-Bit Server VM 25.131-b11
-Runtime arguments: -Dfile.encoding=UTF-8 -Xmx4g -Dclojure.compile.path=/home/carocad/Proyectos/backend.ro
-uting/target/classes -Dbackend.routing.version=0.1.0 -Dclojure.debug=false
+Runtime arguments: -Dfile.encoding=UTF-8 -Xmx6g -Dclojure.compile.path=/home/carocad/Proyectos/backend.routing/target/classes -Dbackend.routing.version=0.1.0 -Dclojure.debug=false
 Evaluation count : 6 in 6 samples of 1 calls.
-      Execution time sample mean : 1,873748 sec
-             Execution time mean : 1,849222 sec
-Execution time sample std-deviation : 469,533491 ms
-    Execution time std-deviation : 482,697564 ms
-   Execution time lower quantile : 1,112936 sec ( 2,5%)
-   Execution time upper quantile : 2,332663 sec (97,5%)
-                   Overhead used : 1,779198 ns
+      Execution time sample mean : 1,750313 sec
+             Execution time mean : 1,745489 sec
+Execution time sample std-deviation : 371,411580 ms
+    Execution time std-deviation : 391,243942 ms
+   Execution time lower quantile : 1,300775 sec ( 2,5%)
+   Execution time upper quantile : 2,257718 sec (97,5%)
+                   Overhead used : 1,769728 ns
 
 randomly generated graphs: 5 execution with random src/dst
-dijkstra forward with: 1000 nodes and 1310 edges
+dijkstra forward with: 1000 nodes and 1299 edges
 amd64 Linux 4.4.0-81-generic 4 cpu(s)
 OpenJDK 64-Bit Server VM 25.131-b11
-Runtime arguments: -Dfile.encoding=UTF-8 -Xmx4g -Dclojure.compile.path=/home/carocad/Proyectos/backend.ro
-uting/target/classes -Dbackend.routing.version=0.1.0 -Dclojure.debug=false
-Evaluation count : 300 in 6 samples of 50 calls.
-      Execution time sample mean : 2,005239 ms
-             Execution time mean : 2,004534 ms
-Execution time sample std-deviation : 40,082648 µs
-    Execution time std-deviation : 42,363255 µs
-   Execution time lower quantile : 1,948003 ms ( 2,5%)
-   Execution time upper quantile : 2,053300 ms (97,5%)
-                   Overhead used : 1,779198 ns
+Runtime arguments: -Dfile.encoding=UTF-8 -Xmx6g -Dclojure.compile.path=/home/carocad/Proyectos/backend.routing/target/classes -Dbackend.routing.version=0.1.0 -Dclojure.debug=false
+Evaluation count : 360 in 6 samples of 60 calls.
+      Execution time sample mean : 1,807010 ms
+             Execution time mean : 1,806338 ms
+Execution time sample std-deviation : 35,005578 µs
+    Execution time std-deviation : 37,731136 µs
+   Execution time lower quantile : 1,764667 ms ( 2,5%)
+   Execution time upper quantile : 1,853738 ms (97,5%)
+                   Overhead used : 1,769728 ns
 
 Ran 3 tests containing 0 assertions.
 0 failures, 0 errors.
