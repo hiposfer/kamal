@@ -117,8 +117,8 @@
   the beginning of the queue."
   ^Queue
   [init-set]
-  (let [cheapest-path (fn [trace1 trace2] (compare (cost (val trace1))
-                                                   (cost (val trace2))))
+  (let [cheapest-path (fn ^long [trace1 trace2] (compare (cost (val trace1))
+                                                         (cost (val trace2))))
         queue  ^Queue (new PriorityQueue 10 cheapest-path)]; 10 init size
     (run! (fn [id] (.add queue (->IdentifiableTrace id (->SimpleValue 0) nil))) init-set)
     queue))
@@ -128,11 +128,11 @@
   containing it
 
   utility function: DO NOT USE DIRECTLY."
-  [^Queue queue settled]
+  [^Queue queue ^clojure.lang.ITransientSet settled]
   (let [trace (.poll queue)]
     (cond
       (nil? trace) nil
-      (contains? settled (key trace)) (recur queue settled)
+      (.contains settled (key trace)) (recur queue settled)
       :return trace)))
 
 (defn- step!
@@ -160,7 +160,7 @@
   [graph value arcs ^Queue queue settled trace]
   (if (nil? trace) (list)
     (cons trace
-          (lazy-seq (produce! graph value arcs queue (assoc! settled (key trace) trace)
+          (lazy-seq (produce! graph value arcs queue (conj! settled (key trace))
                                                      (step! graph settled value arcs queue))))))
 
 ; inspired by
@@ -169,25 +169,25 @@
   Seqable
   (seq [_]
     (let [queue   (init-queue ids)
-          settled (transient (imap/int-map))]
+          settled (transient (imap/int-set))]
       (produce! graph value arcs queue settled (step! graph settled value arcs queue))))
   ;; ------
-  IReduceInit
+  IReduceInit ;; TODO: try replacing the int-map with a bitset or hash-set from java
   (reduce [_ rf init]
     (loop [ret     init
            queue   (init-queue ids)
-           settled (transient (imap/int-map))]
+           settled (transient (imap/int-set))]
       (let [trace (step! graph settled value arcs queue)]
         (if (nil? trace) ret ;; empty queue
           (let [rr (rf ret trace)]
             (if (reduced? rr) @rr
-              (recur rr queue (assoc! settled (key trace) trace))))))))
+              (recur rr queue (conj! settled (key trace)))))))))
   ;; ------
   IReduce
   (reduce [_ rf]
     (loop [ret     ::unknown
            queue   (init-queue ids)
-           settled (transient (imap/int-map))]
+           settled (transient (imap/int-set))]
       (let [trace (step! graph settled value arcs queue)]
         (if (nil? trace) ret ;; empty queue
           (case (count settled)
@@ -198,7 +198,7 @@
                        (assoc! settled (key trace) trace)))
             (let [rr (rf ret trace)]
               (if (reduced? rr) @rr
-                (recur rr queue (assoc! settled (key trace) trace)))))))))
+                (recur rr queue (conj! settled (key trace))))))))))
   ;; declaring as Sequential will cause the seq to be used for nth, etc
   Sequential)
 
