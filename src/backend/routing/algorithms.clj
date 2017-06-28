@@ -130,9 +130,9 @@
                               graph)]
     (loop [remaining-graph undirected
            result          []]
-      (let [component   (sequence (map route/id)
-                                  (route/dijkstra undirected :src #{(ffirst remaining-graph)}
-                                    :direction ::route/forward, :worth length))
+      (let [component   (sequence (map key)
+                                  (route/dijkstra undirected :start-from #{(ffirst remaining-graph)}
+                                                  :direction ::route/forward, :value-by length))
             next-result (conj result component)
             next-graph  (apply dissoc remaining-graph component)]
         (if (empty? next-graph)

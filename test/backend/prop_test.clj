@@ -16,10 +16,10 @@
   (prop/for-all [graph (gen/such-that not-empty (g/graph 10) 1000)]
     (let [src  (rand-nth (keys graph))
           dst  (rand-nth (keys graph))
-          coll (core/dijkstra graph :src #{src}
-                                    :direction ::core/forward
-                                    :worth alg/length)]
-      (apply = (repeatedly 10 #(reduce (fn [_ v] (when (= dst (:id v)) (reduced (:id v))))
+          coll (core/dijkstra graph :start-from #{src}
+                              :direction ::core/forward
+                              :value-by alg/length)]
+      (apply = (repeatedly 10 #(reduce (fn [_ v] (when (= dst (key v)) (reduced (key v))))
                                        nil
                                        coll))))))
 
