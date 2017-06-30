@@ -116,11 +116,14 @@
 ;Distances from 1: ((1 0) (2 7) (3 9) (4 20) (5 26) (6 11))
 ;Shortest path: (1 3 4 5)
 
-;(dijkstra rosetta (route/->ArcLengthRouter 1 5 ::route/forward))
-
-;(def performer (route/dijkstra rosetta :worth length
-;                                       :direction ::route/forward
-;                                       :src   #{1}))
+;(def performer (dijkstra rosetta
+;                         :value-by length
+;                         :direction ::forward
+;                         :start-from #{1}))
+;(first performer)
+;(second performer)
+;(nth performer 2)
+;(map identity performer)
 ;; ------- examples
 ;(reduce
 ;  (fn [res v]
