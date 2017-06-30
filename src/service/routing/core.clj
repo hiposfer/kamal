@@ -77,10 +77,10 @@
   utility function: DO NOT USE DIRECTLY."
   [^Queue queue ^ITransientSet settled]
   (let [trace (.poll queue)]
-    (cond
-      (nil? trace) nil
-      (.contains settled (key trace)) (recur queue settled)
-      :return trace)))
+    (if (nil? trace) nil
+      (if (.contains settled (key trace))
+        (recur queue settled)
+        trace))))
 
 (defn- step!
   "polls the next unsettled trace from the queue and adds all its neighbours
