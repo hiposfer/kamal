@@ -106,9 +106,9 @@
   utility function: DO NOT USE DIRECTLY"
   [graph value arcs ^Queue queue settled trace]
   (if (nil? trace) (list)
-                   (cons trace
-                         (lazy-seq (produce! graph value arcs queue (conj! settled (key trace))
-                                             (step! graph settled value arcs queue))))))
+    (cons trace
+          (lazy-seq (produce! graph value arcs queue (conj! settled (key trace))
+                              (step! graph settled value arcs queue))))))
 
 ; inspired by http://insideclojure.org/2015/01/18/reducible-generators/
 ; A Collection type which can reduce itself faster than first/next traversal over its lazy
@@ -127,9 +127,9 @@
            settled (transient (imap/int-set))]
       (let [trace (step! graph settled value arcs queue)]
         (if (nil? trace) ret ;; empty queue
-                         (let [rr (rf ret trace)]
-                           (if (reduced? rr) @rr
-                                             (recur rr queue (conj! settled (key trace)))))))))
+          (let [rr (rf ret trace)]
+            (if (reduced? rr) @rr
+              (recur rr queue (conj! settled (key trace)))))))))
   ;; ------
   IReduce
   (reduce [_ rf]
@@ -138,14 +138,14 @@
            settled (transient (imap/int-set))]
       (let [trace (step! graph settled value arcs queue)]
         (if (nil? trace) ret ;; empty queue
-                         (case (count settled)
-                           (0 1) (recur ret queue (assoc! settled (key trace) trace)) ;; ignore ret and keep making items
-                           2     (let [previous (rp/path trace)] ;; call rf with the first two items in coll
-                                   (recur (apply rf previous)
-                                          queue
-                                          (assoc! settled (key trace) trace)))
-                           (let [rr (rf ret trace)] ;;default branch
-                             (if (reduced? rr) @rr
-                                               (recur rr queue (conj! settled (key trace))))))))))
+          (case (count settled)
+            (0 1) (recur ret queue (assoc! settled (key trace) trace)) ;; ignore ret and keep making items
+            2     (let [previous (rp/path trace)] ;; call rf with the first two items in coll
+                    (recur (apply rf previous)
+                           queue
+                           (assoc! settled (key trace) trace)))
+            (let [rr (rf ret trace)] ;;default branch
+              (if (reduced? rr) @rr
+                (recur rr queue (conj! settled (key trace))))))))))
   ;; declaring as Sequential will cause the seq to be used for nth, etc
   Sequential)
