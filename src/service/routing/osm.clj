@@ -1,8 +1,8 @@
-(ns backend.routing.osm
+(ns service.routing.osm
   (:require [clojure.data.xml :as xml]
             [clojure.data.int-map :as imap]
-            [backend.routing.core :as route]
-            [backend.utils.tool :as utils]))
+            [service.routing.core :as route]
+            [service.utils.tool :as utils]))
 
 ;; <node id="298884269" lat="54.0901746" lon="12.2482632" user="SvenHRO"
 ;;      uid="46882" visible="true" version="1" changeset="676636"

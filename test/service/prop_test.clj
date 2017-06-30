@@ -1,9 +1,9 @@
-(ns backend.prop-test
+(ns service.prop-test
   (:require [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
             ;[clojure.test.check :as tc]
-            [backend.routing.algorithms :as alg]
-            [backend.generators :as g]
+            [service.routing.algorithms :as alg]
+            [service.generators :as g]
             [clojure.test.check.generators :as gen]))
 
 ; -------------------------------------------------------------------

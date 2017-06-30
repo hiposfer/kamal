@@ -1,4 +1,4 @@
-(ns backend.utils.tool
+(ns service.utils.tool
   "useful functions that have not found a proper place yet")
 
 

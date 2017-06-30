@@ -1,11 +1,11 @@
-(ns backend.benchmark
+(ns service.benchmark
   (:require [criterium.core :as c]
             [clojure.test :as test]
-            [backend.generators :as g]
+            [service.generators :as g]
             [clojure.spec.gen.alpha :as gen]
-            [backend.routing.core :as core]
-            [backend.routing.algorithms :as alg]
-            [backend.routing.osm :as osm]))
+            [service.routing.core :as core]
+            [service.routing.algorithms :as alg]
+            [service.routing.osm :as osm]))
 
 ;; NOTE: to execute this algorithm you need to decompress the bz2 file
 ;; in the resources/osm dir !!

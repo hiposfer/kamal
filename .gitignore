@@ -3,10 +3,9 @@ pom.xml
 pom.xml.asc
 *.jar
 *.class
-/lib/
-/classes/
-/target/
-/checkouts/
+lib/
+target/
+checkouts/
 .lein-deps-sum
 .lein-repl-history
 .lein-plugins/
@@ -45,5 +44,5 @@ com_crashlytics_export_strings.xml
 crashlytics.properties
 crashlytics-build.properties
 fabric.properties
-/backend.routing.iml
+/service.routing.iml
 /resources/osm/saarland.osm

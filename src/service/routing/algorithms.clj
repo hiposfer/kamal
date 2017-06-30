@@ -1,8 +1,8 @@
-(ns backend.routing.algorithms
-  (:require [backend.utils.tool :as utils]
-            [backend.routing.osm :as osm]
-            [backend.routing.protocols :as rp]
-            [backend.routing.core :as route]))
+(ns service.routing.algorithms
+  (:require [service.utils.tool :as utils]
+            [service.routing.osm :as osm]
+            [service.routing.protocols :as rp]
+            [service.routing.core :as route]))
 
 (defn dijkstra
   "returns a sequence of map-like entries which also implement the Traceable

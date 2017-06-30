@@ -1,7 +1,7 @@
-(ns backend.specs
+(ns service.specs
   (:require [clojure.set :as set]
             [clojure.spec.alpha :as s]
-            [backend.routing.osm :as osm]))
+            [service.routing.osm :as osm]))
 
 (s/def :arc/kind (set (keys osm/speeds)))
 (s/def :arc/length (s/and int? pos?))

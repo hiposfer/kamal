@@ -1,4 +1,4 @@
-(ns backend.routing.protocols
+(ns service.routing.protocols
   (:refer-clojure :exclude [time]))
 
 ;; TODO: consider replacing the uses of defprotocol with definterface+

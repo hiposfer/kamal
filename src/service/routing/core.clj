@@ -1,5 +1,5 @@
-(ns backend.routing.core
-  (:require [backend.routing.protocols :as rp]
+(ns service.routing.core
+  (:require [service.routing.protocols :as rp]
             [clojure.data.int-map :as imap])
   (:import (java.util Map$Entry Queue PriorityQueue)
            (clojure.lang ILookup IPersistentMap Seqable IReduceInit IReduce Sequential ITransientSet)
