@@ -49,8 +49,10 @@
     (loop [remaining-graph undirected
            result          []]
       (let [component   (sequence (map key)
-                                  (dijkstra undirected :start-from #{(ffirst remaining-graph)}
-                                                  :direction ::route/forward, :value-by length))
+                                  (dijkstra undirected
+                                            :start-from #{(ffirst remaining-graph)}
+                                            :direction ::forward
+                                            :value-by length))
             next-result (conj result component)
             next-graph  (apply dissoc remaining-graph component)]
         (if (empty? next-graph)

@@ -134,7 +134,7 @@
   ;; ------
   IReduce
   (reduce [_ rf]
-    (loop [ret     ::unknown
+    (loop [ret     nil
            queue   (init-queue ids)
            settled (transient (imap/int-set))]
       (let [trace (poll-unsettled! queue settled)]
