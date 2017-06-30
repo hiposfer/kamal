@@ -3,7 +3,6 @@
             [clojure.test.check.clojure-test :refer [defspec]]
             ;[clojure.test.check :as tc]
             [backend.routing.algorithms :as alg]
-            [backend.routing.core :as core]
             [backend.generators :as g]
             [clojure.test.check.generators :as gen]))
 
@@ -16,8 +15,8 @@
   (prop/for-all [graph (gen/such-that not-empty (g/graph 10) 1000)]
     (let [src  (rand-nth (keys graph))
           dst  (rand-nth (keys graph))
-          coll (core/dijkstra graph :start-from #{src}
-                              :direction ::core/forward
+          coll (alg/dijkstra graph :start-from #{src}
+                              :direction ::alg/forward
                               :value-by alg/length)]
       (apply = (repeatedly 10 #(reduce (fn [_ v] (when (= dst (key v)) (reduced (key v))))
                                        nil

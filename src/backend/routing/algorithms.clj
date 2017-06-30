@@ -1,10 +1,80 @@
-(ns backend.routing.algorithms ;; TODO give a proper name
+(ns backend.routing.algorithms
   (:require [backend.utils.tool :as utils]
-            [backend.routing.core :as route]
-            [clojure.spec.gen.alpha :as gen]
-            [backend.generators :as g]
-            [backend.routing.osm :as osm])
-  (:import (clojure.lang IPersistentMap)))
+            [backend.routing.osm :as osm]
+            [backend.routing.protocols :as rp]
+            [backend.routing.core :as route]))
+
+(defn dijkstra
+  "returns a sequence of map-like entries which also implement the Traceable
+   protocol. The key of a map entry is the node id and its value is
+   a Valuable-protocol implementation returned by the cost function.
+   In other words something similar to [id {:cost number :time number}]
+
+  Parameters:
+   - :value-by is a function that takes an Arc and an Identifiable Trace
+               and returns a Valuable from src to dst
+   - :start-from is a set of node ids to start searching from
+   - :direction is one of ::forward or ::backward and determines whether
+     to use the outgoing or incoming arcs of each node"
+  [graph & {:keys [start-from direction value-by]}]
+  (let [arcs (condp = direction ::forward  rp/successors
+                                ::backward rp/predecessors)]
+    (route/->Dijkstra graph start-from value-by arcs)))
+
+(defn length
+  "A very simple value computation function for Arcs in a graph.
+  Returns a SimpleValue with the length of the arc"
+  [arc _]
+  (let [val (/ (:length arc) (get (:kind arc) osm/speeds osm/min-speed))]
+    (route/->SimpleValue val)))
+
+(defn- reflect-arcs
+  "returns a graph where all outgoing arcs from id are reflected to into
+  its successors
+
+  NOTE: it currently depends on having :out-arcs, :dst and :src as part of
+  graph and node. Implementation details leakage :/"
+  [graph id]
+  (reduce-kv (fn [graph dst edge] (assoc-in graph [dst :out-arcs id]
+                                            (assoc edge :dst id :src dst)))
+             graph
+             (rp/successors (get graph id))))
+
+(defn components
+  "returns a sequence of sets of nodes' ids of each weakly connected component of a graph"
+  [graph]
+  (let [undirected (reduce-kv (fn [res id _] (reflect-arcs res id))
+                              graph
+                              graph)]
+    (loop [remaining-graph undirected
+           result          []]
+      (let [component   (sequence (map key)
+                                  (dijkstra undirected :start-from #{(ffirst remaining-graph)}
+                                                  :direction ::route/forward, :value-by length))
+            next-result (conj result component)
+            next-graph  (apply dissoc remaining-graph component)]
+        (if (empty? next-graph)
+          next-result
+          (recur next-graph next-result))))))
+
+;; note for specs: the biggest component of a biggest component should
+;; be the passed graph (= graph (bc graph)) => true for all
+(defn biggest-component
+  "returns a subset of the original graph containing only the elements
+  of the biggest weakly connected components"
+  [graph]
+  (let [subsets (components graph)
+        ids     (apply max-key count subsets)]
+    (select-keys graph ids)))
+
+;(def grapher (osm/cleanup (osm/osm->graph "resources/osm/saarland.osm")))
+
+;(time (count (biggest-component grapher)))
+
+;(let [graph (biggest-component (gen/generate (g/graph 10)))]
+;  (= (biggest-component graph) graph))
+
+;(biggest-component rosetta)
 
 (defn path
   "uses the traces structure to reconstruct the path taken to reach the
@@ -21,66 +91,30 @@
   (reduce-kv (fn [best _ node] (min-key #(utils/euclidean-pow2 point %) node best))
              (second (first graph)) graph))
 
-;(def foo (delay (time (osm/cleanup (osm/osm->graph "resources/osm/saarland.osm")))))
-
-;(let [point (rand-nth (vals @osm/foo))]
-;  (time (brute-nearest @osm/foo point))
-;  (time (pbrute-nearest @osm/foo point)))
-
-;;;;;;;;;;;; PLAYGROUND ;;;;;;;;;;;;;;;;;;;;
-;(defn- random-path
-;  [graph]
-;  (let [src    (rand-nth (keys graph))
-;        dst    (rand-nth (keys graph))
-;        router (route/->ArcLengthRouter src dst ::route/parallel)
-;        start  (System/currentTimeMillis)
-;        result (dijkstra graph router)
-;        end    (System/currentTimeMillis)]
-;    (- end start)))
-
-;(time (let [res (map #(random-path %) (repeat 50 @osm/foo))]
-;        (double (/ (reduce + res) 50))))
-
-;(time (dijkstra @osm/foo (route/->ArcLengthRouter 524154095 17029369 ::route/forward)))
-;(time (dijkstra @osm/foo (route/->ArcLengthRouter 524154095 17029369 ::route/backward)))
-;(time (dijkstra @osm/foo (route/->ArcLengthRouter 524154095 17029369 ::route/bidirectional)))
-;(time (dijkstra @osm/foo (route/->ArcLengthRouter 524154095 17029369 ::route/parallel)))
-;; stops at 258742 settled size
 
 ;; NOTE: for testing purposes only
-(def rosetta {1 {:out-arcs {2 {:dst 2 :length 7  :kind :other}
-                            3 {:dst 3 :length 9  :kind :other}
-                            6 {:dst 6 :length 14 :kind :other}}
-                 :in-arcs  {}}
-              2 {:out-arcs {3 {:dst 3 :length 10 :kind :other}
-                            4 {:dst 4 :length 15 :kind :other}}
-                 :in-arcs  {1 {:src 1 :length 7  :kind :other}}}
-              3 {:out-arcs {4 {:dst 4 :length 11 :kind :other}
-                            6 {:dst 6 :length 2  :kind :other}}
-                 :in-arcs  {1 {:src 1 :length 9  :kind :other}
-                            2 {:src 2 :length 10 :kind :other}}}
-              4 {:out-arcs {5 {:dst 5 :length 6  :kind :other}}
-                 :in-arcs  {2 {:src 2 :length 15 :kind :other}
-                            3 {:src 3 :length 11 :kind :other}}}
-              5 {:out-arcs {6 {:dst 6 :length 9  :kind :other}}
-                 :in-arcs  {4 {:src 4 :length 6  :kind :other}}}
-              6 {:out-arcs {}
-                 :in-arcs  {1 {:src 1 :length 14 :kind :other}
-                            3 {:src 3 :length 2  :kind :other}
-                            5 {:src 5 :length 9  :kind :other}}}})
-
+;(def rosetta {1 {:out-arcs {2 {:dst 2 :length 7  :kind :other}
+;                            3 {:dst 3 :length 9  :kind :other}
+;                            6 {:dst 6 :length 14 :kind :other}}
+;                 :in-arcs  {}}
+;              2 {:out-arcs {3 {:dst 3 :length 10 :kind :other}
+;                            4 {:dst 4 :length 15 :kind :other}}
+;                 :in-arcs  {1 {:src 1 :length 7  :kind :other}}}
+;              3 {:out-arcs {4 {:dst 4 :length 11 :kind :other}
+;                            6 {:dst 6 :length 2  :kind :other}}
+;                 :in-arcs  {1 {:src 1 :length 9  :kind :other}
+;                            2 {:src 2 :length 10 :kind :other}}}
+;              4 {:out-arcs {5 {:dst 5 :length 6  :kind :other}}
+;                 :in-arcs  {2 {:src 2 :length 15 :kind :other}
+;                            3 {:src 3 :length 11 :kind :other}}}
+;              5 {:out-arcs {6 {:dst 6 :length 9  :kind :other}}
+;                 :in-arcs  {4 {:src 4 :length 6  :kind :other}}}
+;              6 {:out-arcs {}
+;                 :in-arcs  {1 {:src 1 :length 14 :kind :other}
+;                            3 {:src 3 :length 2  :kind :other}
+;                            5 {:src 5 :length 9  :kind :other}}}})
 ;Distances from 1: ((1 0) (2 7) (3 9) (4 20) (5 26) (6 11))
 ;Shortest path: (1 3 4 5)
-
-(defn length
-  [arc _]
-  (let [val (/ (:length arc) (get (:kind arc) route/speeds route/min-speed))]
-    (route/->SimpleValue val)))
-
-(extend-protocol route/Context
-  IPersistentMap
-  (predecessors [this] (:in-arcs this))
-  (successors    [this] (:out-arcs this)))
 
 ;(dijkstra rosetta (route/->ArcLengthRouter 1 5 ::route/forward))
 
@@ -109,51 +143,3 @@
 ;           (fn foo [_ v] (println "id" (:id v)))
 ;           nil
 ;           performer)
-
-(defn- reflect-arcs
-  "returns a graph where all outgoing arcs from id are reflected to into
-  its successors
-
-  NOTE: it currently depends on having :out-arcs, :dst and :src as part of
-  graph and node. Implementation details leakage :/"
-  [graph id]
-  (reduce-kv (fn [graph dst edge] (assoc-in graph [dst :out-arcs id]
-                                            (assoc edge :dst id :src dst)))
-             graph
-             (route/successors (get graph id))))
-
-(defn components
-  "returns a sets of nodes' ids of each weakly connected component of a graph"
-  [graph]
-  (let [undirected (reduce-kv (fn [res id _] (reflect-arcs res id))
-                              graph
-                              graph)]
-    (loop [remaining-graph undirected
-           result          []]
-      (let [component   (sequence (map key)
-                                  (route/dijkstra undirected :start-from #{(ffirst remaining-graph)}
-                                                  :direction ::route/forward, :value-by length))
-            next-result (conj result component)
-            next-graph  (apply dissoc remaining-graph component)]
-        (if (empty? next-graph)
-          next-result
-          (recur next-graph next-result))))))
-
-;; note for specs: the biggest component of a biggest component should
-;; be the passed graph (= graph (bc graph)) => true for all
-(defn biggest-component
-  "returns a subset of the original graph containing only the elements
-  of the biggest weakly connected components"
-  [graph]
-  (let [subsets (components graph)
-        ids     (apply max-key count subsets)]
-    (select-keys graph ids)))
-
-;(def grapher (osm/cleanup (osm/osm->graph "resources/osm/saarland.osm")))
-
-;(time (count (biggest-component grapher)))
-
-;(let [graph (biggest-component (gen/generate (g/graph 10)))]
-;  (= (biggest-component graph) graph))
-
-;(biggest-component rosetta)

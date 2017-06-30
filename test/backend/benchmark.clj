@@ -27,15 +27,15 @@
       (dorun (for [i (range iterations)
                    :let [src (get sources i)
                          dst (get destinations i)
-                         coll (core/dijkstra graph :start-from #{src}
-                                                   :direction ::core/forward
-                                                   :value-by alg/length)]]
+                         coll (alg/dijkstra graph :start-from #{src}
+                                                  :direction ::alg/forward
+                                                  :value-by alg/length)]]
                (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
                        nil
                        coll)))
       :os :runtime :verbose)))
 
-(def grapher (delay (osm/cleanup (osm/osm->graph "resources/osm/saarland.osm"))))
+(def grapher (delay (osm/osm->graph "resources/osm/saarland.osm")))
 
 (test/deftest ^:benchmark dijkstra-saarland-graph
   (let [graph @grapher ;; force read
@@ -48,8 +48,8 @@
       (dorun (for [i (range iterations)
                    :let [src (get sources i)
                          dst (get destinations i)
-                         coll (core/dijkstra graph :start-from #{src}
-                                                   :direction ::core/forward
+                         coll (alg/dijkstra graph :start-from #{src}
+                                                   :direction ::alg/forward
                                                    :value-by alg/length)]]
                (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
                        nil
@@ -68,8 +68,8 @@
       (dorun (for [i (range iterations)
                    :let [src (get sources i)
                          dst (get destinations i)
-                         coll (core/dijkstra graph :start-from #{src}
-                                             :direction ::core/forward
+                         coll (alg/dijkstra graph :start-from #{src}
+                                             :direction ::alg/forward
                                              :value-by alg/length)]]
                (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
                        nil
