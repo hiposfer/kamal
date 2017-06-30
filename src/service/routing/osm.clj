@@ -80,11 +80,11 @@
     id))
 
 ; NOTE: prefer biggest-components -> algorithms
-;(defn cleanup
-;  "disassociate every node from graph that is unreachable"
-;  [graph]
-;  (let [removable (sequence (comp (map unreachable) (remove nil?)) graph)]
-;    (persistent! (reduce dissoc! (transient graph) removable))))
+(defn cleanup
+  "disassociate every node from graph that is unreachable"
+  [graph]
+  (let [removable (sequence (comp (map unreachable) (remove nil?)) graph)]
+    (persistent! (reduce dissoc! (transient graph) removable))))
 
 ;; TODO: transform to meters/second
 ;; in km/h
