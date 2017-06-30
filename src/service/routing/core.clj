@@ -2,8 +2,7 @@
   (:require [service.routing.protocols :as rp]
             [clojure.data.int-map :as imap])
   (:import (java.util Map$Entry Queue PriorityQueue)
-           (clojure.lang ILookup IPersistentMap Seqable IReduceInit IReduce Sequential ITransientSet)
-           (java.io Writer)))
+           (clojure.lang ILookup IPersistentMap Seqable IReduceInit IReduce Sequential ITransientSet)))
 
 ;; ------------------------------------------------------
 ; graph is an {id node}
@@ -19,7 +18,7 @@
   (predecessors [this] (:in-arcs this))
   (successors    [this] (:out-arcs this)))
 
-;; TODO: missing interface/protocol definition here
+;; TODO: missing interface/protocol definition for arcs
 (defrecord Arc  [^long src ^long dst ^double length kind])
 
 ;; a simple representation of a worth function result where both cost and time
@@ -119,7 +118,7 @@
           settled (transient (imap/int-set))]
       (produce! graph value arcs queue settled)))
   ;; ------
-  IReduceInit ;; TODO: try replacing the int-map with a bitset or hash-set from java
+  IReduceInit
   (reduce [_ rf init]
     (loop [ret     init
            queue   (init-queue ids)
