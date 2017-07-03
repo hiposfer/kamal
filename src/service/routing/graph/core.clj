@@ -1,5 +1,5 @@
-(ns service.routing.core
-  (:require [service.routing.protocols :as rp]
+(ns service.routing.graph.core
+  (:require [service.routing.graph.protocols :as rp]
             [clojure.data.int-map :as imap])
   (:import (java.util Map$Entry Queue PriorityQueue)
            (clojure.lang ILookup IPersistentMap Seqable IReduceInit IReduce Sequential ITransientSet)))
@@ -18,7 +18,7 @@
   (predecessors [this] (:in-arcs this))
   (successors    [this] (:out-arcs this)))
 
-;; TODO: missing interface/protocol definition for arcs
+;; FIXME: missing interface/protocol definition for arcs
 (defrecord Arc  [^long src ^long dst ^double length kind])
 
 ;; a simple representation of a worth function result where both cost and time

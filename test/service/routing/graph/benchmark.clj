@@ -1,10 +1,9 @@
-(ns service.benchmark
+(ns service.routing.graph.benchmark
   (:require [criterium.core :as c]
             [clojure.test :as test]
-            [service.generators :as g]
             [clojure.spec.gen.alpha :as gen]
-            [service.routing.core :as core]
-            [service.routing.algorithms :as alg]
+            [service.routing.graph.generators :as g]
+            [service.routing.graph.algorithms :as alg]
             [service.routing.osm :as osm]))
 
 ;; NOTE: to execute this algorithm you need to decompress the bz2 file

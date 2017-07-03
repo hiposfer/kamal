@@ -1,10 +1,10 @@
-(ns service.prop-test
+(ns service.routing.graph.prop-test
   (:require [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
             ;[clojure.test.check :as tc]
-            [service.routing.algorithms :as alg]
-            [service.generators :as g]
-            [clojure.test.check.generators :as gen]))
+            [clojure.test.check.generators :as gen]
+            [service.routing.graph.algorithms :as alg]
+            [service.routing.graph.generators :as g]))
 
 ; -------------------------------------------------------------------
 ; The Dijkstra algorithm is deterministic, therefore for the same src/dst

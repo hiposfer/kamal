@@ -1,4 +1,4 @@
-(ns service.routing.protocols
+(ns service.routing.graph.protocols
   (:refer-clojure :exclude [time]))
 
 ;; TODO: consider replacing the uses of defprotocol with definterface+
@@ -18,9 +18,9 @@
 
 ;; Protocols for Inductive graph implementation as defined by Martin Erwig
 ;; https://web.engr.oregonstate.edu/~erwig/papers/InductiveGraphs_JFP01.pdf
-;(defprotocol View ;; in FGL this is called a Decomposition
-;  (context [this] "a one step inductive graph extension")
-;  (graph   [this] "the rest of the graph"))
+(defprotocol View ;; in FGL this is called a Decomposition
+  (context [this] "a one step inductive graph extension")
+  (graph   [this] "the rest of the graph"))
 
 (defprotocol Context ;; in FGL this also includes the Node id and its labels
   (predecessors [this] "the incoming arcs of this node under the current view")
@@ -50,3 +50,5 @@
   (cost [this] "a number indicating how difficult it is to get to a specific node")
   (time [this] "a number indicating how much time it takes to get to a specific node")
   (sum [this that] "adds two valuables into one"))
+
+;TODO: introduce protocols for edges

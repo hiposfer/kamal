@@ -1,8 +1,8 @@
-(ns service.routing.algorithms
+(ns service.routing.graph.algorithms
   (:require [service.utils.tool :as utils]
             [service.routing.osm :as osm]
-            [service.routing.protocols :as rp]
-            [service.routing.core :as route]))
+            [service.routing.graph.protocols :as rp]
+            [service.routing.graph.core :as route]))
 
 (defn dijkstra
   "returns a sequence of map-like entries which also implement the Traceable
@@ -21,6 +21,7 @@
                                 ::backward rp/predecessors)]
     (route/->Dijkstra graph start-from value-by arcs)))
 
+;FIXME: this function shouldnt be here but right now it is just easier :(
 (defn length
   "A very simple value computation function for Arcs in a graph.
   Returns a SimpleValue with the length of the arc"
@@ -40,12 +41,26 @@
              graph
              (rp/successors (get graph id))))
 
+(defn- unreachable
+  "returns a node's id whenever a node doesnt have any out nor in arcs,
+  nil otherwise"
+  [[id node]]
+  (when (and (empty? (:out-arcs node)) (empty? (:in-arcs node)))
+    id))
+
+(defn- remove-loners
+  "disassociate every node from graph that is unreachable"
+  [graph]
+  (let [removable (sequence (comp (map unreachable) (remove nil?)) graph)]
+    (persistent! (reduce dissoc! (transient graph) removable))))
+
 (defn components
   "returns a sequence of sets of nodes' ids of each weakly connected component of a graph"
   [graph]
-  (let [undirected (reduce-kv (fn [res id _] (reflect-arcs res id))
-                              graph
-                              graph)]
+  (let [cgraph     (remove-loners graph)
+        undirected (reduce-kv (fn [res id _] (reflect-arcs res id))
+                              cgraph
+                              cgraph)]
     (loop [remaining-graph undirected
            result          []]
       (let [component   (sequence (map key)

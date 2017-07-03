@@ -1,7 +1,7 @@
 (ns service.routing.osm
   (:require [clojure.data.xml :as xml]
             [clojure.data.int-map :as imap]
-            [service.routing.core :as route]
+            [service.routing.graph.core :as route]
             [service.utils.tool :as utils]))
 
 ;; <node id="298884269" lat="54.0901746" lon="12.2482632" user="SvenHRO"
@@ -71,20 +71,6 @@
           arcs       (sequence (comp (filter vector?) (mapcat identity)) nodes&ways)
           nodes      (into (imap/int-map) (filter map?) nodes&ways)]
       (persistent! (reduce upnodes! (transient nodes) arcs)))))
-
-(defn- unreachable
-  "returns a node's id whenever a node doesnt have any out nor in arcs,
-  nil otherwise"
-  [[id node]]
-  (when (and (empty? (:out-arcs node)) (empty? (:in-arcs node)))
-    id))
-
-; NOTE: prefer biggest-components -> algorithms
-(defn cleanup
-  "disassociate every node from graph that is unreachable"
-  [graph]
-  (let [removable (sequence (comp (map unreachable) (remove nil?)) graph)]
-    (persistent! (reduce dissoc! (transient graph) removable))))
 
 ;; TODO: transform to meters/second
 ;; in km/h
