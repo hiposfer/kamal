@@ -1,7 +1,7 @@
-(ns backend.generators
+(ns service.routing.graph.generators
   (:require [clojure.spec.alpha :as s]
             [clojure.test.check.generators :as gen]
-            [backend.specs :as core.specs])) ;; loads the spec in the registry
+            [service.routing.graph.specs])) ;; loads the spec in the registry
 
 (defn- reflect-arcs
   [[id node]]
