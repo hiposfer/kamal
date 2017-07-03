@@ -1,4 +1,4 @@
-(ns service.specs
+(ns service.routing.graph.specs
   (:require [clojure.set :as set]
             [clojure.spec.alpha :as s]
             [service.routing.osm :as osm]))
