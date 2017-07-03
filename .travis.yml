@@ -2,8 +2,13 @@
 language: clojure
 # check that it compiles && run linters && run tests
 # stop if any of them fails
-#script: lein do clean, compile, check, eastwood '{:exclude-namespaces [backend.conjectures.specs]}', test
-script: lein do clean, compile, check, eastwood '{:exclude-namespaces [backend.specs]}', test
+#script: lein do clean, compile, check, eastwood '{:exclude-namespaces [service.conjectures.specs]}', test
+script:
+  - lein clean
+  - lein compile
+  - lein check
+  - lein eastwood '{:exclude-namespaces [service.routing.graph.specs]}'
+  - lein test
 notifications:
   email:
     on_success: change # default: change
