@@ -57,10 +57,9 @@
 (defn components
   "returns a sequence of sets of nodes' ids of each weakly connected component of a graph"
   [graph]
-  (let [cgraph     (remove-loners graph)
-        undirected (reduce-kv (fn [res id _] (reflect-arcs res id))
-                              cgraph
-                              cgraph)]
+  (let [undirected (reduce-kv (fn [res id _] (reflect-arcs res id))
+                              graph
+                              graph)]
     (loop [remaining-graph undirected
            result          []]
       (let [component   (sequence (map key)
@@ -80,9 +79,10 @@
   "returns a subset of the original graph containing only the elements
   of the biggest weakly connected components"
   [graph]
-  (let [subsets (components graph)
+  (let [cgraph  (remove-loners graph)
+        subsets (components cgraph)
         ids     (apply max-key count subsets)]
-    (select-keys graph ids)))
+    (select-keys cgraph ids)))
 
 ;(def grapher (osm/cleanup (osm/osm->graph "resources/osm/saarland.osm")))
 
