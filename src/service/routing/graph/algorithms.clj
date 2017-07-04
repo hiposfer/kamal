@@ -21,13 +21,9 @@
                                 ::backward rp/predecessors)]
     (route/->Dijkstra graph start-from value-by arcs)))
 
-;FIXME: this function shouldnt be here but right now it is just easier :(
-(defn length
-  "A very simple value computation function for Arcs in a graph.
-  Returns a SimpleValue with the length of the arc"
-  [arc _]
-  (let [val (/ (:length arc) (get (:kind arc) osm/speeds osm/min-speed))]
-    (route/->SimpleValue val)))
+(defn breath-first
+  "returns a constant SimpleValue of 1"
+  [_ _] (route/->SimpleValue 1))
 
 (defn- reflect-arcs
   "returns a graph where all outgoing arcs from id are reflected to into
@@ -66,7 +62,7 @@
                                   (dijkstra undirected
                                             :start-from #{(ffirst remaining-graph)}
                                             :direction ::forward
-                                            :value-by length))
+                                            :value-by breath-first))
             next-result (conj result component)
             next-graph  (apply dissoc remaining-graph component)]
         (if (empty? next-graph)
@@ -92,22 +88,6 @@
 ;  (= (biggest-component graph) graph))
 
 ;(biggest-component rosetta)
-
-(defn path
-  "uses the traces structure to reconstruct the path taken to reach the
-  destination id"
-  [graph traces dst-id]
-  (let [reids (iterate #(:previous (get traces %)) dst-id)
-        ids   (reverse (take-while identity reids))]
-    (map #(get graph %) ids)))
-
-(defn brute-nearest
-  "search the nearest node in graph to point using the euclidean function"
-  [graph point]
-  (println (:lat point) (:lon point))
-  (reduce-kv (fn [best _ node] (min-key #(utils/euclidean-pow2 point %) node best))
-             (second (first graph)) graph))
-
 
 ;; NOTE: for testing purposes only
 ;(def rosetta {1 {:out-arcs {2 {:dst 2 :length 7  :kind :other}
