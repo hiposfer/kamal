@@ -22,7 +22,7 @@
 (defn combinations
  "returns a lazy sequence of all the possible combinations of the elements in
   coll in groups of n members.
-Example: (combinations 2 [:a :b :c]) ;;=> ((:a :b) (:a :c) (:b :c))"
+  Example: (combinations 2 [:a :b :c]) ;;=> ((:a :b) (:a :c) (:b :c))"
   [n coll]
   (if (= 1 n)
     (map list coll)
@@ -40,22 +40,6 @@ Example: (combinations 2 [:a :b :c]) ;;=> ((:a :b) (:a :c) (:b :c))"
     (update-vals coll (range (count coll)) f)
     (update-vals coll (keys coll) f)))
   ([coll keys f] (reduce (fn [m k] (update m k f)) coll keys)))
-
-;; TODO: this is not generic enough as it implies knowing :lat and :lon. A real
-;; euclidean pow2 should be agnostic of that and only care about (diff x y)
-(defn euclidean-pow2
-  "computes the squared euclidean distance between p1 and p2 being both of them
-  geo-points. Use only if you interested in performance and not on the real value
-  since the square root is an expensive computation"
-  [p1 p2]
-  (+ (Math/pow (- (:lat p1) (:lat p2)) 2)
-     (Math/pow (- (:lon p1) (:lon p2)) 2)))
-
-(defn euclidean
-  "computes the euclidean distance between p1 and p2 being both of them
-  geo-points"
-  [p1 p2]
-  (Math/sqrt (euclidean-pow2 p1 p2)))
 
 (def RADIOUS 6372800); radious of the Earth in meters
 
