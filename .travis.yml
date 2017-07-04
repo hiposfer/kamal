@@ -9,6 +9,7 @@ script:
   - lein check
   - lein eastwood '{:exclude-namespaces [service.routing.graph.specs]}'
   - lein test
+#TODO: slack notification
 notifications:
   email:
     on_success: change # default: change

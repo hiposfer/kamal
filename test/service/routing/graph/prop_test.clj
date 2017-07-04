@@ -4,7 +4,8 @@
             ;[clojure.test.check :as tc]
             [clojure.test.check.generators :as gen]
             [service.routing.graph.algorithms :as alg]
-            [service.routing.graph.generators :as g]))
+            [service.routing.graph.generators :as g]
+            [service.routing.directions :as direction]))
 
 ; -------------------------------------------------------------------
 ; The Dijkstra algorithm is deterministic, therefore for the same src/dst
@@ -16,8 +17,8 @@
     (let [src  (rand-nth (keys graph))
           dst  (rand-nth (keys graph))
           coll (alg/dijkstra graph :start-from #{src}
-                              :direction ::alg/forward
-                              :value-by alg/length)]
+                             :direction ::alg/forward
+                             :value-by direction/length)]
       (apply = (repeatedly 10 #(reduce (fn [_ v] (when (= dst (key v)) (reduced (key v))))
                                        nil
                                        coll))))))
