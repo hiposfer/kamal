@@ -1,4 +1,4 @@
-(ns service.routing.ring)
+(ns service.routing.core)
 
 (defn handler [request]
   {:status 200
