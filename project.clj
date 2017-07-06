@@ -5,7 +5,9 @@
             :url "https://github.com/carocad/service/blob/master/LICENSE"}
   :dependencies [[org.clojure/clojure "1.9.0-alpha17"]
                  [org.clojure/data.xml "0.0.8"] ; parse xml lazily
-                 [org.clojure/data.int-map "0.2.4"]] ; fast integers-map
+                 [org.clojure/data.int-map "0.2.4"] ; fast integers-map
+                 [ring/ring-core "1.5.0"]
+                 [ring/ring-jetty-adapter "1.5.0"]]
   ;; Sets the values of global vars within Clojure.
   :global-vars {*warn-on-reflection* true
                 *print-length* 50}
