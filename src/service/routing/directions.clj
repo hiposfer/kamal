@@ -1,7 +1,8 @@
 (ns service.routing.directions
   (:require [service.routing.graph.core :as route]
             [service.routing.osm :as osm]
-            [service.routing.graph.algorithms :as alg]))
+            [service.routing.graph.algorithms :as alg]
+            [service.routing.graph.protocols :as rp]))
 
 (defn length
   "A very simple value computation function for Arcs in a graph.
@@ -24,7 +25,6 @@
   [p1 p2]
   (Math/sqrt (euclidean-pow2 p1 p2)))
 
-
 (defn brute-nearest
   "search the nearest node in graph to point using the distance function f.
   f defaults to the euclidean distance squared"
@@ -41,15 +41,36 @@
 (defn path
   "uses the traces structure to reconstruct the path taken to reach the
   destination id"
-  [graph traces dst-id]
-  (let [reids (iterate #(:previous (get traces %)) dst-id)
-        ids   (reverse (take-while identity reids))]
+  [graph traces]
+  (let [ids   (reverse traces)]
     (map #(get graph %) ids)))
 
-;(def graph (time (alg/biggest-component (time (osm/osm->graph "resources/osm/saarland.osm")))))
-;(def performer (dijkstra rosetta
-;                         :value-by length
-;                         :direction ::forward
-;                         :start-from #{1}))
+(defn geometry
+  "get a geojson linestring based on the route path"
+  [graph trace]
+  (let [coordinates (into [] (comp (map key)
+                                   (map #(get graph %))
+                                   (map #(vector (:lon %) (:lat %))))
+                             (rp/path trace))]
+    {:type "LineString"
+     :coordinates coordinates}))
 
+(defn route
+  "a route object as described in Mapbox directions docs.
+  https://www.mapbox.com/api-documentation/#route-object"
+  [graph trace]
+  {:line        (geometry graph trace)
+   :duration    (rp/time trace)
+   ;;distance   (haversine)])) TODO
+   :weight      (rp/cost trace)
+   :weight-name "routability";;todo: give a proper name
+   :legs        []})
+
+;(def graph (time (alg/biggest-component (time (osm/osm->graph "resources/osm/saarland.osm")))))
+;(def performer (alg/dijkstra graph
+;                             :value-by length
+;                             :direction ::alg/forward
+;                             :start-from #{(ffirst graph)}))
+;
 ;(brute-nearest graph {:lat 49.354913, :lon 7.009614})
+;(geometry graph (last performer))
