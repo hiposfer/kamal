@@ -37,14 +37,12 @@
 (defn- highway->arcs
   "parse a OSM xml-way into a vector of Arcs representing the same way"
   [element] ;; returns '(edge1 edge2 ...)
-  (let [nodes    (into [] (comp (map #(:ref (:attrs %)))
-                                (remove nil?)
-                                (map #(Long/parseLong %)))
-                       (:content element))
-        kind     (highway-type (some highway-tag? (:content element)))
-        last-ref (volatile! (first nodes))]
-    (into [] (map (fn [ref] (route/->Arc @last-ref (vreset! last-ref ref) -1 kind)))
-             (rest nodes))))
+  (let [nodes    (sequence (comp (map #(:ref (:attrs %)))
+                                 (remove nil?)
+                                 (map #(Long/parseLong %)))
+                           (:content element))
+        kind     (highway-type (some highway-tag? (:content element)))]
+    (into [] (map (fn [src dst] (route/->Arc src dst -1 kind)) nodes (rest nodes)))))
 
 (defn- upnodes!
   "updates arc with the length between its nodes and, associates arc
