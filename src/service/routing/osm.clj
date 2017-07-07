@@ -7,16 +7,16 @@
 ;; <node id="298884269" lat="54.0901746" lon="12.2482632" user="SvenHRO"
 ;;      uid="46882" visible="true" version="1" changeset="676636"
 ;;      timestamp="2008-09-21T21:37:45Z"/>)
-(defn- node? [element] (= :node (:tag element)))
+(defn- node-tag? [element] (= :node (:tag element)))
 
-(defn- element->node
+(defn- element->node-entry
   "parse a OSM xml-node into a Hypobus Node"
   [element] ; returns [id node] for later use in int-map
-  [(Long/parseLong (:id  (:attrs element)))
-   (route/->Node (Double/parseDouble (:lon (:attrs element)))
-                 (Double/parseDouble (:lat (:attrs element)))
-                 (imap/int-map)
-                 (imap/int-map))])
+  (imap/int-map (Long/parseLong (:id  (:attrs element)))
+    (route/->Node (Double/parseDouble (:lon (:attrs element)))
+                  (Double/parseDouble (:lat (:attrs element)))
+                  (imap/int-map)
+                  (imap/int-map))))
 
 ; <way id="26659127" user="Masch" uid="55988" visible="true" version="5" changeset="4142606" timestamp="2010-03-16T11:47:08Z">
 ;   <nd ref="292403538"/>
@@ -28,10 +28,9 @@
 ;  </way>
 (defn- highway-tag? [element] (when (= "highway" (:k (:attrs element))) element))
 (defn- highway-type [element] (keyword (str *ns*) (:v (:attrs element))))
-(defn- way? [element] (= :way (:tag element)))
+(defn- way-tag? [element] (= :way (:tag element)))
 
-(defn- highway? [element] (and (way? element)
-                               (some highway-tag? (:content element))))
+(defn- highway? [element] (and (way-tag? element) (some highway-tag? (:content element))))
 
 ;; TODO: there is definitely more work to do processing ways
 (defn- highway->arcs
@@ -64,8 +63,8 @@
   [filename]
   (with-open [file-rdr (clojure.java.io/reader filename)]
     (let [elements   (xml-seq (xml/parse file-rdr))
-          nodes&ways (sequence (comp (map #(cond (node? %) (element->node %)
-                                                 (highway? %) (highway->arcs %)
+          nodes&ways (sequence (comp (map #(cond (node-tag? %) (element->node-entry %)
+                                                 (highway? %)  (highway->arcs %)
                                                  :else nil))
                                      (remove nil?))
                            elements)
