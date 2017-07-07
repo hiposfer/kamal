@@ -1,7 +1,5 @@
 (ns service.routing.graph.algorithms
-  (:require [service.utils.tool :as utils]
-            [service.routing.osm :as osm]
-            [service.routing.graph.protocols :as rp]
+  (:require [service.routing.graph.protocols :as rp]
             [service.routing.graph.core :as route]))
 
 (defn dijkstra
