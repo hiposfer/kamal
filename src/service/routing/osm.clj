@@ -61,6 +61,14 @@
     (-> graph (assoc! (:src arc) (assoc src :out-arcs nout))
               (assoc! (:dst arc) (assoc dst :in-arcs nin)))))
 
+(defn ->element
+  "create a node or a sequence of arcs based on the OSM tag"
+  [object]
+  (case (:tag object)
+    :node (element->node-entry object)
+    :way  (when (some highway-tag? (:content object)) (highway->arcs object))
+    nil))
+
 ;; xml-parse: (element tag attrs & content)
 (defn osm->graph
   "takes an OSM-file and returns an int-map of Nodes representing the road
@@ -68,11 +76,8 @@
   [filename]
   (with-open [file-rdr (clojure.java.io/reader filename)]
     (let [elements   (xml-seq (xml/parse file-rdr))
-          nodes&ways (sequence (comp (map #(cond (node-tag? %) (element->node-entry %)
-                                                 (highway? %)  (highway->arcs %)
-                                                 :else nil))
-                                     (remove nil?))
-                           elements)
+          nodes&ways (sequence (comp (map ->element) (remove nil?))
+                               elements)
           arcs       (sequence (comp (filter vector?) (mapcat identity)) nodes&ways)
           nodes      (into (imap/int-map) (filter map?) nodes&ways)]
       (persistent! (reduce upnodes! (transient nodes) arcs)))))
@@ -93,5 +98,5 @@
 
 
 ;(def graph (time (alg/biggest-component (time (osm->graph "resources/osm/saarland.osm")))))
-(def graph (time (osm->graph "resources/osm/saarland.osm")))
+;(def graph (time (osm->graph "resources/osm/saarland.osm")))
 ;(def graph nil)
