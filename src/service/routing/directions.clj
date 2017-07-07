@@ -56,7 +56,10 @@
 (defn direction
   "given a graph and a sequence of keywordized parameters according to
    https://www.mapbox.com/api-documentation/#retrieve-directions
-   returns a response object similar to the one from Mapbox directions API"
+   returns a response object similar to the one from Mapbox directions API
+
+   Example:
+   (direction graph :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
   [graph & parameters]
   (let [{:keys [coordinates]} parameters
         start     (brute-nearest graph (first coordinates))
