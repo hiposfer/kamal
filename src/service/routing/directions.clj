@@ -5,14 +5,14 @@
             [service.routing.graph.protocols :as rp]
             [service.routing.utils.math :as math]))
 
-(defn length
+(defn- length
   "A very simple value computation function for Arcs in a graph.
   Returns a SimpleValue with the length of the arc"
   [arc _]
   (let [val (/ (:length arc) (get (:kind arc) osm/speeds osm/min-speed))]
     (route/->SimpleValue val)))
 
-(defn brute-nearest
+(defn- brute-nearest
   "search the nearest node in graph to point using the distance function f.
   f defaults to the euclidean distance squared"
   ([graph point f]
@@ -25,7 +25,7 @@
   ([graph point]
    (brute-nearest graph point math/euclidean-pow2)))
 
-(defn geometry
+(defn- geometry
   "get a geojson linestring based on the route path"
   [graph trace]
   (let [coordinates (into [] (comp (map key)
@@ -35,7 +35,7 @@
     {:type "LineString" ;; trace path is in reverse order so we need to order it
      :coordinates (rseq coordinates)}))
 
-(defn route
+(defn- route
   "a route object as described in Mapbox directions docs.
   https://www.mapbox.com/api-documentation/#route-object"
   [graph trace]
