@@ -2,7 +2,7 @@
   (:require [clojure.data.xml :as xml]
             [clojure.data.int-map :as imap]
             [service.routing.graph.core :as route]
-            [service.utils.tool :as utils]))
+            [service.routing.utils.math :as math]))
 
 ;; <node id="298884269" lat="54.0901746" lon="12.2482632" user="SvenHRO"
 ;;      uid="46882" visible="true" version="1" changeset="676636"
@@ -51,8 +51,8 @@
   [graph arc]
   (let [src (get graph (:src arc))
         dst (get graph (:dst arc))
-        ned (assoc arc :length (utils/haversine (:lon src) (:lat src)
-                                                (:lon dst) (:lat dst)))]
+        ned (assoc arc :length (math/haversine (:lon src) (:lat src)
+                                               (:lon dst) (:lat dst)))]
     (-> graph (assoc! (:src arc) (assoc-in src [:out-arcs (:dst arc)] ned))
               (assoc! (:dst arc) (assoc-in dst [:in-arcs  (:src arc)] ned)))))
 
