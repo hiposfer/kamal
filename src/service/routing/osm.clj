@@ -2,7 +2,8 @@
   (:require [clojure.data.xml :as xml]
             [clojure.data.int-map :as imap]
             [service.routing.graph.core :as route]
-            [service.routing.utils.math :as math]))
+            [service.routing.utils.math :as math]
+            [service.routing.graph.algorithms :as alg]))
 
 ;; <node id="298884269" lat="54.0901746" lon="12.2482632" user="SvenHRO"
 ;;      uid="46882" visible="true" version="1" changeset="676636"
@@ -12,11 +13,11 @@
 (defn- element->node-entry
   "parse a OSM xml-node into a Hypobus Node"
   [element] ; returns [id node] for later use in int-map
-  [(Long/parseLong (:id  (:attrs element)))
-   (route/->Node (Double/parseDouble (:lon (:attrs element)))
-                 (Double/parseDouble (:lat (:attrs element)))
-                 nil
-                 nil)])
+  (imap/int-map (Long/parseLong (:id  (:attrs element)))
+                (route/->Node (Double/parseDouble (:lon (:attrs element)))
+                              (Double/parseDouble (:lat (:attrs element)))
+                              nil
+                              nil)))
 
 ; <way id="26659127" user="Masch" uid="55988" visible="true" version="5" changeset="4142606" timestamp="2010-03-16T11:47:08Z">
 ;   <nd ref="292403538"/>
@@ -42,8 +43,8 @@
                        (:content element))
         kind     (highway-type (some highway-tag? (:content element)))
         last-ref (volatile! (first nodes))]
-    (sequence (map (fn [ref] (route/->Arc @last-ref (vreset! last-ref ref) -1 kind)))
-              (rest nodes))))
+    (into [] (map (fn [ref] (route/->Arc @last-ref (vreset! last-ref ref) -1 kind)))
+             (rest nodes))))
 
 (defn- upnodes!
   "updates arc with the length between its nodes and, associates arc
@@ -74,8 +75,8 @@
                                                  :else nil))
                                      (remove nil?))
                            elements)
-          arcs       (sequence (comp (filter seq?) (mapcat identity)) nodes&ways)
-          nodes      (into (imap/int-map) (filter vector?) nodes&ways)]
+          arcs       (sequence (comp (filter vector?) (mapcat identity)) nodes&ways)
+          nodes      (into (imap/int-map) (filter map?) nodes&ways)]
       (persistent! (reduce upnodes! (transient nodes) arcs)))))
 
 ;; TODO: transform to meters/second
@@ -93,5 +94,6 @@
 (def min-speed 1) ;;km/h
 
 
-;(def graph (time (osm->graph "resources/osm/saarland.osm")))
+;(def graph (time (alg/biggest-component (time (osm->graph "resources/osm/saarland.osm")))))
+(def graph (time (osm->graph "resources/osm/saarland.osm")))
 ;(def graph nil)
