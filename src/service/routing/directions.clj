@@ -5,7 +5,7 @@
             [service.routing.graph.protocols :as rp]
             [service.routing.utils.math :as math]))
 
-(defn- length
+(defn length
   "A very simple value computation function for Arcs in a graph.
   Returns a SimpleValue with the length of the arc"
   [arc _]
