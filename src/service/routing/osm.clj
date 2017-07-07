@@ -12,11 +12,11 @@
 (defn- element->node-entry
   "parse a OSM xml-node into a Hypobus Node"
   [element] ; returns [id node] for later use in int-map
-  (imap/int-map (Long/parseLong (:id  (:attrs element)))
-    (route/->Node (Double/parseDouble (:lon (:attrs element)))
-                  (Double/parseDouble (:lat (:attrs element)))
-                  (imap/int-map)
-                  (imap/int-map))))
+  [(Long/parseLong (:id  (:attrs element)))
+   (route/->Node (Double/parseDouble (:lon (:attrs element)))
+                 (Double/parseDouble (:lat (:attrs element)))
+                 nil
+                 nil)])
 
 ; <way id="26659127" user="Masch" uid="55988" visible="true" version="5" changeset="4142606" timestamp="2010-03-16T11:47:08Z">
 ;   <nd ref="292403538"/>
@@ -42,8 +42,8 @@
                        (:content element))
         kind     (highway-type (some highway-tag? (:content element)))
         last-ref (volatile! (first nodes))]
-    (into [] (map (fn [ref] (route/->Arc @last-ref (vreset! last-ref ref) -1 kind)))
-             (rest nodes))))
+    (sequence (map (fn [ref] (route/->Arc @last-ref (vreset! last-ref ref) -1 kind)))
+              (rest nodes))))
 
 (defn- upnodes!
   "updates arc with the length between its nodes and, associates arc
@@ -52,9 +52,15 @@
   (let [src (get graph (:src arc))
         dst (get graph (:dst arc))
         ned (assoc arc :length (math/haversine (:lon src) (:lat src)
-                                               (:lon dst) (:lat dst)))]
-    (-> graph (assoc! (:src arc) (assoc-in src [:out-arcs (:dst arc)] ned))
-              (assoc! (:dst arc) (assoc-in dst [:in-arcs  (:src arc)] ned)))))
+                                               (:lon dst) (:lat dst)))
+        nout (if (nil? (:out-arcs src))
+               (imap/int-map (:dst arc) ned)
+               (assoc (:out-arcs src) (:dst arc) ned))
+        nin  (if (nil? (:in-arcs dst))
+               (imap/int-map (:src arc) ned)
+               (assoc (:in-arcs dst) (:src arc) ned))]
+    (-> graph (assoc! (:src arc) (assoc src :out-arcs nout))
+              (assoc! (:dst arc) (assoc dst :in-arcs nin)))))
 
 ;; xml-parse: (element tag attrs & content)
 (defn osm->graph
@@ -68,8 +74,8 @@
                                                  :else nil))
                                      (remove nil?))
                            elements)
-          arcs       (sequence (comp (filter vector?) (mapcat identity)) nodes&ways)
-          nodes      (into (imap/int-map) (filter map?) nodes&ways)]
+          arcs       (sequence (comp (filter seq?) (mapcat identity)) nodes&ways)
+          nodes      (into (imap/int-map) (filter vector?) nodes&ways)]
       (persistent! (reduce upnodes! (transient nodes) arcs)))))
 
 ;; TODO: transform to meters/second
@@ -85,3 +91,7 @@
    ::unsurfaced 30,     ::living_street 10, ::service 5})
 
 (def min-speed 1) ;;km/h
+
+
+;(def graph (time (osm->graph "resources/osm/saarland.osm")))
+;(def graph nil)
