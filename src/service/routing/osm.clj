@@ -8,8 +8,6 @@
 ;; <node id="298884269" lat="54.0901746" lon="12.2482632" user="SvenHRO"
 ;;      uid="46882" visible="true" version="1" changeset="676636"
 ;;      timestamp="2008-09-21T21:37:45Z"/>)
-(defn- node-tag? [element] (= :node (:tag element)))
-
 (defn- element->node-entry
   "parse a OSM xml-node into a Hypobus Node"
   [element] ; returns [id node] for later use in int-map
@@ -29,9 +27,6 @@
 ;  </way>
 (defn- highway-tag? [element] (when (= "highway" (:k (:attrs element))) element))
 (defn- highway-type [element] (keyword (str *ns*) (:v (:attrs element))))
-(defn- way-tag? [element] (= :way (:tag element)))
-
-(defn- highway? [element] (and (way-tag? element) (some highway-tag? (:content element))))
 
 ;; TODO: there is definitely more work to do processing ways
 (defn- highway->arcs
@@ -76,10 +71,10 @@
   [filename]
   (with-open [file-rdr (clojure.java.io/reader filename)]
     (let [elements   (xml-seq (xml/parse file-rdr))
-          nodes&ways (sequence (comp (map ->element) (remove nil?))
-                               elements)
-          arcs       (sequence (comp (filter vector?) (mapcat identity)) nodes&ways)
-          nodes      (into (imap/int-map) (filter map?) nodes&ways)]
+          nodes&ways (into [] (comp (map ->element) (remove nil?))
+                              elements)
+          arcs       (into [] (comp (filter vector?) cat) nodes&ways)
+          nodes      (apply imap/merge (filter map? nodes&ways))]
       (persistent! (reduce upnodes! (transient nodes) arcs)))))
 
 ;; TODO: transform to meters/second
@@ -100,3 +95,5 @@
 ;(def graph (time (alg/biggest-component (time (osm->graph "resources/osm/saarland.osm")))))
 ;(def graph (time (osm->graph "resources/osm/saarland.osm")))
 ;(def graph nil)
+
+;(sequence cat [[1 2] [ 3 4]])
