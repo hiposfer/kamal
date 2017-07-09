@@ -40,36 +40,28 @@
     (persistent! (reduce dissoc! (transient graph) removable))))
 
 (defn- reflect-arcs
-  "returns a graph where all outgoing arcs from id are reflected to into
+  "returns a graph where all outgoing arcs from id are reflected into
   its successors
 
   NOTE: it currently depends on having :out-arcs, :dst and :src as part of
   graph and node. Implementation details leakage :/"
   [graph id]
   (reduce (fn [graph edge] (update-in graph [(:dst edge) :out-arcs]
-                                     conj (route/->Arc (:dst edge) (:src edge)
-                                                       (:length edge) (:kind edge))))
+                                      conj (route/->Arc (:dst edge) (:src edge)
+                                                        (:length edge) (:kind edge))))
           graph
           (rp/successors (get graph id))))
 
 (defn components
-  "returns a sequence of sets of nodes' ids of each weakly connected component of a graph"
-  [graph]
-  (let [undirected (reduce-kv (fn [res id _] (reflect-arcs res id))
-                              graph
-                              graph)]
-    (loop [remaining-graph undirected
-           result          []]
-      (let [component   (sequence (map key)
-                                  (dijkstra undirected
-                                            :start-from #{(ffirst remaining-graph)}
-                                            :direction ::forward
-                                            :value-by breath-first))
-            next-result (conj result component)
-            next-graph  (apply dissoc remaining-graph component)]
-        (if (empty? next-graph)
-          next-result
-          (recur next-graph next-result))))))
+  "returns a lazy sequence of sets of nodes' ids of each strongly connected
+   component of an undirected graph"
+  [undirected]
+  (lazy-seq
+    (when (not-empty undirected)
+      (let [connected (sequence (map key) (dijkstra undirected
+                                                    :start-from #{(ffirst undirected)}
+                                                    :value-by breath-first))]
+        (cons connected (components (apply dissoc undirected connected)))))))
 
 ;; note for specs: the biggest component of a biggest component should
 ;; be the passed graph (= graph (bc graph)) => true for all
@@ -77,19 +69,15 @@
   "returns a subset of the original graph containing only the elements
   of the biggest weakly connected components"
   [graph]
-  (let [cgraph  (remove-loners graph)
-        subsets (components cgraph)
-        ids     (apply max-key count subsets)]
+  (let [cgraph     (remove-loners graph)
+        undirected (reduce-kv (fn [res id _] (reflect-arcs res id))
+                              cgraph
+                              cgraph)
+        subsets    (components undirected)
+        ids        (apply max-key count subsets)]
     (select-keys cgraph ids)))
 
-;(def grapher (osm/cleanup (osm/osm->graph "resources/osm/saarland.osm")))
-
-;(time (count (biggest-component grapher)))
-
-;(let [graph (biggest-component (gen/generate (g/graph 10)))]
-;  (= (biggest-component graph) graph))
-
-;(biggest-component rosetta)
+;(def grapher (time (biggest-component (time (osm/osm->graph "resources/osm/saarland.osm")))))
 
 ;; NOTE: for testing purposes only
 ;(def rosetta {1 {:out-arcs [{:dst 2 :length 7  :kind :other}
