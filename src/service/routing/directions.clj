@@ -40,7 +40,7 @@
   https://www.mapbox.com/api-documentation/#route-object"
   [graph trace]
   (let [linestring (geometry graph trace)]
-    {:line        linestring
+    {:geometry    linestring
      :duration    (rp/time trace)
      :distance    (reduce + (map math/haversine
                                  (:coordinates linestring)
