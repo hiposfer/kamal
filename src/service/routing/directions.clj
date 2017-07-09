@@ -82,7 +82,7 @@
                        coordinates)
        :routes [(route graph trace)]})))
 
-(def graph (time (alg/biggest-component (time (osm/osm->graph "resources/osm/saarland.osm")))))
+;(def graph (time (alg/biggest-component (time (osm/osm->graph "resources/osm/saarland.osm")))))
 ;(def performer (alg/dijkstra graph
 ;                             :value-by length
 ;                             :direction ::alg/forward
