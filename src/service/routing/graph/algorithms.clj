@@ -1,6 +1,7 @@
 (ns service.routing.graph.algorithms
   (:require [service.routing.graph.protocols :as rp]
-            [service.routing.graph.core :as route]))
+            [service.routing.graph.core :as route]
+            [clojure.data.int-map :as imap]))
 
 (defn dijkstra
   "returns a sequence of map-like entries which also implement the Traceable
@@ -74,8 +75,9 @@
                               cgraph
                               cgraph)
         subsets    (components undirected)
-        ids        (apply max-key count subsets)]
-    (select-keys cgraph ids)))
+        ids        (into (imap/int-set) (apply max-key count subsets))]
+    (into (imap/int-map) (filter #(contains? ids (key %))) cgraph)))
+
 
 ;(def grapher (time (biggest-component (time (osm/osm->graph "resources/osm/saarland.osm")))))
 
