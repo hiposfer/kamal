@@ -16,7 +16,7 @@
   :plugins [[jonase/eastwood "0.2.3"]
             [lein-ring "0.12.0"]]
   :ring {:handler service.routing.core/handler}
-  :jvm-opts ["-Xmx6g"]
+  :jvm-opts ["-Xmx1g"]
              ;; "-Dclojure.compiler.direct-linking=true"
              ;; https://github.com/clojure/clojure/blob/master/changes.md#11-direct-linking
   :profiles {:dev {:dependencies [[org.clojure/test.check "0.9.0"] ;; generate test data
