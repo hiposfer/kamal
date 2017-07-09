@@ -26,18 +26,6 @@
   "returns a constant SimpleValue of 1"
   [_ _] (route/->SimpleValue 1))
 
-(defn- reflect-arcs
-  "returns a graph where all outgoing arcs from id are reflected to into
-  its successors
-
-  NOTE: it currently depends on having :out-arcs, :dst and :src as part of
-  graph and node. Implementation details leakage :/"
-  [graph id]
-  (reduce-kv (fn [graph dst edge] (assoc-in graph [dst :out-arcs id]
-                                            (assoc edge :dst id :src dst)))
-             graph
-             (rp/successors (get graph id))))
-
 (defn- unreachable
   "returns a node's id whenever a node doesnt have any out nor in arcs,
   nil otherwise"
@@ -50,6 +38,19 @@
   [graph]
   (let [removable (sequence (comp (map unreachable) (remove nil?)) graph)]
     (persistent! (reduce dissoc! (transient graph) removable))))
+
+(defn- reflect-arcs
+  "returns a graph where all outgoing arcs from id are reflected to into
+  its successors
+
+  NOTE: it currently depends on having :out-arcs, :dst and :src as part of
+  graph and node. Implementation details leakage :/"
+  [graph id]
+  (reduce (fn [graph edge] (update-in graph [(:dst edge) :out-arcs]
+                                     conj (route/->Arc (:dst edge) (:src edge)
+                                                       (:length edge) (:kind edge))))
+          graph
+          (rp/successors (get graph id))))
 
 (defn components
   "returns a sequence of sets of nodes' ids of each weakly connected component of a graph"

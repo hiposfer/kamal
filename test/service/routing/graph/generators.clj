@@ -30,7 +30,7 @@
   (let [picker #(gen/elements (range (* 3 max)))
         arc     (s/gen :graph/arc {:arc/src picker
                                    :arc/dst picker})
-        arcs   #(gen/map (picker) arc {:min-elements 3 :max-elements 5})
+        arcs   #(gen/list-distinct arc {:min-elements 3 :max-elements 5})
         nodes   (s/gen :graph/node {:node/arcs arcs})]
     (gen/map (picker) nodes {:num-elements max, :max-tries 100})))
 
