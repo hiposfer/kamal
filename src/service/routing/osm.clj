@@ -47,16 +47,12 @@
         dst (get graph (:dst arc))
         ned (assoc arc :length (math/haversine (:lon src) (:lat src)
                                                (:lon dst) (:lat dst)))
-        nout (if (nil? (:out-arcs src))
-               (imap/int-map (:dst arc) ned)
-               (assoc (:out-arcs src) (:dst arc) ned))
-        nin  (if (nil? (:in-arcs dst))
-               (imap/int-map (:src arc) ned)
-               (assoc (:in-arcs dst) (:src arc) ned))]
+        nout (conj (:out-arcs src) ned)
+        nin  (conj (:in-arcs dst) ned)]
     (-> graph (assoc! (:src arc) (assoc src :out-arcs nout))
               (assoc! (:dst arc) (assoc dst :in-arcs nin)))))
 
-(defn ->element
+(defn- ->element
   "create a node or a sequence of arcs based on the OSM tag"
   [object]
   (case (:tag object)
