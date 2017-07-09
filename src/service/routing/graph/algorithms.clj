@@ -15,9 +15,12 @@
    - :direction is one of ::forward or ::backward and determines whether
      to use the outgoing or incoming arcs of each node"
   [graph & {:keys [start-from direction value-by]}]
-  (let [arcs (condp = direction ::forward  rp/successors
-                                ::backward rp/predecessors)]
-    (route/->Dijkstra graph start-from value-by arcs)))
+  (let [direction (or direction ::forward)
+        arcs (case direction ::forward  rp/successors
+                             ::backward rp/predecessors)
+        f    (case direction ::forward rp/dst
+                             ::backward rp/src)]
+    (route/->Dijkstra graph start-from value-by arcs f)))
 
 (defn breath-first
   "returns a constant SimpleValue of 1"
@@ -88,31 +91,31 @@
 ;(biggest-component rosetta)
 
 ;; NOTE: for testing purposes only
-;(def rosetta {1 {:out-arcs {2 {:dst 2 :length 7  :kind :other}
-;                            3 {:dst 3 :length 9  :kind :other}
-;                            6 {:dst 6 :length 14 :kind :other}}
-;                 :in-arcs  {}}
-;              2 {:out-arcs {3 {:dst 3 :length 10 :kind :other}
-;                            4 {:dst 4 :length 15 :kind :other}}
-;                 :in-arcs  {1 {:src 1 :length 7  :kind :other}}}
-;              3 {:out-arcs {4 {:dst 4 :length 11 :kind :other}
-;                            6 {:dst 6 :length 2  :kind :other}}
-;                 :in-arcs  {1 {:src 1 :length 9  :kind :other}
-;                            2 {:src 2 :length 10 :kind :other}}}
-;              4 {:out-arcs {5 {:dst 5 :length 6  :kind :other}}
-;                 :in-arcs  {2 {:src 2 :length 15 :kind :other}
-;                            3 {:src 3 :length 11 :kind :other}}}
-;              5 {:out-arcs {6 {:dst 6 :length 9  :kind :other}}
-;                 :in-arcs  {4 {:src 4 :length 6  :kind :other}}}
-;              6 {:out-arcs {}
-;                 :in-arcs  {1 {:src 1 :length 14 :kind :other}
-;                            3 {:src 3 :length 2  :kind :other}
-;                            5 {:src 5 :length 9  :kind :other}}}})
+;(def rosetta {1 {:out-arcs [{:dst 2 :length 7  :kind :other}
+;                            {:dst 3 :length 9  :kind :other}
+;                            {:dst 6 :length 14 :kind :other}]
+;                 :in-arcs  nil}
+;              2 {:out-arcs [{:dst 3 :length 10 :kind :other}
+;                            {:dst 4 :length 15 :kind :other}]
+;                 :in-arcs  [{:src 1 :length 7  :kind :other}]}
+;              3 {:out-arcs [{:dst 4 :length 11 :kind :other}
+;                            {:dst 6 :length 2  :kind :other}]
+;                 :in-arcs  [{:src 1 :length 9  :kind :other}
+;                            {:src 2 :length 10 :kind :other}]}
+;              4 {:out-arcs [{:dst 5 :length 6  :kind :other}]
+;                 :in-arcs  [{:src 2 :length 15 :kind :other}
+;                            {:src 3 :length 11 :kind :other}]}
+;              5 {:out-arcs [{:dst 6 :length 9  :kind :other}]
+;                 :in-arcs  [{:src 4 :length 6  :kind :other}]}
+;              6 {:out-arcs nil
+;                 :in-arcs  [{:src 1 :length 14 :kind :other}
+;                            {:src 3 :length 2  :kind :other}
+;                            {:src 5 :length 9  :kind :other}]}})
 ;Distances from 1: ((1 0) (2 7) (3 9) (4 20) (5 26) (6 11))
 ;Shortest path: (1 3 4 5)
 
 ;(def performer (dijkstra rosetta
-;                         :value-by length
+;                         :value-by service.routing.directions/length
 ;                         :direction ::forward
 ;                         :start-from #{1}))
 ;(first performer)
