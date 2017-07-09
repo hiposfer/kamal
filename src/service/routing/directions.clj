@@ -68,18 +68,21 @@
   [graph & parameters]
   (let [{:keys [coordinates]} parameters
         start     (brute-nearest graph (first coordinates))
-        dest      (brute-nearest graph (last coordinates))
+        dst       (brute-nearest graph (last coordinates))
         traversal (alg/dijkstra graph :value-by length
                                       :direction ::alg/forward
                                       :start-from (key start))
-        trace     (reduce #(when (= (key %) (key dest)) (reduced %)) traversal)]
-    {:code "Ok"
-     :waypoints (map (fn [point] {:name "wonderland"
-                                  :location [(:lon point) (:lat point)]})
-                     coordinates)
-     :routes [(route graph trace)]}))
+        trace     (reduce (fn [_ trace] (when (= (key trace) (key dst)) (reduced trace)))
+                          nil
+                          traversal)]
+    (when-not (nil? trace)
+      {:code "Ok"
+       :waypoints (map (fn [point] {:name "wonderland"
+                                    :location [(:lon point) (:lat point)]})
+                       coordinates)
+       :routes [(route graph trace)]})))
 
-;(def graph (time (alg/biggest-component (time (osm/osm->graph "resources/osm/saarland.osm")))))
+(def graph (time (alg/biggest-component (time (osm/osm->graph "resources/osm/saarland.osm")))))
 ;(def performer (alg/dijkstra graph
 ;                             :value-by length
 ;                             :direction ::alg/forward
