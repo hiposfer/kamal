@@ -41,11 +41,11 @@
   [graph trace]
   (let [linestring (geometry graph trace)]
     {:geometry    linestring
-     :duration    (rp/time trace)
-     :distance    (reduce + (map math/haversine
+     :duration    (rp/time (val trace))
+     :distance    (reduce + (map (fn [[lon lat] [lon2 lat2]] (math/haversine lon lat lon2 lat2))
                                  (:coordinates linestring)
                                  (rest (:coordinates linestring))))
-     :weight      (rp/cost trace)
+     :weight      (rp/cost (val trace))
      :weight-name "routability" ;;TODO: give a proper name
      :legs        []})) ;; TODO
 
@@ -70,8 +70,7 @@
         start     (brute-nearest graph (first coordinates))
         dst       (brute-nearest graph (last coordinates))
         traversal (alg/dijkstra graph :value-by length
-                                      :direction ::alg/forward
-                                      :start-from (key start))
+                                      :start-from #{(key start)})
         trace     (reduce (fn [_ trace] (when (= (key trace) (key dst)) (reduced trace)))
                           nil
                           traversal)]
@@ -81,6 +80,8 @@
                                     :location [(:lon point) (:lat point)]})
                        coordinates)
        :routes [(route graph trace)]})))
+
+;(println (direction (gen/generate (g/graph 1000)) :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]))
 
 ;(def graph (time (alg/biggest-component (time (osm/osm->graph "resources/osm/saarland.osm")))))
 ;(def performer (alg/dijkstra graph
