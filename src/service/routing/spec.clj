@@ -5,7 +5,9 @@
             [ring.util.http-response :refer [ok]]
             [spec-tools.spec :as spec]
             [service.routing.graph.generators :as g]
-            [service.routing.directions :as dir]))
+            [service.routing.directions :as dir]
+            [expound.alpha :as expound]))
+            ;[clojure.spec.test.alpha :as stest]))
 
 ; (s/def :arc/kind (set (keys osm/speeds)))
 ; (s/def :arc/length (s/and int? pos?))
@@ -29,9 +31,7 @@
 (s/def ::total spec/int?)
 (s/def ::total-map (s/keys :req-un [::total]))
 
-(s/def ::direction-map (s/keys :req-un [::direction]))
-(s/def ::direction (s/keys :req-un [::code ::waypoints ::routes]
-                           :opt []))
+(s/def ::direction (s/nilable (s/keys :req-un [::code ::waypoints ::routes])))
 (s/def ::code string?)
 (s/def ::name string?)
 (s/def ::location (s/coll-of number? :kind vector? :count 2 :into #{}))
@@ -56,9 +56,9 @@
 
     (GET "/direction" []
       :summary "direction with clojure.spec"
-      :query-params [lon :- ::x, {lat :- ::y 0}]
+      :query-params [lon :- ::x, lat :- ::y]
       :return ::direction
-      (ok {:direction-map (dir/direction (gen/generate (g/graph 1000)) :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}])}))
+      (ok (dir/direction (gen/generate (g/graph 1000)) :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}])))))
 
     ; (context "/data-plus" []
     ;   (resource
@@ -68,4 +68,8 @@
     ;       :responses {200 {:schema ::total-map}}
     ;       :handler (fn [{{:keys [x y]} :body-params}]
     ;                  (ok {:total (+ x y)}))}}))
-    ))
+
+
+;;;; TEST @mehdi
+;(expound/expound-str ::direction (dir/direction (gen/generate (g/graph 1000)) :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]))
+;(s/explain ::direction (dir/direction (gen/generate (g/graph 1000)) :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]))

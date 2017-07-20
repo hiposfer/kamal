@@ -20,6 +20,7 @@
              ;; "-Dclojure.compiler.direct-linking=true"
              ;; https://github.com/clojure/clojure/blob/master/changes.md#11-direct-linking
   :profiles {:dev {:dependencies [[org.clojure/test.check "0.9.0"] ;; generate test data
-                                  [criterium "0.4.4"]]}} ;; benchmark
+                                  [criterium "0.4.4"]  ;; benchmark
+                                  [expound "0.1.1"]]}}
   :test-selectors {:default (complement :benchmark)
                    :benchmark :benchmark})
