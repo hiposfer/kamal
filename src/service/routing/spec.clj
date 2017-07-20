@@ -24,6 +24,11 @@
 ;                           (fn [node] (or (not-empty (:out-arcs node)) (not-empty (:in-arcs node))))))
 ; (s/def :int-map/graph (s/map-of int? :graph/node))
 
+(s/def ::x spec/int?)
+(s/def ::y spec/int?)
+(s/def ::total spec/int?)
+(s/def ::total-map (s/keys :req-un [::total]))
+
 (s/def ::direction-map (s/keys :req-un [::direction]))
 (s/def ::direction (s/keys :req-un [::code ::waypoints ::routes]
                            :opt []))
@@ -55,11 +60,12 @@
       :return ::direction
       (ok {:direction-map (dir/direction (gen/generate (g/graph 1000)) :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}])}))
 
-    (context "/data-plus" []
-      (resource
-        {:post
-         {:summary "data-driven plus with clojure.spec"
-          :parameters {:body-params (s/keys :req-un [::x ::y])}
-          :responses {200 {:schema ::total-map}}
-          :handler (fn [{{:keys [x y]} :body-params}]
-                     (ok {:total (+ x y)}))}}))))
+    ; (context "/data-plus" []
+    ;   (resource
+    ;     {:post
+    ;      {:summary "data-driven plus with clojure.spec"
+    ;       :parameters {:body-params (s/keys :req-un [::x ::y])}
+    ;       :responses {200 {:schema ::total-map}}
+    ;       :handler (fn [{{:keys [x y]} :body-params}]
+    ;                  (ok {:total (+ x y)}))}}))
+    ))
