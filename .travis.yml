@@ -9,7 +9,7 @@ script:
   - lein clean
   - lein compile
   - lein check
-  - lein eastwood '{:exclude-namespaces [service.routing.graph.specs]}'
+  - lein eastwood '{:exclude-namespaces [service.routing.graph.specs service.routing.spec]}'
   - lein test
 #TODO: slack notification
 notifications:
