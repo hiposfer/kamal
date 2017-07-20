@@ -11,6 +11,6 @@
                     :description "Routing for hippos"}
              :tags [{:name "direction", :description "direction similar to mabbox"}]}}}
 
-     service.routing.spec/routes))
+    service.routing.spec/routes))
 
 ;;(println (direction (gen/generate (g/graph 1000)) :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]))
