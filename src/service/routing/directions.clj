@@ -74,7 +74,8 @@
         trace     (reduce (fn [_ trace] (when (= (key trace) (key dst)) (reduced trace)))
                           nil
                           traversal)]
-    (when-not (nil? trace)
+    (if (nil? trace)
+      {:code "NoRoute"}
       {:code "Ok"
        :waypoints (map (fn [point] {:name "wonderland"
                                     :location [(:lon point) (:lat point)]})
