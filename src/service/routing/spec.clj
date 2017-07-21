@@ -9,32 +9,12 @@
             [expound.alpha :as expound]))
             ;[clojure.spec.test.alpha :as stest]))
 
-; (s/def :arc/kind (set (keys osm/speeds)))
-; (s/def :arc/length (s/and int? pos?))
-; (s/def :arc/dst int?)
-; (s/def :arc/src int?)
-
-(s/def ::lon (s/and number? #(<= -180 % 180)))
-(s/def ::lat (s/and number? #(<= -90 % 90)))
-; (s/def :node/arcs (s/coll-of :graph/arc :kind list?))
-; (s/def :node/out-arcs :node/arcs)
-; (s/def :node/in-arcs :node/arcs)
-
-; (s/def :graph/arc (s/and (s/keys :req-un [:arc/src :arc/dst :arc/length :arc/kind])
-;                          (fn [arc] (not= (:src arc) (:dst arc)))))
-; (s/def :graph/node (s/and (s/keys :req-un [:node/lat :node/lon :node/out-arcs :node/in-arcs])
-;                           (fn [node] (or (not-empty (:out-arcs node)) (not-empty (:in-arcs node))))))
-; (s/def :int-map/graph (s/map-of int? :graph/node))
-
-(s/def ::x spec/int?)
-(s/def ::y spec/int?)
-(s/def ::total spec/int?)
-(s/def ::total-map (s/keys :req-un [::total]))
-
-(s/def ::direction (s/nilable (s/keys :req-un [::code ::waypoints ::routes])))
+(s/def ::lon (s/and spec/number? #(<= -180 % 180)))
+(s/def ::lat (s/and spec/number? #(<= -90 % 90)))
+(s/def ::direction (s/keys :req-un [::code] :opt-un [::waypoints ::routes]))
 (s/def ::code string?)
 (s/def ::name string?)
-(s/def ::location (s/coll-of number? :kind vector? :count 2 :into #{}))
+(s/def ::location (s/coll-of spec/int? :kind vector? :count 2 :into #{}))
 (s/def ::waypoints (s/coll-of ::waypoint-object :kind sequential? :min-count 2))
 (s/def ::waypoint-object (s/keys :req-un [::name ::location]))
 (s/def ::routes (s/coll-of ::route-object :kind sequential?))
@@ -43,10 +23,10 @@
 (s/def ::type string?)
 (s/def ::coordinates (s/coll-of ::coordinate-object :kind sequential?))
 (s/def ::coordinate-object (s/tuple ::lon ::lat))
-(s/def ::duration number?)
-(s/def ::distance number?)
-(s/def ::weight number?)
-(s/def ::weight-name number?)
+(s/def ::duration spec/number?)
+(s/def ::distance spec/number?)
+(s/def ::weight spec/number?)
+(s/def ::weight-name string?)
 (s/def ::legs vector?)
 
 (def routes
@@ -56,9 +36,10 @@
 
     (GET "/direction" []
       :summary "direction with clojure.spec"
-      :query-params [lon :- ::x, lat :- ::y]
+      :query-params [lon :- ::lon, lat :- ::lat]
       :return ::direction
-      (ok (dir/direction (gen/generate (g/graph 1000)) :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}])))))
+      (ok (dir/direction (gen/generate (g/graph 1000))
+                          :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}])))))
 
     ; (context "/data-plus" []
     ;   (resource
