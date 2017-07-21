@@ -6,7 +6,9 @@
             [spec-tools.spec :as spec]
             [service.routing.graph.generators :as g]
             [service.routing.directions :as dir]
-            [expound.alpha :as expound]))
+            [expound.alpha :as expound]
+            [clojure.string :as str]
+            [clojure.edn :as edn]))
             ;[clojure.spec.test.alpha :as stest]))
 
 (s/def ::lon (s/and spec/number? #(<= -180 % 180)))
@@ -34,19 +36,30 @@
 (s/def ::routes (s/coll-of ::route-object :kind sequential?))
 (s/def ::direction (s/keys :req-un [::code] :opt-un [::waypoints ::routes]))
 
-(s/def ::point (s/tuple double? double?))
+(def coordinate-regex #"(-?\d+(\.\d+)?),(-?\d+(\.\d+)?)(;(-?\d+(\.\d+)?),(-?\d+(\.\d+)?))+")
+(s/def ::coordinate-regex (s/and string? #(re-matches coordinate-regex %)))
+
+(defn ->coordinates
+  [text]
+  (let [pairs (str/split text #";")]
+    (for [coords pairs]
+      (map edn/read-string (str/split coords #",")))))
+
+;(->coordinates "-122.42,37.78")
 
 (def routes
   (context "/spec" []
     :tags ["spec"]
     :coercion :spec
 
-    (GET "/direction" []
+    (GET "/direction/:coordinates" []
       :summary "direction with clojure.spec"
-      :query-params [start_lon :- ::lon, start_lat :- ::lat, dest_lon :- ::lon, dest_lat :- ::lat]
+      ;:query-params [start_lon :- ::lon, start_lat :- ::lat, dest_lon :- ::lon, dest_lat :- ::lat]
+      :path-params [coordinates :- ::coordinate-regex]
       :return ::direction
-      (ok (dir/direction (gen/generate (g/graph 1000))
-                          :coordinates [{:lon start_lon :lat start_lat} {:lon dest_lon :lat dest_lat}])))))
+      (ok (let [[[lon lat] [lon2 lat2]] (->coordinates coordinates)]
+            (dir/direction (gen/generate (g/graph 1000))
+              :coordinates [{:lon lon :lat lat} {:lon lon2 :lat lat2}]))))))
 
     ; (context "/data-plus" []
     ;   (resource
