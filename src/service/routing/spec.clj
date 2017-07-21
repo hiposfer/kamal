@@ -45,7 +45,7 @@
     (for [coords pairs]
       (map edn/read-string (str/split coords #",")))))
 
-;(->coordinates "-122.42,37.78")
+;(->coordinates "-122.42,37.78;-77.03,38.91")
 
 (def routes
   (context "/spec" []
@@ -54,12 +54,12 @@
 
     (GET "/direction/:coordinates" []
       :summary "direction with clojure.spec"
-      ;:query-params [start_lon :- ::lon, start_lat :- ::lat, dest_lon :- ::lon, dest_lat :- ::lat]
       :path-params [coordinates :- ::coordinate-regex]
       :return ::direction
-      (ok (let [[[lon lat] [lon2 lat2]] (->coordinates coordinates)]
+      (ok (let [coords (map zipmap (repeat [:lon :lat])
+                                   (->coordinates coordinates))]
             (dir/direction (gen/generate (g/graph 1000))
-              :coordinates [{:lon lon :lat lat} {:lon lon2 :lat lat2}]))))))
+              :coordinates coords))))))
 
     ; (context "/data-plus" []
     ;   (resource
