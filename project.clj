@@ -22,6 +22,9 @@
              ;; https://github.com/clojure/clojure/blob/master/changes.md#11-direct-linking
   :profiles {:dev {:dependencies [[org.clojure/test.check "0.9.0"] ;; generate test data
                                   [criterium "0.4.4"]  ;; benchmark
-                                  [expound "0.1.1"]]}}
+                                  [expound "0.1.1"]]}
+             :uberjar {:resource-paths ["swagger-ui"]
+                       :aot :all}}
   :test-selectors {:default (complement :benchmark)
-                   :benchmark :benchmark})
+                   :benchmark :benchmark}
+  :uberjar-name "routing.jar")
