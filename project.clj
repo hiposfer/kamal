@@ -12,6 +12,10 @@
                  [org.clojure/test.check "0.9.0"]]
   :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
                                   [expound "0.1.1"]]}}
+             ;:uberjar {:resource-paths ["swagger-ui"]
+             ;          :aot :all}}
+  ;:main ^:skip-aot service.routing.core/app
+  :uberjar-name "routing.jar"
   :test-selectors {:default (complement :benchmark)
                    :benchmark :benchmark}
 ;; Sets the values of global vars within Clojure.
@@ -23,9 +27,6 @@
             [lein-ring "0.12.0"]]
   :ring {:handler service.routing.core/app
          :auto-reload? true}
-  :jvm-opts ["-Xmx1g"]
+  :jvm-opts ["-Xmx1g"])
              ;; "-Dclojure.compiler.direct-linking=true"
              ;; https://github.com/clojure/clojure/blob/master/changes.md#11-direct-linking
-  :uberjar {:resource-paths ["swagger-ui"]
-            :aot :all}
-  :uberjar-name "routing.jar")
