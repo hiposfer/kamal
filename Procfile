@@ -1,1 +1,1 @@
-web: lein trampoline ring server-headless
+web: lein with-profile production trampoline ring server-headless
