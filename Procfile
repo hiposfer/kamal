@@ -1,1 +1,1 @@
-web: java $JVM_OPTS -cp target/routing.jar clojure.main -m service.routing.core
+web: java $JVM_OPTS -jar target/routing.jar
