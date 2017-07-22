@@ -57,7 +57,6 @@
 ;; see https://github.com/mapbox/mapbox-gl-directions/issues/133
 ;; TODO: we need to handle special cases like
 ;; - src/dst not found
-;; - shortest path not found (nil)
 (defn direction
   "given a graph and a sequence of keywordized parameters according to
    https://www.mapbox.com/api-documentation/#retrieve-directions
