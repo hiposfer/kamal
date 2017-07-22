@@ -1,1 +1,1 @@
-web: java $JVM_OPTS -jar target/routing.jar
+web: lein ring server-headless
