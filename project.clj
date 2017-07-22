@@ -10,7 +10,11 @@
                  [metosin/compojure-api "2.0.0-alpha5"]
                  [metosin/spec-tools "0.3.0"]
                  [org.clojure/test.check "0.9.0"]]
-  ;; Sets the values of global vars within Clojure.
+  :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
+                                  [expound "0.1.1"]]}}
+  :test-selectors {:default (complement :benchmark)
+                   :benchmark :benchmark}
+;; Sets the values of global vars within Clojure.
   :global-vars {*warn-on-reflection* true
                 *print-length* 50}
   ;;FIXME: https://github.com/technomancy/leiningen/issues/2173
@@ -22,11 +26,6 @@
   :jvm-opts ["-Xmx1g"]
              ;; "-Dclojure.compiler.direct-linking=true"
              ;; https://github.com/clojure/clojure/blob/master/changes.md#11-direct-linking
-  :profiles {:dev {:dependencies [[org.clojure/test.check "0.9.0"] ;; generate test data
-                                  [criterium "0.4.4"]  ;; benchmark
-                                  [expound "0.1.1"]]}
-             :uberjar {:resource-paths ["swagger-ui"]
-                       :aot :all}}
-  :test-selectors {:default (complement :benchmark)
-                   :benchmark :benchmark}
+  :uberjar {:resource-paths ["swagger-ui"]
+            :aot :all}
   :uberjar-name "routing.jar")
