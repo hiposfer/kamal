@@ -6,7 +6,7 @@
             [spec-tools.spec :as spec]
             [service.routing.graph.generators :as g]
             [service.routing.directions :as dir]
-            [expound.alpha :as expound]
+            ;[expound.alpha :as expound]
             [clojure.string :as str]
             [clojure.edn :as edn]))
             ;[clojure.spec.test.alpha :as stest]))
