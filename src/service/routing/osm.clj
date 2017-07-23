@@ -2,20 +2,21 @@
   (:require [clojure.data.xml :as xml]
             [clojure.data.int-map :as imap]
             [service.routing.graph.core :as route]
-            [service.routing.utils.math :as math]
-            [service.routing.graph.algorithms :as alg]))
+            [service.utils.tool :as utils]))
 
 ;; <node id="298884269" lat="54.0901746" lon="12.2482632" user="SvenHRO"
 ;;      uid="46882" visible="true" version="1" changeset="676636"
 ;;      timestamp="2008-09-21T21:37:45Z"/>)
+(defn- node-tag? [element] (= :node (:tag element)))
+
 (defn- element->node-entry
   "parse a OSM xml-node into a Hypobus Node"
   [element] ; returns [id node] for later use in int-map
   (imap/int-map (Long/parseLong (:id  (:attrs element)))
-                (route/->Node (Double/parseDouble (:lon (:attrs element)))
-                              (Double/parseDouble (:lat (:attrs element)))
-                              nil
-                              nil)))
+    (route/->Node (Double/parseDouble (:lon (:attrs element)))
+                  (Double/parseDouble (:lat (:attrs element)))
+                  (imap/int-map)
+                  (imap/int-map))))
 
 ; <way id="26659127" user="Masch" uid="55988" visible="true" version="5" changeset="4142606" timestamp="2010-03-16T11:47:08Z">
 ;   <nd ref="292403538"/>
@@ -27,17 +28,22 @@
 ;  </way>
 (defn- highway-tag? [element] (when (= "highway" (:k (:attrs element))) element))
 (defn- highway-type [element] (keyword (str *ns*) (:v (:attrs element))))
+(defn- way-tag? [element] (= :way (:tag element)))
+
+(defn- highway? [element] (and (way-tag? element) (some highway-tag? (:content element))))
 
 ;; TODO: there is definitely more work to do processing ways
 (defn- highway->arcs
   "parse a OSM xml-way into a vector of Arcs representing the same way"
   [element] ;; returns '(edge1 edge2 ...)
-  (let [nodes    (sequence (comp (map #(:ref (:attrs %)))
-                                 (remove nil?)
-                                 (map #(Long/parseLong %)))
-                           (:content element))
-        kind     (highway-type (some highway-tag? (:content element)))]
-    (into [] (map (fn [src dst] (route/->Arc src dst -1 kind)) nodes (rest nodes)))))
+  (let [nodes    (into [] (comp (map #(:ref (:attrs %)))
+                                (remove nil?)
+                                (map #(Long/parseLong %)))
+                       (:content element))
+        kind     (highway-type (some highway-tag? (:content element)))
+        last-ref (volatile! (first nodes))]
+    (into [] (map (fn [ref] (route/->Arc @last-ref (vreset! last-ref ref) -1 kind)))
+             (rest nodes))))
 
 (defn- upnodes!
   "updates arc with the length between its nodes and, associates arc
@@ -45,20 +51,10 @@
   [graph arc]
   (let [src (get graph (:src arc))
         dst (get graph (:dst arc))
-        ned (assoc arc :length (math/haversine (:lon src) (:lat src)
-                                               (:lon dst) (:lat dst)))
-        nout (conj (:out-arcs src) ned)
-        nin  (conj (:in-arcs dst) ned)]
-    (-> graph (assoc! (:src arc) (assoc src :out-arcs nout))
-              (assoc! (:dst arc) (assoc dst :in-arcs nin)))))
-
-(defn- ->element
-  "create a node or a sequence of arcs based on the OSM tag"
-  [object]
-  (case (:tag object)
-    :node (element->node-entry object)
-    :way  (when (some highway-tag? (:content object)) (highway->arcs object))
-    nil))
+        ned (assoc arc :length (utils/haversine (:lon src) (:lat src)
+                                                (:lon dst) (:lat dst)))]
+    (-> graph (assoc! (:src arc) (assoc-in src [:out-arcs (:dst arc)] ned))
+              (assoc! (:dst arc) (assoc-in dst [:in-arcs  (:src arc)] ned)))))
 
 ;; xml-parse: (element tag attrs & content)
 (defn osm->graph
@@ -67,10 +63,13 @@
   [filename]
   (with-open [file-rdr (clojure.java.io/reader filename)]
     (let [elements   (xml-seq (xml/parse file-rdr))
-          nodes&ways (into [] (comp (map ->element) (remove nil?))
-                              elements)
-          arcs       (into [] (comp (filter vector?) cat) nodes&ways)
-          nodes      (apply imap/merge (filter map? nodes&ways))]
+          nodes&ways (sequence (comp (map #(cond (node-tag? %) (element->node-entry %)
+                                                 (highway? %)  (highway->arcs %)
+                                                 :else nil))
+                                     (remove nil?))
+                           elements)
+          arcs       (sequence (comp (filter vector?) (mapcat identity)) nodes&ways)
+          nodes      (into (imap/int-map) (filter map?) nodes&ways)]
       (persistent! (reduce upnodes! (transient nodes) arcs)))))
 
 ;; TODO: transform to meters/second
@@ -86,10 +85,3 @@
    ::unsurfaced 30,     ::living_street 10, ::service 5})
 
 (def min-speed 1) ;;km/h
-
-
-;(def graph (time (alg/biggest-component (time (osm->graph "resources/osm/saarland.osm")))))
-;(def graph (time (osm->graph "resources/osm/saarland.osm")))
-;(def graph nil)
-
-;(sequence cat [[1 2] [ 3 4]])

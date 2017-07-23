@@ -4,8 +4,7 @@
             [clojure.spec.gen.alpha :as gen]
             [service.routing.graph.generators :as g]
             [service.routing.graph.algorithms :as alg]
-            [service.routing.osm :as osm]
-            [service.routing.directions :as direction]))
+            [service.routing.osm :as osm]))
 
 ;; NOTE: to execute this algorithm you need to decompress the bz2 file
 ;; in the resources/osm dir !!
@@ -28,8 +27,8 @@
                    :let [src (get sources i)
                          dst (get destinations i)
                          coll (alg/dijkstra graph :start-from #{src}
-                                            :direction ::alg/forward
-                                            :value-by direction/length)]]
+                                                  :direction ::alg/forward
+                                                  :value-by alg/length)]]
                (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
                        nil
                        coll)))
@@ -49,8 +48,8 @@
                    :let [src (get sources i)
                          dst (get destinations i)
                          coll (alg/dijkstra graph :start-from #{src}
-                                            :direction ::alg/forward
-                                            :value-by direction/length)]]
+                                                   :direction ::alg/forward
+                                                   :value-by alg/length)]]
                (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
                        nil
                        coll)))
@@ -69,8 +68,8 @@
                    :let [src (get sources i)
                          dst (get destinations i)
                          coll (alg/dijkstra graph :start-from #{src}
-                                            :direction ::alg/forward
-                                            :value-by direction/length)]]
+                                             :direction ::alg/forward
+                                             :value-by alg/length)]]
                (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
                        nil
                        coll)))
