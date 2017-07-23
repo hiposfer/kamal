@@ -3,19 +3,26 @@
   :url "http://example.com/FIXME"
   :license {:name "LGPLv3"
             :url "https://github.com/carocad/service/blob/master/LICENSE"}
+  :min-lein-version "2.0.0"
   :dependencies [[org.clojure/clojure "1.9.0-alpha17"]
                  [org.clojure/data.xml "0.0.8"] ; parse xml lazily
-                 [org.clojure/data.int-map "0.2.4"]] ; fast integers-map
-  ;; Sets the values of global vars within Clojure.
+                 [org.clojure/data.int-map "0.2.4"] ; fast integers-map
+                 [metosin/compojure-api "2.0.0-alpha5"]
+                 [metosin/spec-tools "0.3.0"]
+                 [org.clojure/test.check "0.9.0"]]
+  :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
+                                  [expound "0.1.1"]]}}
+  :uberjar-name "routing.jar"
+  :test-selectors {:default (complement :benchmark)
+                   :benchmark :benchmark}
   :global-vars {*warn-on-reflection* true
                 *print-length* 50}
   ;;FIXME: https://github.com/technomancy/leiningen/issues/2173
   :monkeypatch-clojure-test false
-  :plugins [[jonase/eastwood "0.2.3"]]
-  :jvm-opts ["-Xmx6g"]
-             ;; "-Dclojure.compiler.direct-linking=true"
-             ;; https://github.com/clojure/clojure/blob/master/changes.md#11-direct-linking
-  :profiles {:dev {:dependencies [[org.clojure/test.check "0.9.0"] ;; generate test data
-                                  [criterium "0.4.4"]]}} ;; benchmark
-  :test-selectors {:default (complement :benchmark)
-                   :benchmark :benchmark})
+  :plugins [[jonase/eastwood "0.2.3"]
+            [lein-ring "0.12.0"]]
+  :ring {:handler service.routing.core/app
+         :auto-reload? true}
+  :jvm-opts ["-Xmx300m"])
+  ;; "-Dclojure.compiler.direct-linking=true"
+  ;; https://github.com/clojure/clojure/blob/master/changes.md#11-direct-linking

@@ -7,12 +7,13 @@
 ;; ------------------- design constrainst --------------------------------;
 ; we are only interested in graphs that can be represented as a mapping of
 ; int -> Node. Since this makes the mapping easier in Clojure while
-; keeping it immutable. We only allow a single arc per dst/src node a.k.a
-; simple graph, therefore we purposedly ignore multi-graph and pseudo-graphs
+; keeping it immutable. Although we focus on a single-arc-per src/dst model
+; we represent arcs as a list of edges, thus multiple arcs between the same
+; src and dst are possible for a single node.
 ; see http://mathworld.wolfram.com/Graph.html
 
-; We assume that all routings are time-dependent even if they are not, in which
-; case the user can simply ignore it. Furthermore we assume that all routings
+; We assume that routing are time-dependent even if they are not, in which
+; case the user can simply ignore it. Furthermore we assume that routing
 ; can be completely determined by a cost function regardless of how that cost
 ; is calculated.
 
@@ -44,11 +45,13 @@
 ;; ------ special protocols for Dijkstra graph traversal
 (defprotocol Traceable "Protocol for elements that can produce a sequence
   of other elements of the same type which were traversed before arriving to this one"
-  (path  [this] "the sequence of Identifiable elements taken to get here"))
+  (path  [this] "sequence of Identifiable elements taken to get here in reverse order"))
 
 (defprotocol Valuable "A simple representation of a generic routing worth function result"
   (cost [this] "a number indicating how difficult it is to get to a specific node")
   (time [this] "a number indicating how much time it takes to get to a specific node")
   (sum [this that] "adds two valuables into one"))
 
-;TODO: introduce protocols for edges
+(defprotocol Arc
+  (src [this] "the start node id of an Arc")
+  (dst [this] "the destination node id of an Arc"))
