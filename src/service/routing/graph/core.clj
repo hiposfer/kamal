@@ -16,15 +16,10 @@
 (extend-type IPersistentMap
   rp/Context ;; allow Clojure's maps to behave in the same way that Node records
   (predecessors [this] (:in-arcs this))
-  (successors    [this] (:out-arcs this))
-  rp/Arc
-  (src [this] (:src this))
-  (dst [this] (:dst this)))
+  (successors    [this] (:out-arcs this)))
 
-(defrecord Arc  [^long src ^long dst ^double length kind]
-  rp/Arc
-  (src [_] src)
-  (dst [_] dst))
+;; FIXME: missing interface/protocol definition for arcs
+(defrecord Arc  [^long src ^long dst ^double length kind])
 
 ;; a simple representation of a worth function result where both cost and time
 ;; are the same
@@ -88,14 +83,14 @@
   to it
 
   utility function: DO NOT USE DIRECTLY."
-  [value f node-arcs trace ^Queue queue]
-  (reduce (fn [_ arc]
-            (let [weight (rp/sum (value arc trace)
-                                 (val trace))]
-              (.add queue (->IdentifiableTrace (f arc) weight trace))
-              queue))
-          queue
-          node-arcs))
+  [value node-arcs trace ^Queue queue]
+  (reduce-kv (fn [_ dst arc]
+                 (let [weight (rp/sum (value arc trace)
+                                      (val trace))]
+                   (.add queue (->IdentifiableTrace dst weight trace))
+                   queue))
+             queue
+             node-arcs))
 
 (defn- produce!
   "returns a lazy sequence of traces by sequentially mutating the
@@ -103,24 +98,25 @@
   the rest of them
 
   utility function: DO NOT USE DIRECTLY"
-  [graph value arcs f ^Queue queue settled]
+  [graph value arcs ^Queue queue settled]
   (let [trace (poll-unsettled! queue settled)]; (step! graph settled value arcs queue)
     (if (nil? trace) (list)
-      (let [next-queue   (relax-nodes! value f (arcs (get graph (key trace))) trace queue)
+      (let [next-queue   (relax-nodes! value (arcs (get graph (key trace))) trace queue)
             next-settled (conj! settled (key trace))]
         (cons trace
-              (lazy-seq (produce! graph value arcs f next-queue next-settled)))))))
+              (lazy-seq (produce! graph value arcs next-queue next-settled)))))))
+
 
 
 ; inspired by http://insideclojure.org/2015/01/18/reducible-generators/
 ; A Collection type which can reduce itself faster than first/next traversal over its lazy
 ; representation.
-(deftype Dijkstra [graph ids value arcs f]
+(deftype Dijkstra [graph ids value arcs]
   Seqable
   (seq [_]
     (let [queue   (init-queue ids)
           settled (transient (imap/int-set))]
-      (produce! graph value arcs f queue settled)))
+      (produce! graph value arcs queue settled)))
   ;; ------
   IReduceInit
   (reduce [_ rf init]
@@ -132,7 +128,7 @@
           (let [rr (rf ret trace)]
             (if (reduced? rr) @rr
               (recur rr
-                     (relax-nodes! value f (arcs (get graph (key trace))) trace queue)
+                     (relax-nodes! value (arcs (get graph (key trace))) trace queue)
                      (conj! settled (key trace)))))))))
   ;; ------
   IReduce
@@ -142,7 +138,7 @@
            settled (transient (imap/int-set))]
       (let [trace (poll-unsettled! queue settled)]
         (if (nil? trace) ret ;; empty queue
-          (let [next-queue   (relax-nodes! value f (arcs (get graph (key trace))) trace queue)
+          (let [next-queue   (relax-nodes! value (arcs (get graph (key trace))) trace queue)
                 next-settled (conj! settled (key trace))]
             (case (count settled)
               (0 1) (recur ret next-queue next-settled) ;; ignore ret and keep making items
