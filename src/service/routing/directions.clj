@@ -35,28 +35,55 @@
     {:type "LineString" ;; trace path is in reverse order so we need to order it
      :coordinates (rseq coordinates)}))
 
-(defn- route
-  "a route object as described in Mapbox directions docs.
-  https://www.mapbox.com/api-documentation/#route-object"
+(defn- step
+  "includes one StepManeuver object and travel to the following RouteStep"
+  [graph trace])
+
+
+(defn- annotation
+  "returns an annotation object that contains additional details about
+  each line segment along the route geometry. Each entry in an annoations
+  field corresponds to a coordinate along the route geometry"
+  [trace linestring]
+  (let [distances  (map math/haversine
+                        (:coordinates linestring)
+                        (rest (:coordinates linestring)))
+        times      (map rp/time (rp/path trace))
+        durations  (map - times (rest times))]
+    {:distance distances
+     :duration durations
+     :speed    (map / distances durations)}))
+
+(defn- leg
+  "a route between only two waypoints"
   [graph trace]
   (let [linestring (geometry graph trace)]
-    {:geometry    linestring
-     :duration    (rp/time (val trace))
-     :distance    (reduce + (map (fn [[lon lat] [lon2 lat2]] (math/haversine lon lat lon2 lat2))
+    {:distance    (reduce + (map math/haversine
                                  (:coordinates linestring)
                                  (rest (:coordinates linestring))))
-     :weight      (rp/cost (val trace))
-     :weight-name "routability" ;;TODO: give a proper name
-     :legs        []})) ;; TODO
+     :duration    (rp/time (val trace))
+     :steps       []
+     :summary     "" ;; TODO
+     :annotation (annotation trace linestring)
+     :geometry linestring}))
+
+(defn- route
+  "a route through (potentially multiple) waypoints
+  https://www.mapbox.com/api-documentation/#route-object"
+  [graph & traces]
+  (let [legs        (map leg (repeat graph) traces)
+        coordinates (mapcat (comp :coordinates :geometry) legs)]
+    {:geometry    {:type "LineString" :coordinates coordinates}
+     :duration    (:duration leg)
+     :distance    (:distance leg)
+     :weight      (reduce + rp/cost (map val traces))
+     :weight-name "routability"
+     :legs        (map #(dissoc % :geometry) legs)}))
 
 ;; for the time being we only care about the coordinates of start and end
 ;; but looking into the future it is good to make like this such that we
 ;; can always extend it with more parameters
 ;; https://www.mapbox.com/api-documentation/#retrieve-directions
-;; TODO: we still need to return the legs of a route
-;; see https://github.com/mapbox/mapbox-gl-directions/issues/133
-;; TODO: we need to handle special cases like
-;; - src/dst not found
 (defn direction
   "given a graph and a sequence of keywordized parameters according to
    https://www.mapbox.com/api-documentation/#retrieve-directions
