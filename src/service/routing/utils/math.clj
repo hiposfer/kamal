@@ -7,12 +7,18 @@
   "Compute the great-circle distance between two points on Earth given their
   longitude and latitude in RADIANS. The distance is computed in meters
   by default."
-  [lon-1 lat-1 lon-2 lat-2]
-  (let [h  (+ (Math/pow (Math/sin (/ (- lat-2 lat-1) 2)) 2)
-              (* (Math/pow (Math/sin (/ (- lon-2 lon-1) 2)) 2)
-                 (Math/cos lat-2)
-                 (Math/cos lat-1)))]
-    (* RADIOUS 2 (Math/asin (Math/sqrt h)))))
+  ([lon-1 lat-1 lon-2 lat-2]
+   (let [h  (+ (Math/pow (Math/sin (/ (- lat-2 lat-1) 2)) 2)
+               (* (Math/pow (Math/sin (/ (- lon-2 lon-1) 2)) 2)
+                  (Math/cos lat-2)
+                  (Math/cos lat-1)))]
+     (* RADIOUS 2 (Math/asin (Math/sqrt h)))))
+  ([p1 p2]
+   (if (and (sequential? p1) (sequential? p2))
+     (let [[lon  lat]   p1
+           [lon2 lat2] p2]
+       (haversine lon lat lon2 lat2))
+     (haversine (:lon p1) (:lat p1) (:lon p2) (:lat p2)))))
 
 (defn euclidean-pow2
   "computes the squared euclidean distance between p1 and p2 being both of them
