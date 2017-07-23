@@ -1,8 +1,7 @@
 (ns service.routing.graph.specs
   (:require [clojure.set :as set]
             [clojure.spec.alpha :as s]
-            [service.routing.osm :as osm]
-            [service.routing.graph.protocols :as rp]))
+            [service.routing.osm :as osm]))
 
 (s/def :arc/kind (set (keys osm/speeds)))
 (s/def :arc/length (s/and int? pos?))
@@ -11,7 +10,7 @@
 
 (s/def :node/lat (s/and number? #(<= -90 % 90)))
 (s/def :node/lon (s/and number? #(<= -180 % 180)))
-(s/def :node/arcs (s/coll-of :graph/arc :kind list?))
+(s/def :node/arcs (s/map-of int? :graph/arc))
 (s/def :node/out-arcs :node/arcs)
 (s/def :node/in-arcs :node/arcs)
 
@@ -24,9 +23,19 @@
 (defn- valid-ids?
   "is every id used in the out/in arcs also a node id present in the graph?"
   [ids graph]
-  (let [outs (into #{} (comp (map :out-arcs) (map rp/dst)) (vals graph))
-        ins  (into #{} (comp (map :in-arcs) (map rp/src)) (vals graph))]
+  (let [outs (into #{} (comp (map :out-arcs) (map first)) (vals graph))
+        ins  (into #{} (comp (map :in-arcs) (map first)) (vals graph))]
     (empty? (set/difference ids (set/union outs ins)))))
+
+(defn- valid-out-arcs?
+  [graph]
+  (let [outs (map :out-arcs (vals graph))]
+    (every? (fn [[dst arc]] (= dst (:dst arc))) outs)))
+
+(defn- valid-in-arcs?
+  [graph]
+  (let [outs (map :in-arcs (vals graph))]
+    (every? (fn [[src arc]] (= src (:src arc))) outs)))
 
 ;; this could definitely be improved such that every node/arc
 ;; is checked individually but this will have to do for the moment)))
@@ -36,4 +45,6 @@
   [graph]
   (let [ids (set (keys graph))]
     (s/and :int-map/graph
-           (partial valid-ids? ids))))
+           (partial valid-ids? ids)
+           valid-out-arcs?
+           valid-in-arcs?)))

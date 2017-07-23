@@ -1,7 +1,5 @@
 
 language: clojure
-jdk:
-  - oraclejdk8
 # check that it compiles && run linters && run tests
 # stop if any of them fails
 #script: lein do clean, compile, check, eastwood '{:exclude-namespaces [service.conjectures.specs]}', test
@@ -9,9 +7,8 @@ script:
   - lein clean
   - lein compile
   - lein check
-  - lein eastwood '{:exclude-namespaces [service.routing.graph.specs service.routing.spec]}'
+  - lein eastwood '{:exclude-namespaces [service.routing.graph.specs]}'
   - lein test
-#TODO: slack notification
 notifications:
   email:
     on_success: change # default: change
