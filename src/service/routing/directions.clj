@@ -46,7 +46,7 @@
                                  (:coordinates linestring)
                                  (rest (:coordinates linestring))))
      :weight      (rp/cost (val trace))
-     :weight-name "routability" ;;TODO: give a proper name
+     :weight_name "routability" ;;TODO: give a proper name
      :legs        []})) ;; TODO
 
 ;; for the time being we only care about the coordinates of start and end
