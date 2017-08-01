@@ -1,4 +1,4 @@
-# service.routing
+# service.routing [![Build Status](https://travis-ci.org/n7a235/service.routing.svg?branch=master)](https://travis-ci.org/n7a235/service.routing)
 
 FIXME: description
 
