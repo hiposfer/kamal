@@ -73,19 +73,18 @@
           nodes      (apply imap/merge (filter map? nodes&ways))]
       (persistent! (reduce upnodes! (transient nodes) arcs)))))
 
-;; TODO: transform to meters/second
-;; in km/h
+;; in m/s
 (def speeds
   "Mapping of OSM-highway type to speed trying to follow both
   http://wiki.openstreetmap.org/wiki/Map_Features#Highway and
   http://wiki.openstreetmap.org/wiki/OSM_tags_for_routing/Maxspeed as close as
   possible"
-  {::motorway 110,      ::trunk 110,        ::primary 70,      ::secondary 60
-   ::tertiary 50,       ::motorway_link 50, ::trunk_link 50,   ::primary_link 50
-   ::secondary_link 50, ::road 40,          ::unclassified 40, ::residential 30
-   ::unsurfaced 30,     ::living_street 10, ::service 5})
+  {::motorway 30.56,      ::trunk 30.56,        ::primary 19.44,      ::secondary 16.67
+   ::tertiary 13.89,       ::motorway_link 13.89, ::trunk_link 13.89,   ::primary_link 13.89
+   ::secondary_link 13.89, ::road 11.11,          ::unclassified 11.11, ::residential 8.33
+   ::unsurfaced 8.33,     ::living_street 2.78, ::service 1.39})
 
-(def min-speed 1) ;;km/h
+(def min-speed 0.28) ;;m/s
 
 
 ;(def graph (time (alg/biggest-component (time (osm->graph "resources/osm/saarland.osm")))))
