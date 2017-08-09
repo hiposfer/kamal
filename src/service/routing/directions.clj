@@ -65,7 +65,7 @@
    Example:
    (direction graph :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
   [graph & parameters]
-  (let [{:keys [coordinates steps]} parameters
+  (let [{:keys [coordinates steps language]} parameters
         start     (brute-nearest graph (first coordinates))
         dst       (brute-nearest graph (last coordinates))
         traversal (alg/dijkstra graph :value-by length

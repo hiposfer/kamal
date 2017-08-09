@@ -50,13 +50,15 @@
     (GET "/direction/:coordinates" []
       :summary "direction with clojure.spec"
       :path-params [coordinates :- ::coordinate-regex]
-      :query-params [{steps :- boolean? false}]
+      :query-params [{steps :- boolean? false}
+                     {language :- string? "en"}]
       :return ::direction
       (ok (let [coords (map zipmap (repeat [:lon :lat])
                                    (->coordinates coordinates))]
             (dir/direction (gen/generate (g/graph 1000))
               :coordinates coords
-              :steps steps))))))
+              :steps steps
+              :language language))))))
 
     ; (context "/data-plus" []
     ;   (resource
