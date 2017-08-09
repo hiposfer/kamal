@@ -67,7 +67,7 @@
       :return ::direction
       (ok (let [coords (map zipmap (repeat [:lon :lat])
                                    (->coordinates coordinates))
-                rads (if (nil? radiuses) nil (->radiuses radiuses))]
+                rads (when-not (nil? radiuses) (->radiuses radiuses))]
             (dir/direction (gen/generate (g/graph 1000))
               :coordinates coords
               :steps steps
