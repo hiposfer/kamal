@@ -45,9 +45,9 @@
 
 ; a Trace is MapEntry-like object used to map a node id to a cost without
 ; using a complex data structure like a hash-map. It is recursive since
-; it contains a reference to its previous trace implementation thus only the
-; current instance is necessary to determine the complete path traversed up until
-; to it.
+; it contains a reference to its previous trace. Thus only the
+; current instance is necessary to determine the complete path traversed up
+; until it.
 (deftype IdentifiableTrace [^long id footprint prior]
   rp/Traceable
   (path  [this]
@@ -128,7 +128,7 @@
 ; 5 - if the value returned is a reduced flag - STOP
 ; 6 - otherwise get the outgoing or incoming arcs of the current node and
 ;     add them to the priority queue
-; 6.1 - create a new trace with by adding the current trace cost with the delta
+; 6.1 - create a new trace by adding the current trace cost with the delta
 ;       returned by the value function
 ; 7 - repeat steps 2 to 6 until a STOP condition is reached
 ;
