@@ -1,14 +1,8 @@
 (ns service.routing.spec
-  (:require [clojure.spec.gen.alpha :as gen]
+  (:require [clojure.edn :as edn]
             [clojure.spec.alpha :as s]
-            [compojure.api.sweet :refer [context GET resource]]
-            [ring.util.http-response :refer [ok]]
-            [spec-tools.spec :as spec]
-            [service.routing.graph.generators :as g]
-            [service.routing.directions :as dir]
-            ;[expound.alpha :as expound]
             [clojure.string :as str]
-            [clojure.edn :as edn]))
+            [spec-tools.spec :as spec]))
             ;[clojure.spec.test.alpha :as stest]))
 
 (s/def ::lon (s/and spec/number? #(<= -180 % 180)))
@@ -34,7 +28,7 @@
 (def coordinate-regex #"(-?\d+(\.\d+)?),(-?\d+(\.\d+)?)(;(-?\d+(\.\d+)?),(-?\d+(\.\d+)?))+")
 (s/def ::coordinate-regex (s/and string? #(re-matches coordinate-regex %)))
 
-(defn ->coordinates
+(defn parse-coordinates
   [text]
   (let [pairs (str/split text #";")]
     (for [coords pairs]
@@ -45,46 +39,9 @@
 (def rads-regex #"((\d+(\.\d+)?)|unlimited)(;((\d+(\.\d+)?)|unlimited))*")
 (s/def ::radiuses-regex (s/and string? #(re-matches rads-regex %)))
 
-(defn ->radiuses
+(defn parse-radiuses
   [text]
   (map edn/read-string (str/split text #";")))
 
 ;(->radiuses "1200.50;100;500;unlimited;100")
 
-
-(def routes
-  (context "/spec" []
-    :tags ["spec"]
-    :coercion :spec
-
-    (GET "/direction/:coordinates" []
-      :summary "direction with clojure.spec"
-      :path-params [coordinates :- ::coordinate-regex]
-      :query-params [{steps :- boolean? false}
-                     {radiuses :- ::radiuses-regex nil}
-                     {alternatives :- boolean? false}
-                     {language :- string? "en"}]
-      :return ::direction
-      (ok (let [coords (map zipmap (repeat [:lon :lat])
-                                   (->coordinates coordinates))
-                rads (when-not (nil? radiuses) (->radiuses radiuses))]
-            (dir/direction (gen/generate (g/graph 1000))
-              :coordinates coords
-              :steps steps
-              :radiuses rads
-              :alternatives alternatives
-              :language language))))))
-
-    ; (context "/data-plus" []
-    ;   (resource
-    ;     {:post
-    ;      {:summary "data-driven plus with clojure.spec"
-    ;       :parameters {:body-params (s/keys :req-un [::x ::y])}
-    ;       :responses {200 {:schema ::total-map}}
-    ;       :handler (fn [{{:keys [x y]} :body-params}]
-    ;                  (ok {:total (+ x y)}))}}))
-
-
-;;;; TEST @mehdi
-;(expound/expound-str ::direction (dir/direction (gen/generate (g/graph 1000)) :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]))
-;(s/explain ::direction (dir/direction (gen/generate (g/graph 1000)) :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]))
