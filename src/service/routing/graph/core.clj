@@ -47,13 +47,17 @@
 ; using a complex data structure like a hash-map. It is recursive since
 ; it contains a reference to its previous trace implementation thus only the
 ; current instance is necessary to determine the complete path traversed up until
-; the it.
+; to it.
 (deftype IdentifiableTrace [^long id footprint prior]
   rp/Traceable
   (path  [this]
     (if (nil? prior) (list this); todo: should the first element be this? or prior?
                      (cons this (lazy-seq (rp/path prior)))))
-  Map$Entry
+  ; Interface used by Clojure for the `key` and `val` functions. Those
+  ; functions are expected to work for any key-value structure. We
+  ; implement it here for convenience since a Trace maps a node id
+  ; to its cost.
+  Map$Entry ; https://docs.oracle.com/javase/7/docs/api/java/util/Map.Entry.html
   (getKey [_] id)
   (getValue [_] footprint) ; we rely on the key and val implementing their own equals
   (setValue [_ _] (throw (ex-info "Unsupported Operation" {} "cannot change an immutable value")))
