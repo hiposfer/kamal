@@ -43,6 +43,11 @@
   Object
   (toString [_] (str "{:cost " value " :time " value " }")))
 
+; a Trace is MapEntry-like object used to map a node id to a cost without
+; using a complex data structure like a hash-map. It is recursive since
+; it contains a reference to its previous trace implementation thus only the
+; current instance is necessary to determine the complete path traversed up until
+; the it.
 (deftype IdentifiableTrace [^long id footprint prior]
   rp/Traceable
   (path  [this]
@@ -114,7 +119,30 @@
 
 ; inspired by http://insideclojure.org/2015/01/18/reducible-generators/
 ; A Collection type which can reduce itself faster than first/next traversal over its lazy
-; representation.
+; representation. For convenience a lazy implementation is also provided.
+;
+; The Dijkstra algorithm implemented here works as follows:
+; 1 - take a set of start node, assign them a weight of zero and add them as
+;     initialization arguments to a priority queue as trace instances
+; 2 - poll the trace with the lowest cost from the priority queue
+; 3 - if there are no more traces - STOP
+; 4 - otherwise call the reducing function on the trace
+; 5 - if the value returned is a reduced flag - STOP
+; 6 - otherwise get the outgoing or incoming arcs of the current node and
+;     add them to the priority queue
+; 6.1 - create a new trace with by adding the current trace cost with the delta
+;       returned by the value function
+; 7 - repeat steps 2 to 6 until a STOP condition is reached
+;
+; From the previous description it should be clear that this implementation does
+; not have a fixed stop condition. Therefore it is (hopefully) very flexible
+; regarding is usefulness.
+; Some possible uses are:
+; - single source - single destination shortest path
+; - multi source - single destination shortest path
+; - multi source - multi destination shortest path
+; - single source - any/all destination shortest path
+; - shortest path with timeout
 (deftype Dijkstra [graph ids value arcs f]
   Seqable
   (seq [_]
