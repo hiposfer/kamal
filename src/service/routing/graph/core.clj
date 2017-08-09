@@ -82,9 +82,7 @@
 
 (defn- poll-unsettled!
   "moves the queue's head to an unsettled node id and returns the element
-  containing it
-
-  utility function: DO NOT USE DIRECTLY."
+  containing it"
   [^Queue queue ^ITransientSet settled]
   (let [trace (.poll queue)]
     (if (nil? trace) nil
@@ -94,9 +92,7 @@
 
 (defn- relax-nodes!
   "polls the next unsettled trace from the queue and adds all its neighbours
-  to it
-
-  utility function: DO NOT USE DIRECTLY."
+  to it"
   [value f node-arcs trace ^Queue queue]
   (reduce (fn [_ arc]
             (let [weight (rp/sum (value arc trace)
@@ -109,9 +105,7 @@
 (defn- produce!
   "returns a lazy sequence of traces by sequentially mutating the
   queue (step!(ing) into it) and concatenating the latest poll with
-  the rest of them
-
-  utility function: DO NOT USE DIRECTLY"
+  the rest of them"
   [graph value arcs f ^Queue queue settled]
   (let [trace (poll-unsettled! queue settled)]; (step! graph settled value arcs queue)
     (if (nil? trace) (list)
