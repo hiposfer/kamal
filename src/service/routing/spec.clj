@@ -42,6 +42,16 @@
 
 ;(->coordinates "-122.42,37.78;-77.03,38.91")
 
+(def rads-regex #"((\d+(\.\d+)?)|unlimited)(;((\d+(\.\d+)?)|unlimited))*")
+(s/def ::radiuses-regex (s/and string? #(re-matches rads-regex %)))
+
+(defn ->radiuses
+  [text]
+  (map edn/read-string (str/split text #";")))
+
+;(->radiuses "1200.50;100;500;unlimited;100")
+
+
 (def routes
   (context "/spec" []
     :tags ["spec"]
@@ -51,14 +61,17 @@
       :summary "direction with clojure.spec"
       :path-params [coordinates :- ::coordinate-regex]
       :query-params [{steps :- boolean? false}
+                     {radiuses :- ::radiuses-regex nil}
                      {alternatives :- boolean? false}
                      {language :- string? "en"}]
       :return ::direction
       (ok (let [coords (map zipmap (repeat [:lon :lat])
-                                   (->coordinates coordinates))]
+                                   (->coordinates coordinates))
+                rads (if (nil? radiuses) nil (->radiuses radiuses))]
             (dir/direction (gen/generate (g/graph 1000))
               :coordinates coords
               :steps steps
+              :radiuses rads
               :alternatives alternatives
               :language language))))))
 
