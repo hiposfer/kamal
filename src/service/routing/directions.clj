@@ -49,6 +49,11 @@
      :weight_name "routability" ;;TODO: give a proper name
      :legs        []})) ;; TODO
 
+(defn validate-radiuses
+  "There should be either one radius per coordinate or nothing at all"
+  [{:keys [coordinates radiuses]}]
+  (or (empty? radiuses) (= (count coordinates) (count radiuses))))
+
 ;; for the time being we only care about the coordinates of start and end
 ;; but looking into the future it is good to make like this such that we
 ;; can always extend it with more parameters
@@ -65,21 +70,25 @@
    Example:
    (direction graph :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
   [graph & parameters]
-  (let [{:keys [coordinates steps alternatives language]} parameters
-        start     (brute-nearest graph (first coordinates))
-        dst       (brute-nearest graph (last coordinates))
-        traversal (alg/dijkstra graph :value-by length
-                                      :start-from #{(key start)})
-        trace     (reduce (fn [_ trace] (when (= (key trace) (key dst)) (reduced trace)))
-                          nil
-                          traversal)]
-    (if (nil? trace)
-      {:code "NoRoute"}
-      {:code "Ok"
-       :waypoints (map (fn [point] {:name "wonderland"
-                                    :location [(:lon point) (:lat point)]})
-                       coordinates)
-       :routes [(route graph trace)]})))
+  (if-not (validate-radiuses parameters)
+    {:message "Radius values must be a distance in meters greater than 0 and smaller than 50."
+     :code "InvalidInput"}
+    (let [{:keys [coordinates steps radiuses alternatives language]} parameters
+          start     (brute-nearest graph (first coordinates))
+          dst       (brute-nearest graph (last coordinates))
+          traversal (alg/dijkstra graph :value-by length
+                                        :start-from #{(key start)})
+          trace     (reduce (fn [_ trace] (when (= (key trace) (key dst)) (reduced trace)))
+                            nil
+                            traversal)]
+      (if (nil? trace)
+        {:code "NoRoute"}
+        {:code "Ok"
+         :waypoints (map (fn [point] {:name "wonderland"
+                                      :location [(:lon point) (:lat point)]})
+                         coordinates)
+         :routes [(route graph trace)]}))))
+
 
 ;(println (direction (gen/generate (g/graph 1000)) :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]))
 
