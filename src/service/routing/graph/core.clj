@@ -143,6 +143,13 @@
 ; - multi source - multi destination shortest path
 ; - single source - any/all destination shortest path
 ; - shortest path with timeout
+;
+; the elements necessary to initialize a Dijkstra collection are
+; - graph a {id node} mapping
+; - ids a #{ids}
+; - value a function of current-arc, current-trace -> Valuable implementation
+; - arcs a function to get either the incoming or outgoing arcs of a node
+; - f a function to get the id of the src or dst of an edge
 (deftype Dijkstra [graph ids value arcs f]
   Seqable
   (seq [_]
