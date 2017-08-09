@@ -71,7 +71,7 @@
    (direction graph :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
   [graph & parameters]
   (if-not (validate-radiuses parameters)
-    {:message "Radius values must be a distance in meters greater than 0 and smaller than 50."
+    {:message "Radius values must be a distance in meters greater than or equal to 0."
      :code "InvalidInput"}
     (let [{:keys [coordinates steps radiuses alternatives language]} parameters
           start     (brute-nearest graph (first coordinates))
