@@ -17,9 +17,9 @@
 
     (GET "/direction/:coordinates" []
       :summary "direction with clojure.spec"
-      :path-params [coordinates :- ::s/coordinate-regex]
+      :path-params [coordinates :- :s/coordinate-regex]
       :query-params [{steps :- boolean? false}
-                     {radiuses :- ::s/radiuses-regex nil}
+                     {radiuses :- :s/radiuses-regex nil}
                      {alternatives :- boolean? false}
                      {language :- string? "en"}]
       :return ::s/direction

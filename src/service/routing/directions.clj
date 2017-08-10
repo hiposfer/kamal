@@ -1,9 +1,12 @@
 (ns service.routing.directions
-  (:require [service.routing.graph.core :as route]
+  (:require [clojure.spec.alpha :as s]
+            [service.routing.graph.core :as route]
             [service.routing.osm :as osm]
             [service.routing.graph.algorithms :as alg]
             [service.routing.graph.protocols :as rp]
-            [service.routing.utils.math :as math]))
+            [service.routing.utils.math :as math]
+            [service.routing.spec :as specs]))
+
 
 (defn length
   "A very simple value computation function for Arcs in a graph.
@@ -49,10 +52,10 @@
      :weight_name "routability" ;;TODO: give a proper name
      :legs        []})) ;; TODO
 
-(defn validate-radiuses
-  "There should be either one radius per coordinate or nothing at all"
-  [{:keys [coordinates radiuses]}]
-  (or (empty? radiuses) (= (count coordinates) (count radiuses))))
+; (defn validate-radiuses
+;   "There should be either one radius per coordinate or nothing at all"
+;   [{:keys [coordinates radiuses]}]
+;   (or (empty? radiuses) (= (count coordinates) (count radiuses))))
 
 ;; for the time being we only care about the coordinates of start and end
 ;; but looking into the future it is good to make like this such that we
@@ -69,12 +72,12 @@
 
    Example:
    (direction graph :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
-  [graph & parameters]
-  (if-not (validate-radiuses parameters)
+  [graph & {:keys [coordinates steps radiuses alternatives language]}]
+  (if-not
+    (s/valid? (s/and :specs/radiuses #(= (count coordinates) (count %))) radiuses)
     {:message "Radius values must be a distance in meters greater than or equal to 0."
      :code "InvalidInput"}
-    (let [{:keys [coordinates steps radiuses alternatives language]} parameters
-          start     (brute-nearest graph (first coordinates))
+    (let [start     (brute-nearest graph (first coordinates))
           dst       (brute-nearest graph (last coordinates))
           traversal (alg/dijkstra graph :value-by length
                                         :start-from #{(key start)})

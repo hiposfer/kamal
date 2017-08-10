@@ -45,3 +45,5 @@
 
 ;(->radiuses "1200.50;100;500;unlimited;100")
 
+(s/def ::radius (s/or :unlimited #(= "unlimited" %) :distance (s/and number? #(> % 0 ))))
+(s/def ::radiuses (s/coll-of ::radius))
