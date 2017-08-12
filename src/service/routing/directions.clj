@@ -52,11 +52,6 @@
      :weight_name "routability" ;;TODO: give a proper name
      :legs        []})) ;; TODO
 
-; (defn validate-radiuses
-;   "There should be either one radius per coordinate or nothing at all"
-;   [{:keys [coordinates radiuses]}]
-;   (or (empty? radiuses) (= (count coordinates) (count radiuses))))
-
 ;; for the time being we only care about the coordinates of start and end
 ;; but looking into the future it is good to make like this such that we
 ;; can always extend it with more parameters
@@ -72,8 +67,9 @@
 
    Example:
    (direction graph :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
-  [graph & {:keys [coordinates steps radiuses alternatives language]}]
-  (let [start     (brute-nearest graph (first coordinates))
+  [graph & params]
+  (let [{:keys [coordinates steps radiuses alternatives language]} params
+        start     (brute-nearest graph (first coordinates))
         dst       (brute-nearest graph (last coordinates))
         traversal (alg/dijkstra graph :value-by length
                                       :start-from #{(key start)})
