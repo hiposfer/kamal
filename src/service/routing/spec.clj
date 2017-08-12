@@ -3,9 +3,9 @@
             [clojure.spec.alpha :as s]
             [clojure.string :as str]
             [spec-tools.spec :as spec]
-            [spec-tools.core :as st]
+            [spec-tools.core :as st]))
             ;[clojure.spec.test.alpha :as stest]))
-            [expound.alpha :as expound]))
+            ;[expound.alpha :as expound]))
 
 (defn- parse-coordinates
   [text]
