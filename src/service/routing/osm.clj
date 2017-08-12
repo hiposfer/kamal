@@ -84,9 +84,6 @@
    ::secondary_link 13.89, ::road 11.11,          ::unclassified 11.11, ::residential 8.33
    ::unsurfaced 8.33,     ::living_street 2.78, ::service 1.39})
 
-(def min-speed 0.28) ;;m/s
-
-
 ;(def graph (time (alg/biggest-component (time (osm->graph "resources/osm/saarland.osm")))))
 ;(def graph (time (osm->graph "resources/osm/saarland.osm")))
 ;(def graph nil)
