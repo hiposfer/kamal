@@ -37,9 +37,9 @@
                :code "InvalidInput"}
               (let [coords (map zipmap (repeat [:lon :lat]) coordinates)]
                 (dir/direction (gen/generate (g/graph 1000))
-                               :coordinates coords
-                               :steps steps
-                               :radiuses radiuses
-                               :alternatives alternatives
-                               :language language))))))))
+                  :coordinates coords
+                  :steps steps
+                  :radiuses radiuses
+                  :alternatives alternatives
+                  :language language))))))))
 
