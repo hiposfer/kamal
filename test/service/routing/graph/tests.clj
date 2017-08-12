@@ -40,7 +40,7 @@
         performer (alg/dijkstra rosetta
                     :value-by service.routing.directions/length
                     :start-from #{1})
-        traversal (reduce (fn [res v] (when (= dst (key v)) v))
+        traversal (reduce (fn [res v] (when (= dst (key v)) (reduced v)))
                       nil
                       performer)]
     (is (not (nil? traversal)) "shortest path not found")
@@ -55,8 +55,6 @@
     (is (not (nil? traversal)) "shortest path not found")
     (is (= {1 0.0, 2 7.0, 3 9.0, 4 20.0, 5 26.0, 6 11.0} traversal) "shortest path doesnt traverse expected nodes")))
 
-;(clojure.test/run-tests)
-
 ; -------------------------------------------------------------------
 ; The Dijkstra algorithm is deterministic, therefore for the same src/dst
 ; combination it should return the same path
@@ -67,10 +65,50 @@
     (let [src  (rand-nth (keys graph))
           dst  (rand-nth (keys graph))
           coll (alg/dijkstra graph :start-from #{src}
-                             :direction ::alg/forward
-                             :value-by direction/length)]
-      (apply = (repeatedly 10 #(reduce (fn [_ v] (when (= dst (key v)) (reduced (key v))))
-                                       nil
-                                       coll))))))
+                             :value-by direction/length)
+          results (for [i (range 10)]
+                    (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
+                            nil coll))]
+      (or (every? nil? results)
+          (and (apply = (map key results))
+               (apply = (map (comp rp/cost val) results)))))))
+
+; -------------------------------------------------------------------
+; The Dijkstra algorithm cost is monotonic (increasing)
+; https://en.wikipedia.org/wiki/Monotonic_function
+(defspec monotonic
+  100; tries
+  (prop/for-all [graph (gen/such-that not-empty (g/graph 10) 1000)]
+    (let [src  (rand-nth (keys graph))
+          dst  (rand-nth (keys graph))
+          coll (alg/dijkstra graph
+                 :start-from #{src}
+                 :value-by direction/length)
+          result (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
+                         nil
+                         coll)]
+      (or (nil? result)
+          (apply >= (concat (map (comp rp/cost val)
+                                 (rp/path result))
+                            [0]))))))
+
+; -------------------------------------------------------------------
+; If the distance of two nodes is 0 and no edge has a 0 cost,
+; then the two nodes MUST be the same
+; Ddf(P,Q) = 0 if P = Q
+(defspec symmetry
+  100; tries
+  (prop/for-all [graph (gen/such-that not-empty (g/graph 10) 1000)]
+    (let [src  (rand-nth (keys graph))
+          coll (alg/dijkstra graph
+                             :start-from #{src}
+                             :value-by direction/length)
+          result (reduce (fn [_ v] (when (= src (key v)) (reduced v)))
+                         nil
+                         coll)]
+      (and (not (nil? result))
+           (= 1 (count (rp/path result)))))))
+
+;(clojure.test/run-tests)
 
 ;(tc/quick-check 100 deterministic)
