@@ -8,8 +8,8 @@
 (defn length
   "A very simple value computation function for Arcs in a graph.
   Returns a SimpleValue with the length of the arc"
-  [arc _]
-  (let [val (/ (:length arc) (get (:kind arc) osm/speeds osm/min-speed))]
+  [arc _] ;; 1 is a simple value used for test whenever no other value would be suitable
+  (let [val (/ (:length arc) (get (:kind arc) osm/speeds 1))]
     (route/->SimpleValue val)))
 
 (defn- brute-nearest
