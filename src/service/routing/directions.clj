@@ -73,24 +73,20 @@
    Example:
    (direction graph :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
   [graph & {:keys [coordinates steps radiuses alternatives language]}]
-  (if-not
-    (s/valid? (s/and :specs/radiuses #(= (count coordinates) (count %))) radiuses)
-    {:message "Radius values must be a distance in meters greater than or equal to 0."
-     :code "InvalidInput"}
-    (let [start     (brute-nearest graph (first coordinates))
-          dst       (brute-nearest graph (last coordinates))
-          traversal (alg/dijkstra graph :value-by length
-                                        :start-from #{(key start)})
-          trace     (reduce (fn [_ trace] (when (= (key trace) (key dst)) (reduced trace)))
-                            nil
-                            traversal)]
-      (if (nil? trace)
-        {:code "NoRoute"}
-        {:code "Ok"
-         :waypoints (map (fn [point] {:name "wonderland"
-                                      :location [(:lon point) (:lat point)]})
-                         coordinates)
-         :routes [(route graph trace)]}))))
+  (let [start     (brute-nearest graph (first coordinates))
+        dst       (brute-nearest graph (last coordinates))
+        traversal (alg/dijkstra graph :value-by length
+                                      :start-from #{(key start)})
+        trace     (reduce (fn [_ trace] (when (= (key trace) (key dst)) (reduced trace)))
+                          nil
+                          traversal)]
+    (if (nil? trace)
+      {:code "NoRoute"}
+      {:code "Ok"
+       :waypoints (map (fn [point] {:name "wonderland"
+                                    :location [(:lon point) (:lat point)]})
+                       coordinates)
+       :routes [(route graph trace)]})))
 
 
 ;(println (direction (gen/generate (g/graph 1000)) :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]))
