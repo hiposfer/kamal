@@ -86,7 +86,6 @@
 
 (def min-speed 0.28) ;;m/s
 
-
 ;(def graph (time (alg/biggest-component (time (osm->graph "resources/osm/saarland.osm")))))
 ;(def graph (time (osm->graph "resources/osm/saarland.osm")))
 ;(def graph nil)
