@@ -2,8 +2,7 @@
   (:require [clojure.data.xml :as xml]
             [clojure.data.int-map :as imap]
             [service.routing.graph.core :as route]
-            [service.routing.utils.math :as math]
-            [service.routing.graph.algorithms :as alg]))
+            [service.routing.utils.math :as math]))
 
 ;; <node id="298884269" lat="54.0901746" lon="12.2482632" user="SvenHRO"
 ;;      uid="46882" visible="true" version="1" changeset="676636"

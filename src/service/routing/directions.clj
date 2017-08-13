@@ -1,13 +1,12 @@
 (ns service.routing.directions
-  (:require [service.routing.graph.core :as route]
-            [service.routing.osm :as osm]
+  (:require [service.routing.osm :as osm]
             [service.routing.graph.algorithms :as alg]
             [service.routing.graph.protocols :as rp]
             [service.routing.utils.math :as math]))
 
 (defn duration
   "A very simple value computation function for Arcs in a graph.
-  Returns a SimpleValue with the length of the arc"
+  Returns the time it takes to go from arc src to dst based on osm/speeds"
   [arc _] ;; 1 is a simple value used for test whenever no other value would be suitable
   (let [val (/ (:length arc) (get (:kind arc) osm/speeds osm/min-speed))]
     val))
