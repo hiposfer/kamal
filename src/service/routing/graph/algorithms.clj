@@ -24,8 +24,8 @@
     (route/->Dijkstra graph start-from value-by arcs f)))
 
 (defn breath-first
-  "returns a constant SimpleValue of 1"
-  [_ _] (route/->SimpleValue 1))
+  "returns a constant simple value of 1"
+  [_ _] 1)
 
 (defn- unreachable
   "returns a node's id whenever a node doesnt have any out nor in arcs,

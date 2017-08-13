@@ -10,7 +10,7 @@
   Returns a SimpleValue with the length of the arc"
   [arc _]
   (let [val (/ (:length arc) (get (:kind arc) osm/speeds osm/min-speed))]
-    (route/->SimpleValue val)))
+    val))
 
 (defn- brute-nearest
   "search the nearest node in graph to point using the distance function f.
@@ -41,7 +41,7 @@
   [graph trace]
   (let [linestring (geometry graph trace)]
     {:geometry    linestring
-     :duration    (rp/time (val trace))
+     :duration    (rp/cost (val trace))
      :distance    (reduce + (map (fn [[lon lat] [lon2 lat2]] (math/haversine lon lat lon2 lat2))
                                  (:coordinates linestring)
                                  (rest (:coordinates linestring))))

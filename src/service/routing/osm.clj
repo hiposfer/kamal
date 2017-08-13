@@ -31,13 +31,15 @@
 ;; TODO: there is definitely more work to do processing ways
 (defn- highway->arcs
   "parse a OSM xml-way into a vector of Arcs representing the same way"
-  [element] ;; returns '(edge1 edge2 ...)
+  [element] ;; returns '(arc1 arc2 ...)
   (let [nodes    (sequence (comp (map #(:ref (:attrs %)))
                                  (remove nil?)
                                  (map #(Long/parseLong %)))
                            (:content element))
         kind     (highway-type (some highway-tag? (:content element)))]
-    (into [] (map (fn [src dst] (route/->Arc src dst -1 kind)) nodes (rest nodes)))))
+    (into [] (map (fn [src dst] (route/->Arc src dst -1 kind))
+                  nodes
+                  (rest nodes)))))
 
 (defn- upnodes!
   "updates arc with the length between its nodes and, associates arc
@@ -45,12 +47,12 @@
   [graph arc]
   (let [src (get graph (:src arc))
         dst (get graph (:dst arc))
-        ned (assoc arc :length (math/haversine (:lon src) (:lat src)
-                                               (:lon dst) (:lat dst)))
-        nout (conj (:out-arcs src) ned)
-        nin  (conj (:in-arcs dst) ned)]
-    (-> graph (assoc! (:src arc) (assoc src :out-arcs nout))
-              (assoc! (:dst arc) (assoc dst :in-arcs nin)))))
+        arc2 (assoc arc :length (math/haversine (:lon src) (:lat src)
+                                               (:lon dst) (:lat dst)))]
+    (-> graph (assoc! (:src arc2) (assoc-in src [:out-arcs (:dst arc2)]
+                                           arc2))
+              (assoc! (:dst arc2) (assoc-in dst [:in-arcs (:src arc2)]
+                                               arc2)))))
 
 (defn- ->element
   "create a node or a sequence of arcs based on the OSM tag"

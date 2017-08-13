@@ -2,7 +2,7 @@
   (:require [service.routing.graph.protocols :as rp]
             [clojure.data.int-map :as imap])
   (:import (java.util Map$Entry Queue PriorityQueue)
-           (clojure.lang ILookup IPersistentMap Seqable IReduceInit IReduce Sequential ITransientSet)))
+           (clojure.lang IPersistentMap Seqable IReduceInit IReduce Sequential ITransientSet)))
 
 ;; ------------------------------------------------------
 ; graph is an {id node}
@@ -10,52 +10,45 @@
 ; Arc is a {:src node-id :dst node-id :length meters :kind OSM-highway-type}
 (defrecord Node [^double lon ^double lat out-arcs in-arcs]
   rp/Context
-  (predecessors [this] (:in-arcs this))
-  (successors   [this] (:out-arcs this)))
+  (predecessors [this] (vals (:in-arcs this)))
+  (successors   [this] (vals (:out-arcs this))))
 
 (extend-type IPersistentMap
   rp/Context ;; allow Clojure's maps to behave in the same way that Node records
-  (predecessors [this] (:in-arcs this))
-  (successors    [this] (:out-arcs this))
+  (predecessors [this] (vals (:in-arcs this)))
+  (successors    [this] (vals (:out-arcs this)))
   rp/Arc
   (src [this] (:src this))
   (dst [this] (:dst this)))
 
-(defrecord Arc  [^long src ^long dst ^double length kind]
+(defrecord Arc [^long src ^long dst ^double length kind]
   rp/Arc
   (src [_] src)
   (dst [_] dst))
 
-;; a simple representation of a worth function result where both cost and time
-;; are the same
-(deftype SimpleValue [^double value]
+(extend-type Number
   rp/Valuable
-  (cost [_] value)
-  (time [_] value)
-  (sum  [_ that] (SimpleValue. (+ value (.-value ^SimpleValue that))))
-  ILookup
-  (valAt [this k] (.valAt this k nil))
-  (valAt [_ k default]
-    (case k
-      :cost value
-      :time value
-      default))
-  Object
-  (toString [_] (str "{:cost " value " :time " value " }")))
+  (cost [this] this)
+  (sum  [this that] (+ this that)))
 
-(deftype IdentifiableTrace [^long id footprint prior]
+(deftype Trace [^long id value prior]
   rp/Traceable
-  (path  [this]
-    (if (nil? prior) (list this); todo: should the first element be this? or prior?
-                     (cons this (lazy-seq (rp/path prior)))))
+  (path [this]
+    (lazy-seq (if (nil? prior) nil
+                (cons this (rp/path prior)))))
   Map$Entry
   (getKey [_] id)
-  (getValue [_] footprint) ; we rely on the key and val implementing their own equals
+  (getValue [_] value)
   (setValue [_ _] (throw (ex-info "Unsupported Operation" {} "cannot change an immutable value")))
-  (equals [_ that] (and (= id (key that)) (= footprint (val that))))
-  (hashCode [_] (hash [id footprint prior]))
+  ; we rely on the key and val implementing their own equals
+  (equals [this that]
+    (let [t1 (rp/path this)
+          t2 (rp/path that)]
+      (and (apply = (map key t1) (map key t2))
+           (apply = (map val t1) (map val t2)))))
+  (hashCode [_] (hash [id value prior]))
   Object
-  (toString [_] (str "[" id " " footprint " ]")))
+  (toString [_] (str "[" id " " value " ]")))
 
 ; travis-ci seems to complaint about not finding a matching constructor if the
 ; init size is not there. Funnily the ctor with a single comparator is not defined
@@ -68,7 +61,7 @@
   (let [cheapest-path (fn ^long [trace1 trace2] (compare (rp/cost (val trace1))
                                                          (rp/cost (val trace2))))
         queue  ^Queue (new PriorityQueue 10 cheapest-path)]; 10 init size
-    (run! (fn [id] (.add queue (->IdentifiableTrace id (->SimpleValue 0) nil))) init-set)
+    (run! (fn [id] (.add queue (->Trace id 0 nil))) init-set)
     queue))
 
 (defn- poll-unsettled!
@@ -92,7 +85,7 @@
   (reduce (fn [_ arc]
             (let [weight (rp/sum (value arc trace)
                                  (val trace))]
-              (.add queue (->IdentifiableTrace (f arc) weight trace))
+              (.add queue (->Trace (f arc) weight trace))
               queue))
           queue
           node-arcs))
