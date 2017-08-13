@@ -23,6 +23,6 @@
             [lein-ring "0.12.0"]]
   :ring {:handler service.routing.core/app
          :auto-reload? true}
-  :jvm-opts ["-Xmx300m"])
+  :jvm-opts ["-Xmx500m"])
   ;; "-Dclojure.compiler.direct-linking=true"
   ;; https://github.com/clojure/clojure/blob/master/changes.md#11-direct-linking
