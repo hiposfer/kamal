@@ -1,13 +1,14 @@
 (ns service.routing.graph.tests
   (:require [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
-            ;[clojure.test.check :as tc]
+    ;[clojure.test.check :as tc]
             [clojure.test.check.generators :as gen]
             [clojure.test :refer [is deftest]]
             [service.routing.graph.algorithms :as alg]
-            [service.routing.graph.protocols  :as rp]
+            [service.routing.graph.protocols :as rp]
             [service.routing.graph.generators :as g]
-            [service.routing.directions :as direction]))
+            [service.routing.directions :as direction]
+            [service.routing.graph.core :as route]))
 
 ;; https://rosettacode.org/wiki/Dijkstra%27s_algorithm
 (def rosetta {1 {:out-arcs [{:dst 2 :length 7  :kind :other}
@@ -38,7 +39,7 @@
 (deftest shortest-path
   (let [dst       5
         performer (alg/dijkstra rosetta
-                    :value-by (fn length [arc _] (:length arc))
+                    :value-by (fn length [arc _] (route/->SimpleValue (:length arc)))
                     :start-from #{1})
         traversal (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
                       nil
@@ -48,7 +49,7 @@
 
 (deftest all-paths
   (let [performer (alg/dijkstra rosetta
-                                :value-by (fn length [arc _] (:length arc))
+                                :value-by (fn length [arc _] (route/->SimpleValue (:length arc)))
                                 :start-from #{1})
         traversal (into {} (map (juxt key (comp rp/cost val)))
                           performer)]
