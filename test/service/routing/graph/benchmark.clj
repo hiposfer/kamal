@@ -29,7 +29,7 @@
                          dst (get destinations i)
                          coll (alg/dijkstra graph :start-from #{src}
                                             :direction ::alg/forward
-                                            :value-by direction/length)]]
+                                            :value-by direction/duration)]]
                (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
                        nil
                        coll)))
@@ -50,7 +50,7 @@
                          dst (get destinations i)
                          coll (alg/dijkstra graph :start-from #{src}
                                             :direction ::alg/forward
-                                            :value-by direction/length)]]
+                                            :value-by direction/duration)]]
                (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
                        nil
                        coll)))
@@ -70,7 +70,7 @@
                          dst (get destinations i)
                          coll (alg/dijkstra graph :start-from #{src}
                                             :direction ::alg/forward
-                                            :value-by direction/length)]]
+                                            :value-by direction/duration)]]
                (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
                        nil
                        coll)))

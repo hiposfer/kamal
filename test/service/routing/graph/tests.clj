@@ -38,9 +38,9 @@
 (deftest shortest-path
   (let [dst       5
         performer (alg/dijkstra rosetta
-                    :value-by service.routing.directions/length
+                    :value-by (fn length [arc _] (:length arc))
                     :start-from #{1})
-        traversal (reduce (fn [res v] (when (= dst (key v)) (reduced v)))
+        traversal (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
                       nil
                       performer)]
     (is (not (nil? traversal)) "shortest path not found")
@@ -48,7 +48,7 @@
 
 (deftest all-paths
   (let [performer (alg/dijkstra rosetta
-                                :value-by service.routing.directions/length
+                                :value-by (fn length [arc _] (:length arc))
                                 :start-from #{1})
         traversal (into {} (map (juxt key (comp rp/cost val)))
                           performer)]
@@ -65,7 +65,7 @@
     (let [src  (rand-nth (keys graph))
           dst  (rand-nth (keys graph))
           coll (alg/dijkstra graph :start-from #{src}
-                             :value-by direction/length)
+                                   :value-by direction/duration)
           results (for [i (range 10)]
                     (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
                             nil coll))]
@@ -82,8 +82,8 @@
     (let [src  (rand-nth (keys graph))
           dst  (rand-nth (keys graph))
           coll (alg/dijkstra graph
-                 :start-from #{src}
-                 :value-by direction/length)
+                             :start-from #{src}
+                             :value-by direction/duration)
           result (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
                          nil
                          coll)]
@@ -102,7 +102,7 @@
     (let [src  (rand-nth (keys graph))
           coll (alg/dijkstra graph
                              :start-from #{src}
-                             :value-by direction/length)
+                             :value-by direction/duration)
           result (reduce (fn [_ v] (when (= src (key v)) (reduced v)))
                          nil
                          coll)]
