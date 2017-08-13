@@ -39,8 +39,8 @@
 (deftype Trace [^long id value prior]
   rp/Traceable
   (path [this]
-    (lazy-seq (if (nil? prior) nil
-                (cons this (rp/path prior)))))
+    (if (nil? prior) (list this)
+      (cons this (lazy-seq (rp/path prior)))))
   ; Interface used by Clojure for the `key` and `val` functions. Those
   ; functions are expected to work for any key-value structure. We
   ; implement it here for convenience since a Trace maps a node id
