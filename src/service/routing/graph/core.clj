@@ -31,12 +31,21 @@
   (cost [this] this)
   (sum  [this that] (+ this that)))
 
+; a Trace is MapEntry-like object used to map a node id to a cost without
+; using a complex data structure like a hash-map. It is recursive since
+; it contains a reference to its previous trace. Thus only the
+; current instance is necessary to determine the complete path traversed up
+; until it.
 (deftype Trace [^long id value prior]
   rp/Traceable
   (path [this]
     (lazy-seq (if (nil? prior) nil
                 (cons this (rp/path prior)))))
-  Map$Entry
+  ; Interface used by Clojure for the `key` and `val` functions. Those
+  ; functions are expected to work for any key-value structure. We
+  ; implement it here for convenience since a Trace maps a node id
+  ; to its cost.
+  Map$Entry ; https://docs.oracle.com/javase/7/docs/api/java/util/Map.Entry.html
   (getKey [_] id)
   (getValue [_] value)
   (setValue [_ _] (throw (ex-info "Unsupported Operation" {} "cannot change an immutable value")))
@@ -66,9 +75,7 @@
 
 (defn- poll-unsettled!
   "moves the queue's head to an unsettled node id and returns the element
-  containing it
-
-  utility function: DO NOT USE DIRECTLY."
+  containing it"
   [^Queue queue ^ITransientSet settled]
   (let [trace (.poll queue)]
     (if (nil? trace) nil
@@ -78,9 +85,7 @@
 
 (defn- relax-nodes!
   "polls the next unsettled trace from the queue and adds all its neighbours
-  to it
-
-  utility function: DO NOT USE DIRECTLY."
+  to it"
   [value f node-arcs trace ^Queue queue]
   (reduce (fn [_ arc]
             (let [weight (rp/sum (value arc trace)
@@ -93,9 +98,7 @@
 (defn- produce!
   "returns a lazy sequence of traces by sequentially mutating the
   queue (step!(ing) into it) and concatenating the latest poll with
-  the rest of them
-
-  utility function: DO NOT USE DIRECTLY"
+  the rest of them"
   [graph value arcs f ^Queue queue settled]
   (let [trace (poll-unsettled! queue settled)]; (step! graph settled value arcs queue)
     (if (nil? trace) (list)
@@ -107,7 +110,37 @@
 
 ; inspired by http://insideclojure.org/2015/01/18/reducible-generators/
 ; A Collection type which can reduce itself faster than first/next traversal over its lazy
-; representation.
+; representation. For convenience a lazy implementation is also provided.
+;
+; The Dijkstra algorithm implemented here works as follows:
+; 1 - take a set of start node, assign them a weight of zero and add them as
+;     initialization arguments to a priority queue as trace instances
+; 2 - poll the trace with the lowest cost from the priority queue
+; 3 - if there are no more traces - STOP
+; 4 - otherwise call the reducing function on the trace
+; 5 - if the value returned is a reduced flag - STOP
+; 6 - otherwise get the outgoing or incoming arcs of the current node and
+;     add them to the priority queue
+; 6.1 - create a new trace by adding the current trace cost with the delta
+;       returned by the value function
+; 7 - repeat steps 2 to 6 until a STOP condition is reached
+;
+; From the previous description it should be clear that this implementation does
+; not have a fixed stop condition. Therefore it is (hopefully) very flexible
+; regarding is usefulness.
+; Some possible uses are:
+; - single source - single destination shortest path
+; - multi source - single destination shortest path
+; - multi source - multi destination shortest path
+; - single source - any/all destination shortest path
+; - shortest path with timeout
+;
+; the elements necessary to initialize a Dijkstra collection are
+; - graph: a {id node} mapping
+; - ids: a #{ids}
+; - value: a function of current-arc, current-trace -> Valuable implementation
+; - arcs: a function of graph, id -> node. Used to get either the incoming or outgoing arcs of a node
+; - f: a function of Arc -> id. Used to get the id of the src or dst of an Arc
 (deftype Dijkstra [graph ids value arcs f]
   Seqable
   (seq [_]

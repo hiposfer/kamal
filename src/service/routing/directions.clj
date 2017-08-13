@@ -5,10 +5,10 @@
             [service.routing.graph.protocols :as rp]
             [service.routing.utils.math :as math]))
 
-(defn length
+(defn duration
   "A very simple value computation function for Arcs in a graph.
   Returns a SimpleValue with the length of the arc"
-  [arc _]
+  [arc _] ;; 1 is a simple value used for test whenever no other value would be suitable
   (let [val (/ (:length arc) (get (:kind arc) osm/speeds osm/min-speed))]
     val))
 
@@ -68,8 +68,8 @@
   (let [{:keys [coordinates]} parameters
         start     (brute-nearest graph (first coordinates))
         dst       (brute-nearest graph (last coordinates))
-        traversal (alg/dijkstra graph :value-by length
-                                      :start-from #{(key start)})
+        traversal (alg/dijkstra graph :value-by duration
+                                :start-from #{(key start)})
         trace     (reduce (fn [_ trace] (when (= (key trace) (key dst)) (reduced trace)))
                           nil
                           traversal)]
