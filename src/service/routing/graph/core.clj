@@ -162,20 +162,6 @@
                      (conj! settled (key trace)))))))))
   ;; ------
   IReduce
-  (reduce [_ rf]
-    (loop [ret     nil
-           queue   (init-queue ids)
-           settled (transient (imap/int-set))]
-      (let [trace (poll-unsettled! queue settled)]
-        (if (nil? trace) ret ;; empty queue
-          (let [next-queue   (relax-nodes! value f (arcs (get graph (key trace))) trace queue)
-                next-settled (conj! settled (key trace))]
-            (case (count settled)
-              (0 1) (recur ret next-queue next-settled) ;; ignore ret and keep making items
-              2     (let [previous (rp/path trace)] ;; call rf with the first two items in coll
-                      (recur (apply rf previous) next-queue next-settled))
-              (let [rr (rf ret trace)] ;;default branch
-                (if (reduced? rr) @rr
-                  (recur rr next-queue next-settled)))))))))
+  (reduce [this rf] (.reduce ^IReduceInit this rf (rf)))
   ;; declaring as Sequential will cause the seq to be used for nth, etc
   Sequential)
