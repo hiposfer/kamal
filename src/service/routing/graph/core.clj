@@ -4,15 +4,35 @@
   (:import (java.util Map$Entry Queue PriorityQueue)
            (clojure.lang IPersistentMap Seqable IReduceInit IReduce Sequential ITransientSet)))
 
-;; ------------------------------------------------------
 ; graph is an {id node}
-; Node is a {:lon :lat :out-arcs {dst-id arc} :in-arcs {src-id arc}}
-; Arc is a {:src node-id :dst node-id :length meters :kind OSM-highway-type}
-(defrecord Node [^double lon ^double lat out-arcs in-arcs]
-  rp/Context
-  (predecessors [this] (vals (:in-arcs this)))
-  (successors   [this] (vals (:out-arcs this))))
+; Node is a {:lon :lat :arcs {dst-id arc}}
+; Arc is a {:src :dst :way-id}
 
+;; ------------------------------------------------------
+;; A Node is an element that can be included in a graph
+;; for routing purposes
+;; NOTE: This Node representation can only contain Edges (bidirectional Arcs).
+;;       for convenience reasons we represent the edges as a directed outgoing arc
+;;       and reverse it only if necessary (see predecesors)
+(defrecord Node [^double lon ^double lat arcs]
+  rp/Context
+  (predecessors [this] (sequence (comp (map val)
+                                       (map rp/mirror))
+                                 (:arcs this)))
+  (successors   [this] (vals (:arcs this)))
+  rp/GeoCoordinate
+  (lat [_] lat)
+  (lon [_] lon))
+
+;; a Point is a simple longitude, latitude pair used to
+;; represent the geometry of a way
+(defrecord Point [^double lon ^double lat]
+  rp/GeoCoordinate
+  (lat [_] lat)
+  (lon [_] lon))
+
+;; this is specially useful for generative testing: there we use generated
+;; nodes and arcs
 (extend-type IPersistentMap
   rp/Context ;; allow Clojure's maps to behave in the same way that Node records
   (predecessors [this] (vals (:in-arcs this)))
@@ -21,11 +41,26 @@
   (src [this] (:src this))
   (dst [this] (:dst this)))
 
-(defrecord Arc [^long src ^long dst ^double length kind]
+(defrecord Arc [^long src ^long dst ^long way]
   rp/Arc
   (src [_] src)
-  (dst [_] dst))
+  (dst [_] dst)
+  rp/Reversible
+  (mirror [_] (->Arc dst src way))
+  ;; TODO: apparently the 'performance' note doesnt apply as key and val are stored
+  ;;       separatedly. Need to check later
 
+  ;; We store arcs based on their destination node. Thus an Arc has all the information
+  ;; necessary to uniquely identify itself with src/dst combination. Therefore it would
+  ;; be wasteful to store a MapEntry as [dst [src dst way-id]]. It is better to make an
+  ;; Arc extend the MapEntry interface such that it can represent itself in a hash-map
+  Map$Entry ; https://docs.oracle.com/javase/7/docs/api/java/util/Map.Entry.html
+  (getKey [_] dst)
+  (getValue [this] this)
+  (setValue [_ _] (throw (ex-info "Unsupported Operation" {} "cannot change an immutable value"))))
+;; records already implement equals and hashCode
+
+;; the simplest way to represent the Cost in a graph traversal
 (extend-type Number
   rp/Valuable
   (cost [this] this)

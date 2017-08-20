@@ -55,6 +55,9 @@
   (src [this] "the start node id of an Arc")
   (dst [this] "the destination node id of an Arc"))
 
+(defprotocol Reversible
+  (mirror [this] "returns an Arc in the opposite direction than the original"))
+
 (defprotocol GeoCoordinate
   (lat [this] "latitude in decimal numbers")
   (lon [this] "longitude in decimal numbers"))
