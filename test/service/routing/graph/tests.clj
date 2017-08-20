@@ -69,7 +69,7 @@
     (let [src  (rand-nth (keys graph))
           dst  (rand-nth (keys graph))
           coll (alg/dijkstra graph :start-from #{src}
-                                   :value-by direction/duration)
+                                   :value-by (partial direction/duration graph))
           results (for [i (range 10)]
                     (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
                             nil coll))]
@@ -87,7 +87,7 @@
           dst  (rand-nth (keys graph))
           coll (alg/dijkstra graph
                              :start-from #{src}
-                             :value-by direction/duration)
+                             :value-by (partial direction/duration graph))
           result (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
                          nil
                          coll)]
@@ -106,7 +106,7 @@
     (let [src  (rand-nth (keys graph))
           coll (alg/dijkstra graph
                              :start-from #{src}
-                             :value-by direction/duration)
+                             :value-by (partial direction/duration graph))
           result (reduce (fn [_ v] (when (= src (key v)) (reduced v)))
                          nil
                          coll)]
