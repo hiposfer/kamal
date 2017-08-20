@@ -135,10 +135,9 @@
       ways)))
 
 (defn- osm->nodes
-  [filename ids]
   "takes an OSM-file and a set of node ids and returns a
    vector of point instances"
-  [filename]
+  [filename ids]
   (with-open [file-rdr (clojure.java.io/reader filename)]
     (let [osm   (:content (xml/parse file-rdr))
           nodes (into (imap/int-map)
