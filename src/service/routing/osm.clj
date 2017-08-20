@@ -48,7 +48,6 @@
 ;   <tag k="name" v="Pastower Straße"/>
 ;  </way>
 (defn- highway-tag? [element] (when (= "highway" (:k (:attrs element))) element))
-;;(defn- highway-type [element] (keyword (str *ns*) (:v (:attrs element))))
 
 (defn- highway->ways
   "parse a OSM xml-way into a [way-id {attrs}] representing the same way"
@@ -81,6 +80,44 @@
       [id (walk/keywordize-keys (update new-attrs ::nodes rseq))]
       [id new-attrs])))
 
+(defn- strip-points
+  "returns a sequence of node ids that join the intersections
+  of this way. The first and last id are included as well."
+  [intersections nodes]
+  (let [begin (first nodes)
+        end   (last nodes)]
+    (for [node nodes
+          :when (or (= begin node)
+                    (= end   node)
+                    (contains? intersections node))]
+      node)))
+
+(defn- simplify
+  "returns a [way-id [connected-node-ids]], i.e. only the nodes that represent
+  the connected nodes in a graph structure"
+  [ways]
+  (let [point-count   (into (imap/int-map) (frequencies (mapcat ::nodes (vals ways))))
+        intersections (into (imap/int-set)
+                            (comp (filter (fn [[_ v]] (>= v 2)))
+                                  (map first))
+                            point-count)]
+    (map (fn [[id attr]] [id (strip-points intersections (::nodes attr))])
+         ways)))
+
+
+(defn- connect
+  "takes a hashmap of nodes and a hashmap of {way [nodes]} and create
+  arcs between each node to form a graph"
+  [nodes simple-ways]
+  (let [arcs (mapcat (fn g [[way-id nodes]] (map route/->Arc nodes (rest nodes) (repeat way-id))))]
+    (transduce arcs ;; this approach only works if Arc implements MapEntry
+      (completing
+        (fn f [graph arc]
+          (-> (update-in graph [(rp/src arc) :arcs] conj arc)
+              (update-in       [(rp/dst arc) :arcs] conj (rp/mirror arc)))))
+      nodes
+      simple-ways)))
+
 ;; xml-parse: (element tag attrs & content)
 (defn- osm->ways
   "takes an OSM-file and returns an int-map of ways representing the road
@@ -111,67 +148,37 @@
                       osm)]
       nodes)))
 
-(defn- strip-points
-  "returns a sequence of node ids that join the intersections
-  of this way. The first and last id are included as well."
-  [intersections nodes]
-  (let [begin (first nodes)
-        end   (last nodes)]
-    (for [node nodes
-          :when (or (= begin node)
-                    (= end   node)
-                    (contains? intersections node))]
-      node)))
+;; There are generally speaking two ways to process an OSM file for routing
+; - read all points and ways and transform them in memory
+; - read it once, extract the ways and then read it again and extract only the relevant nodes
 
-(defn- simplify
-  "returns a [way-id [connected-node-ids]], i.e. only the nodes that represent
-  the connected nodes in a graph structure"
-  [ways]
-  (let [point-count   (into (imap/int-map) (frequencies (mapcat ::nodes (vals ways))))
-        intersections (into (imap/int-set)
-                            (comp (filter (fn [[_ v]] (>= v 2)))
-                                  (map first))
-                            point-count)]
-    (map (fn [[id attr]] [id (strip-points intersections (::nodes attr))])
-         ways)))
-
-
-;; TODO: it is possible to represent the complete pedestrian graph as a
-;; directed graph using undirected edges. Simply store a {:arcs {dst {src dst}}}
-;; if it would be necessary to get the reversed arcs at runtime then simply invert
-;; src and dst.
-;; Since we have the Context protocol it doesnt matter how they are represented internally
-(defn- connect
-  [nodes simple-ways]
-  (let [arcs (mapcat (fn g [[way-id nodes]] (map route/->Arc nodes (rest nodes) (repeat way-id))))]
-    (transduce arcs ;; this approach only works if Arc implements MapEntry
-      (completing
-        (fn f [graph arc]
-          (-> (update-in graph [(rp/src arc) :arcs] conj arc)
-              (update-in       [(rp/dst arc) :arcs] conj (rp/mirror arc)))))
-      nodes
-      simple-ways)))
+;; The first option is faster since reading from disk is always very slow
+;; The second option uses less memory but takes at least twice as long (assuming reading takes the most time)
 
 (defn osm->network
+  "read an OSM file twice: once for ways and another for nodes and transforms
+  it into a network of {:graph :ways :points}, such that the graph represent
+  only the connected nodes, the points represent the shape of the connection
+  and the ways are the metadata associated with the connections"
   [filename]
-  (let [ways    (osm->ways filename)
+  (let [ways          (osm->ways filename)
         ;; post procesing ways
         point-ids     (into (imap/int-set) (mapcat ::nodes) (vals ways))
         ;; post-processing nodes
         points&nodes  (osm->nodes filename point-ids)
         simple-ways   (simplify ways)
         node-ids      (into (imap/int-set) (mapcat second) simple-ways)
+        points        (into (imap/int-map)
+                            (remove #(contains? node-ids (key %)))
+                            points&nodes)
         nodes         (into (imap/int-map)
                             (comp (filter #(contains? node-ids (key %)))
                                   (map (fn [[k v]] [k (route/->Node (:lon v) (:lat v) {})])))
                             points&nodes)
-        graph         (connect nodes simple-ways)
-        points        (into (imap/int-map)
-                            (remove #(contains? node-ids (key %)))
-                            points&nodes)]
+        graph         (connect nodes simple-ways)]
     {:ways ways :graph graph :points points}))
 
-(System/gc)
+;(System/gc)
 ;(def network (time (osm->network "resources/osm/saarland.osm")))
 ;(take 10 (:graph network))
 ;(def network nil)
