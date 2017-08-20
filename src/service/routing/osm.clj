@@ -181,7 +181,7 @@
 (def walking-speed  2.5);; m/s
 
 ;(System/gc)
-(def network (time (osm->network "resources/osm/saarland.osm")))
+;(def network (time (osm->network "resources/osm/saarland.osm")))
 ;(take 10 (:graph network))
 ;(def network nil)
 
