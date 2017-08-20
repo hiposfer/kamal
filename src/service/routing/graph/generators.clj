@@ -6,23 +6,16 @@
 (defn- clean-arcs
   "remove the arcs of node that point to unexistent nodes"
   [graph [id node]]
-  (let [outs (filter (fn [[dst _]] (contains? graph dst))
-                     (:out-arcs node))
-        ins  (filter (fn [[src _]] (contains? graph src))
-                     (:in-arcs node))]
-    [id (assoc node :out-arcs (into {} outs)
-                    :in-arcs  (into {} ins))]))
+  (let [arcs (filter (fn [[dst _]] (contains? graph dst))
+                     (:arcs node))]
+    [id (assoc node :arcs (into {} arcs))]))
 
 (defn- reflect-arcs
-  "set the node id of :out-arcs and :in-arcs to src or dst
-  accordingly"
+  "set the node id of :arcs to dst"
   [[id node]]
-  (let [outs (map (fn [[_ arc]] [(:dst arc) arc])
-                  (:out-arcs node))
-        ins  (map (fn [[_ arc]] [(:src arc) arc])
-                  (:in-arcs node))]
-    [id (assoc node :out-arcs (into {} outs)
-                    :in-arcs  (into {} ins))]))
+  (let [arcs (map (fn [[_ arc]] [(:dst arc) arc])
+                  (:out-arcs node))]
+    [id (assoc node :arcs (into {} arcs))]))
 
 (defn- clean-graph
   "remove all arcs that point to unexistent nodes"

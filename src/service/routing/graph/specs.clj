@@ -1,44 +1,36 @@
 (ns service.routing.graph.specs
   (:require [clojure.set :as set]
             [clojure.spec.alpha :as s]
-            [service.routing.osm :as osm]
             [service.routing.graph.protocols :as rp]))
 
-(s/def :arc/kind (set (keys osm/speeds)))
-(s/def :arc/length (s/and int? pos?))
+(s/def :arc/way int?)
 (s/def :arc/dst int?)
 (s/def :arc/src int?)
 
-(s/def :graph/arc (s/and (s/keys :req-un [:arc/src :arc/dst :arc/length :arc/kind])
+(s/def :graph/arc (s/and (s/keys :req-un [:arc/src :arc/dst :arc/way])
                          (fn [arc] (not= (:src arc) (:dst arc)))))
 
 (s/def :node/lat (s/and number? #(<= -90 % 90)))
 (s/def :node/lon (s/and number? #(<= -180 % 180)))
 (s/def :node/arcs (s/map-of int? :graph/arc))
-(s/def :node/out-arcs :node/arcs)
-(s/def :node/in-arcs :node/arcs)
 
-(s/def :graph/node (s/and (s/keys :req-un [:node/lat :node/lon :node/out-arcs :node/in-arcs])
-                          (fn [node] (or (not-empty (:out-arcs node))
-                                         (not-empty (:in-arcs node))))))
+(s/def :graph/node (s/and (s/keys :req-un [:node/lat :node/lon :node/arcs])
+                          #(not-empty (:arcs %))))
 (s/def :int-map/graph (s/map-of int? :graph/node))
 
-(defn- valid-out-arcs?
+;; todo: also need to validate src id since it can be reversed
+(defn- valid-arcs?
   [graph]
-  (let [outs (map :out-arcs (vals graph))]
+  (let [outs (map :arcs (vals graph))]
     (every? (fn [[dst arc]] (= dst (:dst arc))) outs)))
 
-(defn- valid-in-arcs?
-  [graph]
-  (let [outs (map :in-arcs (vals graph))]
-    (every? (fn [[src arc]] (= src (:src arc))) outs)))
-
 (defn- valid-ids?
-  "is every id used in the out/in arcs also a node id present in the graph?"
+  "is every id used in the out arcs also a node id present in the graph?"
   [ids graph]
-  (let [outs (into #{} (comp (map :out-arcs) (map rp/dst)) (vals graph))
-        ins  (into #{} (comp (map :in-arcs) (map rp/src)) (vals graph))]
-    (empty? (set/difference ids (set/union outs ins)))))
+  (let [outs (into #{} (comp (map :arcs)
+                             (map rp/dst))
+                       (vals graph))]
+    (empty? (set/difference ids outs))))
 
 ;; this could definitely be improved such that every node/arc
 ;; is checked individually but this will have to do for the moment)))
@@ -49,5 +41,4 @@
   (let [ids (set (keys graph))]
     (s/and :int-map/graph
            (partial valid-ids? ids)
-           valid-in-arcs?
-           valid-out-arcs?)))
+           valid-arcs?)))

@@ -7,9 +7,12 @@
 (defn duration
   "A very simple value computation function for Arcs in a graph.
   Returns the time it takes to go from arc src to dst based on osm/speeds"
-  [arc _] ;; 1 is a simple value used for test whenever no other value would be suitable
-  (let [val (/ (:length arc) (get (:kind arc) osm/speeds osm/min-speed))]
-    val))
+  [graph arc _] ;; 1 is a simple value used for test whenever no other value would be suitable
+  (let [src    (get graph (rp/src arc))
+        dst    (get graph (rp/dst arc))
+        length (math/haversine (rp/lon src) (rp/lat src)
+                               (rp/lon dst) (rp/lat dst))]
+    (/ length osm/walking-speed)))
 
 (defn- brute-nearest
   "search the nearest node in graph to point using the distance function f.

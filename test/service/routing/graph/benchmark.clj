@@ -35,10 +35,10 @@
                        coll)))
       :os :runtime :verbose)))
 
-(def grapher (delay (osm/osm->graph "resources/osm/saarland.osm")))
+(def networker (delay (osm/osm->network "resources/osm/saarland.osm")))
 
 (test/deftest ^:benchmark dijkstra-saarland-graph
-  (let [graph @grapher ;; force read
+  (let [graph        (:graph @networker) ;; force read
         sources      (into [] (repeatedly iterations #(rand-nth (keys graph))))
         destinations (into [] (repeatedly iterations #(rand-nth (keys graph))))]
     (println "\nsaarland graph:" iterations "executions with random src/dst")
@@ -49,15 +49,15 @@
                    :let [src (get sources i)
                          dst (get destinations i)
                          coll (alg/dijkstra graph :start-from #{src}
-                                            :direction ::alg/forward
                                             :value-by direction/duration)]]
                (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
                        nil
                        coll)))
       :os :runtime :verbose)))
 
+;; only the connected nodes
 (test/deftest ^:benchmark dijkstra-saarland-biggest-component
-  (let [graph (alg/biggest-component @grapher) ;; only the connected nodes
+  (let [graph        (alg/biggest-component (:graph @networker))
         sources      (into [] (repeatedly iterations #(rand-nth (keys graph))))
         destinations (into [] (repeatedly iterations #(rand-nth (keys graph))))]
     (println "\nsaarland graph:" iterations "executions with random src/dst")
@@ -69,7 +69,6 @@
                    :let [src (get sources i)
                          dst (get destinations i)
                          coll (alg/dijkstra graph :start-from #{src}
-                                            :direction ::alg/forward
                                             :value-by direction/duration)]]
                (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
                        nil
