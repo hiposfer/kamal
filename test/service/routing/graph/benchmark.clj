@@ -62,7 +62,7 @@
         sources      (into [] (repeatedly iterations #(rand-nth (keys graph))))
         destinations (into [] (repeatedly iterations #(rand-nth (keys graph))))]
     (println "\nsaarland graph:" iterations "executions with random src/dst")
-    (println "using only weakly connected components of the original graph")
+    (println "using only strongly connected components of the original graph")
     (println "dijkstra forward with:" (count graph) "nodes and"
              (reduce + (map (comp count :arcs) (vals graph))) "edges")
     (c/quick-bench
