@@ -4,13 +4,19 @@
             [service.routing.graph.specs])) ;; loads the spec in the registry
 
 (defn- clean-arcs
-  "remove the arcs of node that point to unexistent nodes"
+  "remove the arcs of node that point to unexistent nodes and fix the src id
+  to the one from the node"
   [graph [id node]]
-  (let [arcs (filter (fn [[dst _]] (contains? graph dst))
-                     (:arcs node))]
+  (let [arcs (sequence (comp (filter (fn [[dst _]] (and (contains? graph dst))))
+                             (map    (fn [[dst arc]] [dst (assoc arc :src id)]))
+                             (map    (fn [[dst arc]] (if (not= dst (:src arc))
+                                                       [dst arc]
+                                                       (let [new-dst (rand-nth (keys graph))]
+                                                         [new-dst (assoc arc :dst new-dst)])))))
+                       (:arcs node))]
     [id (assoc node :arcs (into {} arcs))]))
 
-(defn- reflect-arcs
+(defn- fix-dst
   "set the node id of :arcs to dst"
   [[id node]]
   (let [arcs (map (fn [[_ arc]] [(:dst arc) arc])
@@ -20,7 +26,7 @@
 (defn- clean-graph
   "remove all arcs that point to unexistent nodes"
   [graph]
-  (let [graph2 (into {} (map reflect-arcs graph))]
+  (let [graph2 (into {} (map fix-dst graph))]
     (into {} (map #(clean-arcs graph2 %) graph2))))
 
 (defn- grapher
@@ -41,4 +47,4 @@
   (gen/fmap clean-graph (grapher size)))
 
 ;example usage
-;(gen/generate (graph 10))
+(gen/generate (graph 10))
