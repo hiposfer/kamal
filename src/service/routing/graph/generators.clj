@@ -7,7 +7,7 @@
   "remove the arcs of node that point to unexistent nodes and fix the src id
   to the one from the node"
   [graph [id node]]
-  (let [arcs (sequence (comp (filter (fn [[dst _]] (and (contains? graph dst))))
+  (let [arcs (sequence (comp (filter (fn [[dst _]] (contains? graph dst)))
                              (map    (fn [[dst arc]] [dst (assoc arc :src id)]))
                              (map    (fn [[dst arc]] (if (not= dst (:src arc))
                                                        [dst arc]
