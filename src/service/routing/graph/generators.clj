@@ -47,4 +47,4 @@
   (gen/fmap clean-graph (grapher size)))
 
 ;example usage
-(gen/generate (graph 10))
+;(gen/generate (graph 10))
