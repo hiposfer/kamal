@@ -14,7 +14,7 @@
   "set the node id of :arcs to dst"
   [[id node]]
   (let [arcs (map (fn [[_ arc]] [(:dst arc) arc])
-                  (:out-arcs node))]
+                  (:arcs node))]
     [id (assoc node :arcs (into {} arcs))]))
 
 (defn- clean-graph
