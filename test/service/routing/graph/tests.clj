@@ -12,8 +12,7 @@
 ;; https://rosettacode.org/wiki/Dijkstra%27s_algorithm
 (def rosetta {1 {:out-arcs {2 {:dst 2 :length 7}
                             3 {:dst 3 :length 9}
-                            5 {:dst 6 :length 14}}
-                 :in-arcs  nil}
+                            5 {:dst 6 :length 14}}}
               2 {:out-arcs {3 {:dst 3 :length 10}
                             4 {:dst 4 :length 15}}
                  :in-arcs  {1 {:src 1 :length 7}}}
@@ -26,8 +25,7 @@
                             3 {:src 3 :length 11}}}
               5 {:out-arcs {6 {:dst 6 :length 9}}
                  :in-arcs  {4 {:src 4 :length 6}}}
-              6 {:out-arcs nil
-                 :in-arcs  {1 {:src 1 :length 14}
+              6 {:in-arcs  {1 {:src 1 :length 14}
                             3 {:src 3 :length 2}
                             5 {:src 5 :length 9}}}})
 

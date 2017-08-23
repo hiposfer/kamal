@@ -33,10 +33,20 @@
 
 ;; this is specially useful for generative testing: there we use generated
 ;; nodes and arcs
+;; NOTE: we cannot know in advance if the map was created with only undirected
+;; arcs or if it was meant for both outgoing and incoming arcs. So we just check
+;; both cases
 (extend-type IPersistentMap
   rp/Context ;; allow Clojure's maps to behave in the same way that Node records
-  (predecessors [this] (vals (:in-arcs this)))
-  (successors    [this] (vals (:out-arcs this)))
+  (predecessors [this]
+    (if (:in-arcs this)
+      (:in-arcs this)
+      (sequence (comp (map val) (map rp/mirror))
+                (:arcs this))))
+  (successors [this]
+    (if (:out-arcs this)
+      (vals (:out-arcs this))
+      (vals (:arcs this))))
   rp/Arc
   (src [this] (:src this))
   (dst [this] (:dst this)))
