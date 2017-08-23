@@ -47,9 +47,15 @@
     (if (:out-arcs this)
       (vals (:out-arcs this))
       (vals (:arcs this))))
+  rp/GeoCoordinate
+  (lat [this] (:lat this))
+  (lon [this] (:lon this))
   rp/Arc
   (src [this] (:src this))
-  (dst [this] (:dst this)))
+  (dst [this] (:dst this))
+  rp/Reversible
+  (mirror [this] (assoc this :src (:dst this)
+                             :dst (:src this))))
 
 (defrecord Arc [^long src ^long dst ^long way]
   rp/Arc
