@@ -24,7 +24,7 @@
   (GET "spec/direction/:coordinates" []
     :coercion :spec
     :summary "direction with clojure.spec"
-    :path-params [coordinates :- ::spec/coordinate-raw]
+    :path-params [coordinates :- ::spec/coordinates-raw]
     :query-params [{steps :- boolean? false}
                    {radiuses :- ::spec/radiuses-raw nil}
                    {alternatives :- boolean? false}
