@@ -21,7 +21,7 @@
              :data {:info {:title "Routing API"
                            :description "Routing for hippos"}
                     :tags [{:name "direction", :description "direction similar to mabbox"}]}}}
-  (GET "spec/direction/:coordinates" []
+  (GET "/spec/direction/:coordinates" []
     :coercion :spec
     :summary "direction with clojure.spec"
     :path-params [coordinates :- ::spec/coordinates-raw]
