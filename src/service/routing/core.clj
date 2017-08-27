@@ -1,19 +1,26 @@
 (ns service.routing.core
-  (:require [clojure.spec.alpha :as s]
-            [clojure.spec.gen.alpha :as gen]
+  (:require [clojure.spec.gen.alpha :as gen]
             [ring.util.http-response :refer [ok]]
             [compojure.api.sweet :refer [context GET defapi]]
             [service.routing.spec :as spec]
             [service.routing.directions :as dir]
-            [service.routing.graph.generators :as g]))
+            [service.routing.graph.generators :as g]
+            [clojure.string :as str]
+            [clojure.edn :as edn]))
             ;[expound.alpha :as expound]
 
-;(s/valid? (s/and ::radiuses-regex #(= (count coordinates) (count %)))))
-;(s/and ::s/radiuses-regex #(= (count coordinates) (count %))))
+(defn- parse-coordinates
+  [text]
+  (let [pairs (str/split text #";")]
+    (for [coords pairs]
+      (mapv edn/read-string (str/split coords #",")))))
+;(->coordinates "-122.42,37.78;-77.03,38.91")
 
-;;;; TEST @mehdi
-;(expound/expound-str ::direction (dir/direction (gen/generate (g/graph 1000)) :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]))
-;(s/explain ::direction (dir/direction (gen/generate (g/graph 1000)) :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]))
+(defn- parse-radiuses
+  [text]
+  (map edn/read-string (str/split text #";")))
+;(->radiuses "1200.50;100;500;unlimited;100")
+
 
 (defapi app
   {:swagger {:ui "/"
@@ -24,20 +31,21 @@
   (GET "/spec/direction/:coordinates" []
     :coercion :spec
     :summary "direction with clojure.spec"
-    :path-params [coordinates :- ::spec/coordinates-raw]
+    :path-params [coordinates :- ::spec/raw-coordinates]
     :query-params [{steps :- boolean? false}
-                   {radiuses :- ::spec/radiuses-raw nil}
+                   {radiuses :- ::spec/raw-radiuses nil}
                    {alternatives :- boolean? false}
                    {language :- string? "en"}]
     :return ::spec/direction
-    (ok (if-not (s/valid? (s/and #(= (count coordinates) (count %))) radiuses)
-          {:message "The same amount of radiouses and coordinates must be provided"
-           :code "InvalidInput"}
-          (let [coords (map zipmap (repeat [:lon :lat]) coordinates)]
+    (ok (let [coordinates (map zipmap (repeat [:lon :lat])
+                                      (parse-coordinates coordinates))
+              radiuses    (some-> radiuses (parse-radiuses))]
+          (if (and (not-empty radiuses) (= (count radiuses) (count radiuses)))
+            {:message "The same amount of radiouses and coordinates must be provided"
+             :code    "InvalidInput"}
             (dir/direction (gen/generate (g/graph 1000))
-              :coordinates coords
+              :coordinates coordinates
               :steps steps
               :radiuses radiuses
               :alternatives alternatives
               :language language))))))
-

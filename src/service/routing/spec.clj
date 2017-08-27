@@ -1,23 +1,7 @@
 (ns service.routing.spec
-  (:require [clojure.edn :as edn]
-            [clojure.spec.alpha :as s]
-            [clojure.string :as str]
-            [spec-tools.spec :as spec]
-            [spec-tools.core :as st]))
-            ;[clojure.spec.test.alpha :as stest]))
+  (:require [clojure.spec.alpha :as s]
+            [spec-tools.spec :as spec]))
             ;[expound.alpha :as expound]))
-
-(defn- parse-coordinates
-  [text]
-  (let [pairs (str/split text #";")]
-    (for [coords pairs]
-      (mapv edn/read-string (str/split coords #",")))))
-;(->coordinates "-122.42,37.78;-77.03,38.91")
-
-(defn- parse-radiuses
-  [text]
-  (map edn/read-string (str/split text #";")))
-;(->radiuses "1200.50;100;500;unlimited;100")
 
 (def coordinate-regex #"(-?\d+(\.\d+)?),(-?\d+(\.\d+)?)(;(-?\d+(\.\d+)?),(-?\d+(\.\d+)?))+")
 (def rads-regex #"((\d+(\.\d+)?)|unlimited)(;((\d+(\.\d+)?)|unlimited))*")
@@ -43,14 +27,7 @@
 (s/def ::routes (s/coll-of ::route-object :kind sequential?))
 (s/def ::direction (s/keys :req-un [::code] :opt-un [::waypoints ::routes]))
 
-(s/def ::coordinates-raw
-  (s/and string? #(re-matches coordinate-regex %)
-         (s/conformer parse-coordinates)
-         ::coordinates))
+(s/def ::raw-coordinates (s/and string? #(re-matches coordinate-regex %)))
 
-(s/def ::radius (s/or :unlimited #(= "unlimited" %) :distance (s/and number? #(> % 0))))
-(s/def ::radiuses (s/coll-of ::radius))
-(s/def ::radiuses-raw
-  (s/and string? #(re-matches rads-regex %)
-         (s/conformer parse-radiuses)
-         ::radiuses))
+(s/def ::radiuses (s/coll-of #(or (= "unlimited" %) (pos? %))))
+(s/def ::raw-radiuses (s/and string? #(re-matches rads-regex %)))
