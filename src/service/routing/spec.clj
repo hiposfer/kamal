@@ -45,12 +45,14 @@
 
 (s/def ::coordinates-raw
   (s/and string? #(re-matches coordinate-regex %)
-         (s/conformer parse-coordinates)
-         ::coordinates))
+         ;(s/conformer parse-coordinates)
+         ;::coordinates
+         ))
 
 (s/def ::radius (s/or :unlimited #(= "unlimited" %) :distance (s/and number? #(> % 0))))
 (s/def ::radiuses (s/coll-of ::radius))
 (s/def ::radiuses-raw
   (s/and string? #(re-matches rads-regex %)
-         (s/conformer parse-radiuses)
-         ::radiuses))
+         ;(s/conformer parse-radiuses)
+         ;::radiuses
+         ))
