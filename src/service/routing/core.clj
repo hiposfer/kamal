@@ -40,7 +40,7 @@
     (ok (let [coordinates (map zipmap (repeat [:lon :lat])
                                       (parse-coordinates coordinates))
               radiuses    (some-> radiuses (parse-radiuses))]
-          (if (and (not-empty radiuses) (= (count radiuses) (count radiuses)))
+          (if (and (not-empty radiuses) (= (count radiuses) (count coordinates)))
             {:message "The same amount of radiouses and coordinates must be provided"
              :code    "InvalidInput"}
             (dir/direction (gen/generate (g/graph 1000))
