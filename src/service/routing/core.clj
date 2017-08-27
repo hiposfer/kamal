@@ -15,6 +15,12 @@
 ;(expound/expound-str ::direction (dir/direction (gen/generate (g/graph 1000)) :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]))
 ;(s/explain ::direction (dir/direction (gen/generate (g/graph 1000)) :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]))
 
+(defn- check-radius
+  [coordinates radiuses]
+  (if-not radiuses
+    true
+    (s/valid? (s/and #(= (count coordinates) (count %))) radiuses)))
+
 (defapi app
   {:swagger {:ui "/"
              :spec "/swagger.json"
@@ -30,7 +36,7 @@
                    {alternatives :- boolean? false}
                    {language :- string? "en"}]
     :return ::spec/direction
-    (ok (if-not (s/valid? (s/and #(= (count coordinates) (count %))) radiuses)
+    (ok (if-not (check-radius coordinates radiuses)
           {:message "The same amount of radiouses and coordinates must be provided"
            :code "InvalidInput"}
           (let [coords (map zipmap (repeat [:lon :lat]) coordinates)]
@@ -40,4 +46,3 @@
               :radiuses radiuses
               :alternatives alternatives
               :language language))))))
-
