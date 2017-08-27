@@ -1,5 +1,4 @@
-(ns service.routing.graph.protocols
-  (:refer-clojure :exclude [time]))
+(ns service.routing.graph.protocols)
 
 ;; TODO: consider replacing the uses of defprotocol with definterface+
 ;;       as described in https://github.com/ztellman/potemkin#definterface
@@ -24,8 +23,8 @@
   (graph   [this] "the rest of the graph"))
 
 (defprotocol Context ;; in FGL this also includes the Node id and its labels
-  (predecessors [this] "the incoming arcs of this node under the current view")
-  (successors   [this] "the outgoing arcs of this node under the current view"))
+  (predecessors [this] "returns a sequence of incoming arcs of this node under the current view")
+  (successors   [this] "returns a sequence of outgoing arcs of this node under the current view"))
 ; NOTES:
 ; I intentionally left the `label` function out since Clojure already provides a way
 ; to retrieve information from an Object; the `get` function. If you want to have that
@@ -45,13 +44,20 @@
 ;; ------ special protocols for Dijkstra graph traversal
 (defprotocol Traceable "Protocol for elements that can produce a sequence
   of other elements of the same type which were traversed before arriving to this one"
-  (path  [this] "sequence of Identifiable elements taken to get here in reverse order"))
+  (path  [this] "sequence of Traceable elements taken to get to this one (in reverse order)"))
 
 (defprotocol Valuable "A simple representation of a generic routing worth function result"
   (cost [this] "a number indicating how difficult it is to get to a specific node")
-  (time [this] "a number indicating how much time it takes to get to a specific node")
-  (sum [this that] "adds two valuables into one"))
+  (sum [this that] "adds two valuables into one. Needed to avoid making Valuable
+                    implementations more than just numbers."))
 
 (defprotocol Arc
   (src [this] "the start node id of an Arc")
   (dst [this] "the destination node id of an Arc"))
+
+(defprotocol Reversible
+  (mirror [this] "returns an Arc in the opposite direction than the original"))
+
+(defprotocol GeoCoordinate
+  (lat [this] "latitude in decimal numbers")
+  (lon [this] "longitude in decimal numbers"))

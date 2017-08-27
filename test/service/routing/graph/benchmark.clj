@@ -17,60 +17,61 @@
 ;; meant to go from one place to the other, thus Dijkstra almost always fails to
 ;; finds a path (really fast)
 (test/deftest ^:benchmark dijkstra-random-graph
-  (let [graph (gen/generate (g/graph 1000))
+  (let [graph        (gen/generate (g/graph 1000))
         sources      (into [] (repeatedly iterations #(rand-nth (keys graph))))
         destinations (into [] (repeatedly iterations #(rand-nth (keys graph))))]
     (println "\nrandomly generated graphs:" iterations "execution with random src/dst")
     (println "dijkstra forward with:" (count graph) "nodes and"
-             (reduce + (map (comp count :out-arcs) (vals graph))) "edges")
+             (reduce + (map (comp count :arcs) (vals graph))) "edges")
     (c/quick-bench
       (dorun (for [i (range iterations)
                    :let [src (get sources i)
                          dst (get destinations i)
-                         coll (alg/dijkstra graph :start-from #{src}
-                                            :direction ::alg/forward
-                                            :value-by direction/length)]]
+                         coll (alg/dijkstra graph
+                                            :start-from #{src}
+                                            :value-by (partial direction/duration graph))]]
                (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
                        nil
                        coll)))
       :os :runtime :verbose)))
 
-(def grapher (delay (osm/osm->graph "resources/osm/saarland.osm")))
+(def networker (delay (osm/osm->network "resources/osm/saarland.osm")))
 
 (test/deftest ^:benchmark dijkstra-saarland-graph
-  (let [graph @grapher ;; force read
+  (let [graph        (:graph @networker) ;; force read
         sources      (into [] (repeatedly iterations #(rand-nth (keys graph))))
         destinations (into [] (repeatedly iterations #(rand-nth (keys graph))))]
     (println "\nsaarland graph:" iterations "executions with random src/dst")
     (println "dijkstra forward with:" (count graph) "nodes and"
-             (reduce + (map (comp count :out-arcs) (vals graph))) "edges")
+             (reduce + (map (comp count :arcs) (vals graph))) "edges")
     (c/quick-bench
       (dorun (for [i (range iterations)
                    :let [src (get sources i)
                          dst (get destinations i)
-                         coll (alg/dijkstra graph :start-from #{src}
-                                            :direction ::alg/forward
-                                            :value-by direction/length)]]
+                         coll (alg/dijkstra graph
+                                            :start-from #{src}
+                                            :value-by (partial direction/duration graph))]]
                (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
                        nil
                        coll)))
       :os :runtime :verbose)))
 
+;; only the connected nodes
 (test/deftest ^:benchmark dijkstra-saarland-biggest-component
-  (let [graph (alg/biggest-component @grapher) ;; only the connected nodes
+  (let [graph        (alg/biggest-component (:graph @networker))
         sources      (into [] (repeatedly iterations #(rand-nth (keys graph))))
         destinations (into [] (repeatedly iterations #(rand-nth (keys graph))))]
     (println "\nsaarland graph:" iterations "executions with random src/dst")
-    (println "using only weakly connected components of the original graph")
+    (println "using only strongly connected components of the original graph")
     (println "dijkstra forward with:" (count graph) "nodes and"
-             (reduce + (map (comp count :out-arcs) (vals graph))) "edges")
+             (reduce + (map (comp count :arcs) (vals graph))) "edges")
     (c/quick-bench
       (dorun (for [i (range iterations)
                    :let [src (get sources i)
                          dst (get destinations i)
-                         coll (alg/dijkstra graph :start-from #{src}
-                                            :direction ::alg/forward
-                                            :value-by direction/length)]]
+                         coll (alg/dijkstra graph
+                                            :start-from #{src}
+                                            :value-by (partial direction/duration graph))]]
                (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
                        nil
                        coll)))
