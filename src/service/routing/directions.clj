@@ -70,7 +70,7 @@
   (let [{:keys [coordinates]} parameters
         start     (brute-nearest graph (first coordinates))
         dst       (brute-nearest graph (last coordinates))
-        traversal (alg/dijkstra graph :value-by duration
+        traversal (alg/dijkstra graph :value-by #(duration graph %1 %2)
                                 :start-from #{(key start)})
         trace     (reduce (fn [_ trace] (when (= (key trace) (key dst)) (reduced trace)))
                           nil
