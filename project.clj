@@ -16,8 +16,7 @@
   :uberjar-name "routing.jar"
   :test-selectors {:default (complement :benchmark)
                    :benchmark :benchmark}
-  :global-vars {*warn-on-reflection* true
-                *print-length* 50}
+  :global-vars {*warn-on-reflection* true}
   ;;FIXME: https://github.com/technomancy/leiningen/issues/2173
   :monkeypatch-clojure-test false
   :plugins [[jonase/eastwood "0.2.3"]
@@ -25,6 +24,6 @@
             [io.aviso/pretty "0.1.34"]]
   :ring {:handler service.routing.core/app
          :auto-reload? true}
-  :jvm-opts ["-Xmx300m"])
+  :jvm-opts ["-Xmx500m"])
   ;; "-Dclojure.compiler.direct-linking=true"
   ;; https://github.com/clojure/clojure/blob/master/changes.md#11-direct-linking
