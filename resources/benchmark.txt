@@ -1,52 +1,48 @@
 
-Testing backend.benchmark
+Testing service.routing.graph.benchmark
 
 saarland graph: 10 executions with random src/dst
-using only weakly connected components of the original graph
-dijkstra forward with: 468101 nodes and 502402 edges
-amd64 Linux 4.4.0-81-generic 4 cpu(s)
+using only strongly connected components of the original graph
+dijkstra forward with: 89283 nodes and 226681 edges
+amd64 Linux 4.4.0-92-generic 4 cpu(s)
 OpenJDK 64-Bit Server VM 25.131-b11
-Runtime arguments: -Dfile.encoding=UTF-8 -Xmx6g -Dclojure.compile.path=/home/carocad/Proyectos/backend.routing/target/classes -Dbackend.routing.version=0.1.0 -Dclojure.debug=false
+Runtime arguments: -Dfile.encoding=UTF-8 -Xmx1g -Dclojure.compile.path=/home/carocad/Proyectos/service.routing/target/classes -Dservice.routing.version=0.1.0 -Dclojure.debug=false
 Evaluation count : 6 in 6 samples of 1 calls.
-      Execution time sample mean : 1,682260 sec
-             Execution time mean : 1,685531 sec
-Execution time sample std-deviation : 46,010859 ms
-    Execution time std-deviation : 46,308275 ms
-   Execution time lower quantile : 1,644270 sec ( 2,5%)
-   Execution time upper quantile : 1,756866 sec (97,5%)
-                   Overhead used : 1,793059 ns
-
-Found 1 outliers in 6 samples (16,6667 %)
-	low-severe	 1 (16,6667 %)
- Variance from outliers : 13,8889 % Variance is moderately inflated by outliers
+      Execution time sample mean : 1,268907 sec
+             Execution time mean : 1,268907 sec
+Execution time sample std-deviation : 13,791461 ms
+    Execution time std-deviation : 15,162138 ms
+   Execution time lower quantile : 1,248452 sec ( 2,5%)
+   Execution time upper quantile : 1,284626 sec (97,5%)
+                   Overhead used : 1,769871 ns
 
 saarland graph: 10 executions with random src/dst
-dijkstra forward with: 470230 nodes and 504460 edges
-amd64 Linux 4.4.0-81-generic 4 cpu(s)
+dijkstra forward with: 90397 nodes and 228188 edges
+amd64 Linux 4.4.0-92-generic 4 cpu(s)
 OpenJDK 64-Bit Server VM 25.131-b11
-Runtime arguments: -Dfile.encoding=UTF-8 -Xmx6g -Dclojure.compile.path=/home/carocad/Proyectos/backend.routing/target/classes -Dbackend.routing.version=0.1.0 -Dclojure.debug=false
+Runtime arguments: -Dfile.encoding=UTF-8 -Xmx1g -Dclojure.compile.path=/home/carocad/Proyectos/service.routing/target/classes -Dservice.routing.version=0.1.0 -Dclojure.debug=false
 Evaluation count : 6 in 6 samples of 1 calls.
-      Execution time sample mean : 1,776576 sec
-             Execution time mean : 1,776617 sec
-Execution time sample std-deviation : 8,256535 ms
-    Execution time std-deviation : 8,569625 ms
-   Execution time lower quantile : 1,763676 sec ( 2,5%)
-   Execution time upper quantile : 1,785449 sec (97,5%)
-                   Overhead used : 1,793059 ns
+      Execution time sample mean : 1,490070 sec
+             Execution time mean : 1,489598 sec
+Execution time sample std-deviation : 14,261499 ms
+    Execution time std-deviation : 15,333900 ms
+   Execution time lower quantile : 1,469638 sec ( 2,5%)
+   Execution time upper quantile : 1,507127 sec (97,5%)
+                   Overhead used : 1,769871 ns
 
 randomly generated graphs: 10 execution with random src/dst
-dijkstra forward with: 1000 nodes and 1308 edges
-amd64 Linux 4.4.0-81-generic 4 cpu(s)
+dijkstra forward with: 1000 nodes and 0 edges
+amd64 Linux 4.4.0-92-generic 4 cpu(s)
 OpenJDK 64-Bit Server VM 25.131-b11
-Runtime arguments: -Dfile.encoding=UTF-8 -Xmx6g -Dclojure.compile.path=/home/carocad/Proyectos/backend.routing/target/classes -Dbackend.routing.version=0.1.0 -Dclojure.debug=false
-Evaluation count : 174 in 6 samples of 29 calls.
-      Execution time sample mean : 3,566523 ms
-             Execution time mean : 3,566478 ms
-Execution time sample std-deviation : 3,736204 µs
-    Execution time std-deviation : 4,031472 µs
-   Execution time lower quantile : 3,561685 ms ( 2,5%)
-   Execution time upper quantile : 3,570510 ms (97,5%)
-                   Overhead used : 1,793059 ns
+Runtime arguments: -Dfile.encoding=UTF-8 -Xmx1g -Dclojure.compile.path=/home/carocad/Proyectos/service.routing/target/classes -Dservice.routing.version=0.1.0 -Dclojure.debug=false
+Evaluation count : 79428 in 6 samples of 13238 calls.
+      Execution time sample mean : 7,564548 µs
+             Execution time mean : 7,564532 µs
+Execution time sample std-deviation : 12,566711 ns
+    Execution time std-deviation : 12,960695 ns
+   Execution time lower quantile : 7,549683 µs ( 2,5%)
+   Execution time upper quantile : 7,575652 µs (97,5%)
+                   Overhead used : 1,769871 ns
 
 Ran 3 tests containing 0 assertions.
 0 failures, 0 errors.

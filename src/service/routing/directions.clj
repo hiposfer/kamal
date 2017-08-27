@@ -1,6 +1,5 @@
 (ns service.routing.directions
-  (:require [clojure.spec.alpha :as s]
-            [service.routing.graph.core :as route]
+  (:require [service.routing.graph.core :as route]
             [service.routing.osm :as osm]
             [service.routing.graph.algorithms :as alg]
             [service.routing.graph.protocols :as rp]
@@ -10,10 +9,13 @@
 
 (defn duration
   "A very simple value computation function for Arcs in a graph.
-  Returns a SimpleValue with the length of the arc"
-  [arc _] ;; 1 is a simple value used for test whenever no other value would be suitable
-  (let [val (/ (:length arc) (get (:kind arc) osm/speeds osm/min-speed))]
-    (route/->SimpleValue val)))
+  Returns the time it takes to go from arc src to dst based on osm/speeds"
+  [graph arc _] ;; 1 is a simple value used for test whenever no other value would be suitable
+  (let [src    (get graph (rp/src arc))
+        dst    (get graph (rp/dst arc))
+        length (math/haversine (rp/lon src) (rp/lat src)
+                               (rp/lon dst) (rp/lat dst))]
+    (/ length osm/walking-speed)))
 
 (defn- brute-nearest
   "search the nearest node in graph to point using the distance function f.
@@ -44,12 +46,12 @@
   [graph trace]
   (let [linestring (geometry graph trace)]
     {:geometry    linestring
-     :duration    (rp/time (val trace))
+     :duration    (rp/cost (val trace))
      :distance    (reduce + (map (fn [[lon lat] [lon2 lat2]] (math/haversine lon lat lon2 lat2))
                                  (:coordinates linestring)
                                  (rest (:coordinates linestring))))
      :weight      (rp/cost (val trace))
-     :weight_name "routability" ;;TODO: give a proper name
+     :weight_name "time"
      :legs        []})) ;; TODO
 
 ;; for the time being we only care about the coordinates of start and end
@@ -71,7 +73,7 @@
   (let [{:keys [coordinates steps radiuses alternatives language]} params
         start     (brute-nearest graph (first coordinates))
         dst       (brute-nearest graph (last coordinates))
-        traversal (alg/dijkstra graph :value-by duration
+        traversal (alg/dijkstra graph :value-by #(duration graph %1 %2)
                                 :start-from #{(key start)})
         trace     (reduce (fn [_ trace] (when (= (key trace) (key dst)) (reduced trace)))
                           nil
