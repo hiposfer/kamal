@@ -1,16 +1,18 @@
 (ns service.routing.directions
-  (:require [service.routing.graph.core :as route]
-            [service.routing.osm :as osm]
+  (:require [service.routing.osm :as osm]
             [service.routing.graph.algorithms :as alg]
             [service.routing.graph.protocols :as rp]
             [service.routing.utils.math :as math]))
 
-(defn length
+(defn duration
   "A very simple value computation function for Arcs in a graph.
-  Returns a SimpleValue with the length of the arc"
-  [arc _]
-  (let [val (/ (:length arc) (get (:kind arc) osm/speeds osm/min-speed))]
-    (route/->SimpleValue val)))
+  Returns the time it takes to go from arc src to dst based on osm/speeds"
+  [graph arc _] ;; 1 is a simple value used for test whenever no other value would be suitable
+  (let [src    (get graph (rp/src arc))
+        dst    (get graph (rp/dst arc))
+        length (math/haversine (rp/lon src) (rp/lat src)
+                               (rp/lon dst) (rp/lat dst))]
+    (/ length osm/walking-speed)))
 
 (defn- brute-nearest
   "search the nearest node in graph to point using the distance function f.
@@ -95,8 +97,8 @@
   (let [{:keys [coordinates]} parameters
         start     (brute-nearest graph (first coordinates))
         dst       (brute-nearest graph (last coordinates))
-        traversal (alg/dijkstra graph :value-by length
-                                      :start-from #{(key start)})
+        traversal (alg/dijkstra graph :value-by #(duration graph %1 %2)
+                                :start-from #{(key start)})
         trace     (reduce (fn [_ trace] (when (= (key trace) (key dst)) (reduced trace)))
                           nil
                           traversal)]
