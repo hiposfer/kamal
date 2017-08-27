@@ -37,50 +37,37 @@
     {:type "LineString" ;; trace path is in reverse order so we need to order it
      :coordinates (rseq coordinates)}))
 
+;https://www.mapbox.com/api-documentation/#routestep-object
 (defn- step
   "includes one StepManeuver object and travel to the following RouteStep"
   [graph trace])
 
 
-(defn- annotation
-  "returns an annotation object that contains additional details about
-  each line segment along the route geometry. Each entry in an annoations
-  field corresponds to a coordinate along the route geometry"
-  [trace linestring]
-  (let [distances  (map math/haversine
-                        (:coordinates linestring)
-                        (rest (:coordinates linestring)))
-        times      (map rp/time (rp/path trace))
-        durations  (map - times (rest times))]
-    {:distance distances
-     :duration durations
-     :speed    (map / distances durations)}))
-
-(defn- leg
+;https://www.mapbox.com/api-documentation/#routeleg-object
+(defn- route-leg
   "a route between only two waypoints"
   [graph trace]
   (let [linestring (geometry graph trace)]
-    {:distance    (reduce + (map math/haversine
-                                 (:coordinates linestring)
-                                 (rest (:coordinates linestring))))
-     :duration    (rp/time (val trace))
-     :steps       []
-     :summary     "" ;; TODO
-     :annotation (annotation trace linestring)
-     :geometry linestring}))
+    {:distance     (math/arc-length (:coordinates linestring))
+     :duration     (rp/cost (val trace))
+     :steps        []
+     :summary      "" ;; TODO
+     :annotation   [] ;; TODO
+     :geometry     linestring}))
 
+;https://www.mapbox.com/api-documentation/#route-object
 (defn- route
   "a route through (potentially multiple) waypoints
-  https://www.mapbox.com/api-documentation/#route-object"
+
+  WARNING: we dont support multiple waypoints yet !!"
   [graph & traces]
-  (let [legs        (map leg (repeat graph) traces)
-        coordinates (mapcat (comp :coordinates :geometry) legs)]
-    {:geometry    {:type "LineString" :coordinates coordinates}
-     :duration    (:duration leg)
-     :distance    (:distance leg)
-     :weight      (reduce + rp/cost (map val traces))
-     :weight-name "routability"
-     :legs        (map #(dissoc % :geometry) legs)}))
+  (let [leg         (route-leg graph traces)]
+    {:geometry    (:geometry leg)
+     :duration    (:duration route-leg)
+     :distance    (:distance route-leg)
+     :weight      (:duration route-leg)
+     :weight-name "time"
+     :legs        [(dissoc leg :geometry)]}))
 
 ;; for the time being we only care about the coordinates of start and end
 ;; but looking into the future it is good to make like this such that we

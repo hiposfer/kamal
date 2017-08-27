@@ -1,4 +1,5 @@
-(ns service.routing.utils.math)
+(ns service.routing.utils.math
+  (:require [service.routing.graph.protocols :as rp]))
 
 
 (def RADIOUS 6372800); radious of the Earth in meters
@@ -14,19 +15,25 @@
                   (Math/cos lat-1)))]
      (* RADIOUS 2 (Math/asin (Math/sqrt h)))))
   ([p1 p2]
-   (if (and (sequential? p1) (sequential? p2))
-     (let [[lon  lat]   p1
-           [lon2 lat2] p2]
-       (haversine lon lat lon2 lat2))
-     (haversine (:lon p1) (:lat p1) (:lon p2) (:lat p2)))))
+   (cond
+     (and (satisfies? rp/GeoCoordinate p1) (satisfies? rp/GeoCoordinate p2))
+     (haversine (rp/lon p1) (rp/lat p1)
+                (rp/lon p2) (rp/lat p2))
+
+     (and (sequential? p1) (sequential? p2))
+     (apply haversine (concat p1 p2))
+
+     (and (map? p1) (map? p2))
+     (haversine (:lon p1) (:lat p1)
+                (:lon p2) (:lat p2)))))
 
 (defn euclidean-pow2
   "computes the squared euclidean distance between p1 and p2 being both of them
   {lat, lon} points. Use only if you interested in performance and not on the
    real value since the square root is an expensive computation"
   [p1 p2]
-  (+ (Math/pow (- (:lat p1) (:lat p2)) 2)
-     (Math/pow (- (:lon p1) (:lon p2)) 2)))
+  (+ (Math/pow (- (rp/lat p1) (rp/lat p2)) 2)
+     (Math/pow (- (rp/lon p1) (rp/lon p2)) 2)))
 
 (defn euclidean
   "computes the euclidean distance between p1 and p2 being both of them
@@ -44,6 +51,4 @@
   "given a sequence of [lon lat] points like those of geojson LineString
   returns the total distance traveled along the line"
   [coordinates]
-  (reduce + (map (fn [[lon lat] [lon2 lat2]] (haversine lon lat lon2 lat2))
-                 coordinates
-                 (rest coordinates))))
+  (reduce + (map haversine coordinates (rest coordinates))))
