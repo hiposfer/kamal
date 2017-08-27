@@ -2,69 +2,113 @@
   (:require [service.routing.graph.protocols :as rp]
             [clojure.data.int-map :as imap])
   (:import (java.util Map$Entry Queue PriorityQueue)
-           (clojure.lang ILookup IPersistentMap Seqable IReduceInit IReduce Sequential ITransientSet)))
+           (clojure.lang IPersistentMap Seqable IReduceInit IReduce Sequential ITransientSet)))
+
+; graph is an {id node}
+; Node is a {:lon :lat :arcs {dst-id arc}}
+; Arc is a {:src :dst :way-id}
 
 ;; ------------------------------------------------------
-; graph is an {id node}
-; Node is a {:lon :lat :out-arcs {dst-id arc} :in-arcs {src-id arc}}
-; Arc is a {:src node-id :dst node-id :length meters :kind OSM-highway-type}
-(defrecord Node [^double lon ^double lat out-arcs in-arcs]
+;; A Node is an element that can be included in a graph
+;; for routing purposes
+;; NOTE: This Node representation can only contain Edges (bidirectional Arcs).
+;;       for convenience reasons we represent the edges as a directed outgoing arc
+;;       and reverse it only if necessary (see predecesors)
+(defrecord Node [^double lon ^double lat arcs]
   rp/Context
-  (predecessors [this] (:in-arcs this))
-  (successors   [this] (:out-arcs this)))
+  (predecessors [this] (sequence (comp (map val)
+                                       (map rp/mirror))
+                                 (:arcs this)))
+  (successors   [this] (vals (:arcs this)))
+  rp/GeoCoordinate
+  (lat [_] lat)
+  (lon [_] lon))
 
+;; a Point is a simple longitude, latitude pair used to
+;; represent the geometry of a way
+(defrecord Point [^double lon ^double lat]
+  rp/GeoCoordinate
+  (lat [_] lat)
+  (lon [_] lon))
+
+;; this is specially useful for generative testing: there we use generated
+;; nodes and arcs
+;; NOTE: we cannot know in advance if the map was created with only undirected
+;; arcs or if it was meant for both outgoing and incoming arcs. So we just check
+;; both cases
 (extend-type IPersistentMap
   rp/Context ;; allow Clojure's maps to behave in the same way that Node records
-  (predecessors [this] (:in-arcs this))
-  (successors    [this] (:out-arcs this))
+  (predecessors [this]
+    (if (:in-arcs this)
+      (:in-arcs this)
+      (sequence (comp (map val) (map rp/mirror))
+                (:arcs this))))
+  (successors [this]
+    (if (:out-arcs this)
+      (vals (:out-arcs this))
+      (vals (:arcs this))))
+  rp/GeoCoordinate
+  (lat [this] (:lat this))
+  (lon [this] (:lon this))
   rp/Arc
   (src [this] (:src this))
-  (dst [this] (:dst this)))
+  (dst [this] (:dst this))
+  rp/Reversible
+  (mirror [this] (assoc this :src (:dst this)
+                             :dst (:src this))))
 
-(defrecord Arc  [^long src ^long dst ^double length kind]
+(defrecord Arc [^long src ^long dst ^long way]
   rp/Arc
   (src [_] src)
-  (dst [_] dst))
+  (dst [_] dst)
+  rp/Reversible
+  (mirror [_] (->Arc dst src way))
+  ;; TODO: apparently the 'performance' note doesnt apply as key and val are stored
+  ;;       separatedly. Need to check later
 
-;; a simple representation of a worth function result where both cost and time
-;; are the same
-(deftype SimpleValue [^double value]
+  ;; We store arcs based on their destination node. Thus an Arc has all the information
+  ;; necessary to uniquely identify itself with src/dst combination. Therefore it would
+  ;; be wasteful to store a MapEntry as [dst [src dst way-id]]. It is better to make an
+  ;; Arc extend the MapEntry interface such that it can represent itself in a hash-map
+  Map$Entry ; https://docs.oracle.com/javase/7/docs/api/java/util/Map.Entry.html
+  (getKey [_] dst)
+  (getValue [this] this)
+  (setValue [_ _] (throw (ex-info "Unsupported Operation" {} "cannot change an immutable value"))))
+;; records already implement equals and hashCode
+
+;; the simplest way to represent the Cost in a graph traversal
+(extend-type Number
   rp/Valuable
-  (cost [_] value)
-  (time [_] value)
-  (sum  [_ that] (SimpleValue. (+ value (.-value ^SimpleValue that))))
-  ILookup
-  (valAt [this k] (.valAt this k nil))
-  (valAt [_ k default]
-    (case k
-      :cost value
-      :time value
-      default))
-  Object
-  (toString [_] (str "{:cost " value " :time " value " }")))
+  (cost [this] this)
+  (sum  [this that] (+ this that)))
 
 ; a Trace is MapEntry-like object used to map a node id to a cost without
 ; using a complex data structure like a hash-map. It is recursive since
 ; it contains a reference to its previous trace. Thus only the
 ; current instance is necessary to determine the complete path traversed up
 ; until it.
-(deftype IdentifiableTrace [^long id footprint prior]
+(deftype Trace [^long id value prior]
   rp/Traceable
-  (path  [this]
-    (if (nil? prior) (list this); todo: should the first element be this? or prior?
-                     (cons this (lazy-seq (rp/path prior)))))
+  (path [this]
+    (if (nil? prior) (list this)
+      (cons this (lazy-seq (rp/path prior)))))
   ; Interface used by Clojure for the `key` and `val` functions. Those
   ; functions are expected to work for any key-value structure. We
   ; implement it here for convenience since a Trace maps a node id
   ; to its cost.
   Map$Entry ; https://docs.oracle.com/javase/7/docs/api/java/util/Map.Entry.html
   (getKey [_] id)
-  (getValue [_] footprint) ; we rely on the key and val implementing their own equals
+  (getValue [_] value)
   (setValue [_ _] (throw (ex-info "Unsupported Operation" {} "cannot change an immutable value")))
-  (equals [_ that] (and (= id (key that)) (= footprint (val that))))
-  (hashCode [_] (hash [id footprint prior]))
+  ; we rely on the key and val implementing their own equals
+  (equals [this that]
+    (let [t1 (rp/path this)
+          t2 (rp/path that)]
+      (and (apply = (map key t1) (map key t2))
+           (apply = (map val t1) (map val t2)))))
+  (hashCode [_] (hash [id value prior]))
   Object
-  (toString [_] (str "[" id " " footprint " ]")))
+  (toString [_] (str "[" id " " value " ]")))
 
 ; travis-ci seems to complaint about not finding a matching constructor if the
 ; init size is not there. Funnily the ctor with a single comparator is not defined
@@ -77,7 +121,7 @@
   (let [cheapest-path (fn ^long [trace1 trace2] (compare (rp/cost (val trace1))
                                                          (rp/cost (val trace2))))
         queue  ^Queue (new PriorityQueue 10 cheapest-path)]; 10 init size
-    (run! (fn [id] (.add queue (->IdentifiableTrace id (->SimpleValue 0) nil))) init-set)
+    (run! (fn [id] (.add queue (->Trace id 0 nil))) init-set)
     queue))
 
 (defn- poll-unsettled!
@@ -97,7 +141,7 @@
   (reduce (fn [_ arc]
             (let [weight (rp/sum (value arc trace)
                                  (val trace))]
-              (.add queue (->IdentifiableTrace (f arc) weight trace))
+              (.add queue (->Trace (f arc) weight trace))
               queue))
           queue
           node-arcs))
@@ -169,20 +213,6 @@
                      (conj! settled (key trace)))))))))
   ;; ------
   IReduce
-  (reduce [_ rf]
-    (loop [ret     nil
-           queue   (init-queue ids)
-           settled (transient (imap/int-set))]
-      (let [trace (poll-unsettled! queue settled)]
-        (if (nil? trace) ret ;; empty queue
-          (let [next-queue   (relax-nodes! value f (arcs (get graph (key trace))) trace queue)
-                next-settled (conj! settled (key trace))]
-            (case (count settled)
-              (0 1) (recur ret next-queue next-settled) ;; ignore ret and keep making items
-              2     (let [previous (rp/path trace)] ;; call rf with the first two items in coll
-                      (recur (apply rf previous) next-queue next-settled))
-              (let [rr (rf ret trace)] ;;default branch
-                (if (reduced? rr) @rr
-                  (recur rr next-queue next-settled)))))))))
+  (reduce [this rf] (.reduce ^IReduceInit this rf (rf)))
   ;; declaring as Sequential will cause the seq to be used for nth, etc
   Sequential)
