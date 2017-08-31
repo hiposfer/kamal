@@ -45,7 +45,9 @@
 
 ;https://www.mapbox.com/api-documentation/#routeleg-object
 (defn- route-leg
-  "a route between only two waypoints"
+  "a route between only two waypoints
+
+  WARNING: we dont support multiple waypoints yet !!"
   [graph trace]
   (let [linestring (geometry graph trace)]
     {:distance     (math/arc-length (:coordinates linestring))
@@ -61,7 +63,7 @@
 
   WARNING: we dont support multiple waypoints yet !!"
   [graph & traces]
-  (let [leg         (route-leg graph traces)]
+  (let [leg       (route-leg graph traces)]
     {:geometry    (:geometry leg)
      :duration    (:duration route-leg)
      :distance    (:distance route-leg)
