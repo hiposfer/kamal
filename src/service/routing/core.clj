@@ -43,7 +43,7 @@
           (if (and (not-empty radiuses) (not= (count radiuses) (count coordinates)))
             {:message "The same amount of radiouses and coordinates must be provided"
              :code    "InvalidInput"}
-            (dir/direction (gen/generate (g/graph 1000))
+            (dir/direction {:graph (gen/generate (g/graph 1000))}
               :coordinates coordinates
               :steps steps
               :radiuses radiuses
