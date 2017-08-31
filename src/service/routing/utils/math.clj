@@ -65,7 +65,6 @@
 
 ; sources
 ; http://www.movable-type.co.uk/scripts/latlong.html
-; https://stackoverflow.com/a/9462757
 (defn bearing
   "return a Number between 0 and 360 indicating the clockwise angle from true
    north to the direction of travel right before the maneuver"

@@ -87,8 +87,8 @@
         location     (coordinate (get graph (key (first traces))))
         pre-bearing  (math/bearing (coordinate (get graph (key (last traces))))
                                    (coordinate (get graph (key (last (butlast traces))))))
-        post-bearing (math/bearing (coordinate (get graph (key (first traces))))
-                                   (coordinate (get graph (key (first (rest traces))))))
+        post-bearing (math/bearing (coordinate (get graph (key (first (rest traces)))))
+                                   (coordinate (get graph (key (first traces)))))
         angle    (mod (+ 360 (- post-bearing pre-bearing)) 360)
         modifier (val (last (subseq bearing-turns <= angle)))
         way-name (:name (get ways way-id))
@@ -172,7 +172,7 @@
       {:code "NoRoute"}
       {:code "Ok"
        :waypoints (map (fn [point] {:name "wonderland" ;;todo
-                                    :location [(rp/lon point) (rp/lat point)]})
+                                    :location ((juxt rp/lon rp/lat) point)})
                        coordinates)
        :routes [(route network steps trace)]})))
 
@@ -190,8 +190,16 @@
 ;              :steps true))
 ;
 ;result
-;(:geometry (first (:routes result)))
-;
+;(take 3 (:steps (first (:legs (first (:routes result))))))
 ;
 ;(spit "resources/linestring.json"
 ;  (cheshire/generate-string (:geometry (first (:routes result)))))
+
+;; TODO: merge traces with a single point. Use the first way-id
+;; as reference
+
+;; TODO: make manuever a function that modifies the steps result
+;; such that it has access to both the previous step and the next
+
+;(math/haversine [7.0030141 49.2380441] [7.0027733 49.2380038])
+;(math/bearing [7.0030141 49.2380441] [7.0027733 49.2380038])
