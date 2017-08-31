@@ -80,7 +80,6 @@
 (defn- maneuver
   "returns a step manuever"
   [{:keys [graph ways]} traces way-id]
-  ;(println "path" (rp/path (first traces)))
   (let [traces       (if (> (count traces) 1) traces
                        (concat traces [(first traces)]))
         coordinate   (juxt rp/lon rp/lat)
@@ -144,7 +143,7 @@
      :duration    (:duration leg)
      :distance    (:distance leg)
      :weight      (:duration leg)
-     :weight-name "time"
+     :weight_name "time"
      :legs        [(dissoc leg :geometry)]}))
 
 ;; for the time being we only care about the coordinates of start and end
@@ -190,7 +189,7 @@
 ;              :steps true))
 ;
 ;result
-;(take 3 (:steps (first (:legs (first (:routes result))))))
+;(:steps (first (:legs (first (:routes result)))))
 ;
 ;(spit "resources/linestring.json"
 ;  (cheshire/generate-string (:geometry (first (:routes result)))))
