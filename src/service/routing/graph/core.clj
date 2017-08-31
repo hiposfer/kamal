@@ -2,7 +2,7 @@
   (:require [service.routing.graph.protocols :as rp]
             [clojure.data.int-map :as imap])
   (:import (java.util Map$Entry Queue PriorityQueue)
-           (clojure.lang IPersistentMap Seqable IReduceInit IReduce Sequential ITransientSet)))
+           (clojure.lang IPersistentMap Seqable IReduceInit IReduce Sequential ITransientSet IPersistentVector)))
 
 ; graph is an {id node}
 ; Node is a {:lon :lat :arcs {dst-id arc}}
@@ -30,6 +30,11 @@
   rp/GeoCoordinate
   (lat [_] lat)
   (lon [_] lon))
+
+(extend-type IPersistentVector
+  rp/GeoCoordinate
+  (lat [this] (second this))
+  (lon [this] (first this)))
 
 ;; this is specially useful for generative testing: there we use generated
 ;; nodes and arcs
@@ -65,7 +70,8 @@
   (mirror [_] (->Arc dst src way))
   ;; TODO: apparently the 'performance' note doesnt apply as key and val are stored
   ;;       separatedly. Need to check later
-
+  rp/Routable
+  (way [_] way)
   ;; We store arcs based on their destination node. Thus an Arc has all the information
   ;; necessary to uniquely identify itself with src/dst combination. Therefore it would
   ;; be wasteful to store a MapEntry as [dst [src dst way-id]]. It is better to make an
@@ -108,7 +114,7 @@
            (apply = (map val t1) (map val t2)))))
   (hashCode [_] (hash [id value prior]))
   Object
-  (toString [_] (str "[" id " " value " ]")))
+  (toString [_] (str "[" id " " value "]")))
 
 ; travis-ci seems to complaint about not finding a matching constructor if the
 ; init size is not there. Funnily the ctor with a single comparator is not defined

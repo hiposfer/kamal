@@ -55,6 +55,10 @@
   (src [this] "the start node id of an Arc")
   (dst [this] "the destination node id of an Arc"))
 
+;; todo: do we need a separate protocol for routable? should this be included in the Arc
+(defprotocol Routable
+  (way [this] "return the way id that an Arc is associated with"))
+
 (defprotocol Reversible
   (mirror [this] "returns an Arc in the opposite direction than the original"))
 
