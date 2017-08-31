@@ -1,8 +1,11 @@
 (ns service.routing.directions
-  (:require [service.routing.osm :as osm]
+  (:require [service.routing.graph.core :as route]
+            [service.routing.osm :as osm]
             [service.routing.graph.algorithms :as alg]
             [service.routing.graph.protocols :as rp]
-            [service.routing.utils.math :as math]))
+            [service.routing.utils.math :as math]
+            [service.routing.spec :as specs]))
+
 
 (defn duration
   "A very simple value computation function for Arcs in a graph.
@@ -82,8 +85,8 @@
 
    Example:
    (direction graph :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
-  [graph & parameters]
-  (let [{:keys [coordinates]} parameters
+  [graph & params]
+  (let [{:keys [coordinates steps radiuses alternatives language]} params
         start     (brute-nearest graph (first coordinates))
         dst       (brute-nearest graph (last coordinates))
         traversal (alg/dijkstra graph :value-by #(duration graph %1 %2)
@@ -98,6 +101,7 @@
                                     :location [(:lon point) (:lat point)]})
                        coordinates)
        :routes [(route graph trace)]})))
+
 
 ;(println (direction (gen/generate (g/graph 1000)) :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]))
 
