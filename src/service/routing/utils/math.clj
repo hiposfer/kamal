@@ -52,3 +52,20 @@
   returns the total distance traveled along the line"
   [coordinates]
   (reduce + (map haversine coordinates (rest coordinates))))
+
+; sources
+; http://www.movable-type.co.uk/scripts/latlong.html
+; https://stackoverflow.com/a/9462757
+(defn bearing
+  "return a Number between 0 and 360 indicating the clockwise angle from true
+   north to the direction of travel right before the maneuver"
+  [p1 p2]
+  (let [lat1 (Math/toRadians (rp/lat p1))
+        lat2 (Math/toRadians (rp/lat p2))
+        delta-lon (Math/toRadians (- (rp/lon p2) (rp/lon p1)))
+        ; actual computation
+        y (* (Math/sin delta-lon) (Math/cos lat2))
+        x (- (* (Math/cos lat1) (Math/sin lat2))
+             (* (Math/sin lat1) (Math/cos lat2) (Math/cos delta-lon)))]
+    (mod (+ (Math/toDegrees (Math/atan2 y x)) 360)
+         360)));
