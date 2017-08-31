@@ -25,6 +25,6 @@
             [io.aviso/pretty "0.1.34"]]
   :ring {:handler service.routing.core/app
          :auto-reload? true}
-  :jvm-opts ["-Xmx500m" "-XX:-OmitStackTraceInFastThrow"])
+  :jvm-opts ["-Xmx2g" "-XX:-OmitStackTraceInFastThrow"])
   ;; "-Dclojure.compiler.direct-linking=true"
   ;; https://github.com/clojure/clojure/blob/master/changes.md#11-direct-linking

@@ -110,7 +110,7 @@
     {:distance (math/arc-length (:coordinates linestring))
      :duration (- (rp/cost (val (first traces)))
                   (rp/cost (val (last traces))))
-     :geometry (:coordinates linestring)
+     :geometry linestring
      :name     (str (:name (get ways way-id)))
      :mode     "walking" ;;todo this should not be hardcoded
      :maneuver (maneuver network traces way-id)
@@ -180,12 +180,18 @@
 ;                               :graph
 ;                               alg/biggest-component)))
 ;
+;(def origin [7.0240812 49.6021303])
+;(def destination [7.0016269 49.2373449])
+;
 ;(def result (direction network
-;              :coordinates [((juxt rp/lon rp/lat) (val (rand-nth (seq (:graph network)))))
-;                            ((juxt rp/lon rp/lat) (val (rand-nth (seq (:graph network)))))]
+;              :coordinates [origin destination]
+;;((juxt rp/lon rp/lat) (val (rand-nth (seq (:graph network)))))
+;;((juxt rp/lon rp/lat) (val (rand-nth (seq (:graph network)))))]
 ;              :steps true))
 ;
 ;result
+;(:geometry (first (:routes result)))
+;
 ;
 ;(spit "resources/linestring.json"
 ;  (cheshire/generate-string (:geometry (first (:routes result)))))
