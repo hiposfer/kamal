@@ -8,8 +8,8 @@
                  [org.clojure/data.xml "0.0.8"] ; parse xml lazily
                  [org.clojure/data.int-map "0.2.4"] ; fast integers-map
                  [metosin/compojure-api "2.0.0-alpha7"]
-                 ;;[metosin/spec-tools "0.3.2"]
-                 [metosin/spec-tools "0.3.3-SNAPSHOT"]
+                 [metosin/spec-tools "0.3.2"]
+                 ;;[metosin/spec-tools "0.3.3-SNAPSHOT"]
                  [org.clojure/test.check "0.9.0"]]
   :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
                                   [expound "0.1.1"]
