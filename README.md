@@ -6,6 +6,22 @@ FIXME: description
 
 Download from http://example.com/FIXME.
 
+### With Docker
+
+You can always grab the latest docker image and run it directly:
+
+    $ docker run -it -p 3000:3000 n7a235/service.routing
+
+You can also build a docker image locally out of your changes:
+
+    $ docker build -t somename .
+
+Or using docker-compose within the source directory:
+
+    $ docker-compose up
+
+Then open the Swagger API documentation at [localhost:3000](http://localhost:3000).
+
 ## Usage
 
 FIXME: explanation
