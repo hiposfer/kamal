@@ -2,9 +2,8 @@
   (:require [service.routing.osm :as osm]
             [service.routing.graph.algorithms :as alg]
             [service.routing.graph.protocols :as rp]
-            [service.routing.utils.math :as math]
-            [clojure.string :as str]
-            [cheshire.core :as cheshire]))
+            [service.routing.utils.math :as math]))
+            ;[cheshire.core :as cheshire]))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
 (def bearing-turns
@@ -46,7 +45,7 @@
   ([network trace]
    (geometry network trace nil))
   ([{:keys [graph]} trace last-id]
-   (let [locator     (juxt rp/lon rp/lat)
+   (let [locator     (juxt rp/lon rp/lat) ;; include the last point in the geometry
          coordinates (transduce (comp (halt-when #(= (key %) last-id)
                                         (fn [r h] (conj r (locator (get graph (key h))))))
                                       (map key)
@@ -58,40 +57,44 @@
      {:type "LineString" ;; trace path is in reverse order so we need to order it
       :coordinates (rseq coordinates)})))
 
-(defn- split-ways
+;; WARNING: we assume that we only traverse outgoing arcs
+;; and that there is only one arc connecting src & dst
+(defn- partition-by-street-name
   "split the trace into a sequence of traces using the way id as separator"
-  [graph trace] ;; WARNING: we assume that we only traverse outgoing arcs
-  (let [ways    (sequence (comp (map #(vector (key %1) (key %2)))
-                                (map (fn [[src dst]]
-                                       (rp/way (get (into {} (rp/successors (get graph src)))
-                                                    dst)))))
+  [{:keys [graph ways]} trace]
+  (let [way-ids (sequence (comp (map (fn [dst src] [(key dst) (rp/successors (get graph (key src)))]))
+                                (map (fn [[dst arcs]] (get (into {} arcs) dst)))
+                                (map rp/way))
                          (rp/path trace)
                          (rest (rp/path trace)))
+        ;; last: little hack to get the way of the first point
         traces  (sequence (comp (map vector)
-                                (partition-by second)
-                                (map #(map first %)))
+                                (partition-by #(:name (get ways (second %))))
+                                (map #(map first %)) ;; get the path traces
+                                (map first)) ;; get only the first trace
                           (rp/path trace)
-                          (concat ways [(last ways)]))]
-    ;; last: little hack to get the way of the first point
-    (into [] (map vector (dedupe ways) traces))))
+                          (concat way-ids [(last way-ids)]))
+        streets (sequence (comp (partition-by #(:name (get ways %)))
+                                (map first)) ;; the first way id suffices
+                          way-ids)]
+        ;_ (println traces)]
+    (sequence (map vector) streets traces)))
 
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
 (defn- maneuver
   "returns a step manuever"
-  [{:keys [graph ways]} traces way-id]
-  (let [traces       (if (> (count traces) 1) traces
-                       (concat traces [(first traces)]))
-        coordinate   (juxt rp/lon rp/lat)
-        location     (coordinate (get graph (key (first traces))))
-        pre-bearing  (math/bearing (coordinate (get graph (key (last traces))))
-                                   (coordinate (get graph (key (last (butlast traces))))))
-        post-bearing (math/bearing (coordinate (get graph (key (first (rest traces)))))
-                                   (coordinate (get graph (key (first traces)))))
-        angle    (mod (+ 360 (- post-bearing pre-bearing)) 360)
-        modifier (val (last (subseq bearing-turns <= angle)))
-        way-name (:name (get ways way-id))
-        instruction (str/capitalize (str "take " modifier (when way-name (str " on " way-name))))]
+  [{:keys [graph ways]} [way-id-to trace-to :as destination] [_ trace  :as origin]]
+  (let [coordinate   (juxt rp/lon rp/lat)
+        location     (coordinate (get graph (key trace)))
+        pre-bearing  (math/bearing (coordinate (get graph (key (second (rp/path trace)))))
+                                   (coordinate (get graph (key trace))))
+        post-bearing (math/bearing (coordinate (get graph (key trace)))
+                                   (coordinate (get graph (key trace-to))))
+        angle        (mod (+ 360 (- post-bearing pre-bearing)) 360)
+        modifier     (val (last (subseq bearing-turns <= angle)))
+        way-name     (:name (get ways way-id-to))
+        instruction  (str "Take " modifier (when way-name (str " on " way-name)))]
     {:location location
      ;; todo: implement maneuver type
      ;https://www.mapbox.com/api-documentation/#maneuver-types
@@ -104,15 +107,15 @@
 ;https://www.mapbox.com/api-documentation/#routestep-object
 (defn- step
   "includes one StepManeuver object and travel to the following RouteStep"
-  [{:keys [ways] :as network} [way-id traces]]
-  (let [linestring (geometry network (first traces) (key (last traces)))]
+  [{:keys [ways] :as network} [way-id-to trace-to :as destination] [_ trace :as origin]]
+  (let [linestring (geometry network trace-to (key trace))]
     {:distance (math/arc-length (:coordinates linestring))
-     :duration (- (rp/cost (val (first traces)))
-                  (rp/cost (val (last traces))))
+     :duration (- (rp/cost (val trace-to))
+                  (rp/cost (val trace)))
      :geometry linestring
-     :name     (str (:name (get ways way-id)))
+     :name     (str (:name (get ways way-id-to)))
      :mode     "walking" ;;todo this should not be hardcoded
-     :maneuver (maneuver network traces way-id)
+     :maneuver (maneuver network destination origin)
      :intersections nil})) ;; todo
 
 
@@ -122,12 +125,12 @@
 
   WARNING: we dont support multiple waypoints yet !!"
   [network steps trace]
-  (let [linestring (geometry network trace)]
+  (let [linestring  (geometry network trace)
+        ways&traces (partition-by-street-name network trace)]
     {:distance     (math/arc-length (:coordinates linestring))
      :duration     (rp/cost (val trace))
-     :steps        (if steps (map step (repeat network)
-                                       (split-ways (:graph network) trace))
-                     [])
+     :steps        (if-not steps []
+                     (reverse (map step (repeat network) ways&traces (rest ways&traces))))
      :summary      "" ;; TODO
      :annotation   [] ;; TODO
      :geometry     linestring}))
@@ -175,17 +178,19 @@
                        coordinates)
        :routes [(route network steps trace)]})))
 
+
+
 ;(defonce network (time (update (time (osm/osm->network "resources/osm/saarland.osm"))
 ;                               :graph
 ;                               alg/biggest-component)))
 ;
-;(def origin [7.0240812 49.6021303])
-;(def destination [7.0016269 49.2373449])
+;(def origin [7.0016269 49.2373449])
+;(def destination [7.0240812 49.6021303])
 ;
-;(def result (direction network
-;              :coordinates [origin destination]
 ;;((juxt rp/lon rp/lat) (val (rand-nth (seq (:graph network)))))
 ;;((juxt rp/lon rp/lat) (val (rand-nth (seq (:graph network)))))]
+;(def result (direction network
+;              :coordinates [origin destination]
 ;              :steps true))
 ;
 ;result
@@ -193,12 +198,3 @@
 ;
 ;(spit "resources/linestring.json"
 ;  (cheshire/generate-string (:geometry (first (:routes result)))))
-
-;; TODO: merge traces with a single point. Use the first way-id
-;; as reference
-
-;; TODO: make manuever a function that modifies the steps result
-;; such that it has access to both the previous step and the next
-
-;(math/haversine [7.0030141 49.2380441] [7.0027733 49.2380038])
-;(math/bearing [7.0030141 49.2380441] [7.0027733 49.2380038])
