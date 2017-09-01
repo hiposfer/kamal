@@ -25,15 +25,15 @@
   "get the way id based on the src/dst id of the traversed nodes"
   [graph src dst]
   (rp/way (reduce (fn [_ arc] (when (= dst (rp/dst arc)) (reduced arc)))
-                  (rp/successors (get graph src)))))
+                  (rp/successors (graph src)))))
 
 
 (defn duration
   "A very simple value computation function for Arcs in a graph.
   Returns the time it takes to go from arc src to dst based on osm/speeds"
   [graph arc _] ;; 1 is a simple value used for test whenever no other value would be suitable
-  (let [src    (get graph (rp/src arc))
-        dst    (get graph (rp/dst arc))
+  (let [src    (graph (rp/src arc))
+        dst    (graph (rp/dst arc))
         length (math/haversine (rp/lon src) (rp/lat src)
                                (rp/lon dst) (rp/lat dst))]
     (/ length osm/walking-speed)))
@@ -58,9 +58,9 @@
   ([{:keys [graph]} trace last-id]
     ;; include the last point in the geometry
    (let [coordinates (transduce (comp (halt-when #(= (key %) last-id)
-                                        (fn [r h] (conj r (->coordinates (get graph (key h))))))
+                                        (fn [r h] (conj r (->coordinates (graph (key h))))))
                                       (map key)
-                                      (map #(get graph %))
+                                      (map graph)
                                       (map ->coordinates))
                                 conj
                                 []
@@ -78,12 +78,12 @@
                           (rest (rp/path trace)))
         ;; last: little hack to get the way of the first point
         traces  (sequence (comp (map vector)
-                                (partition-by (fn [[_ wid]] (:name (get ways wid))))
+                                (partition-by (fn [[_ wid]] (:name (ways wid))))
                                 (map #(map first %)) ;; get the path traces
                                 (map first)) ;; get only the first trace
                           (rp/path trace)
                           (concat way-ids [(last way-ids)]))
-        streets (sequence (comp (partition-by #(:name (get ways %)))
+        streets (sequence (comp (partition-by #(:name (ways %)))
                                 (map first)) ;; the first way id suffices
                           way-ids)]
         ;_ (println traces)]
@@ -94,14 +94,14 @@
 (defn- maneuver
   "returns a step manuever"
   [{:keys [graph ways]} [way-id-to trace-to :as destination] [_ trace  :as origin]]
-  (let [location     (->coordinates (get graph (key trace)))
-        pre-bearing  (math/bearing (->coordinates (get graph (key (second (rp/path trace)))))
-                                   (->coordinates (get graph (key trace))))
-        post-bearing (math/bearing (->coordinates (get graph (key trace)))
-                                   (->coordinates (get graph (key trace-to))))
+  (let [location     (->coordinates (graph (key trace)))
+        pre-bearing  (math/bearing (->coordinates (graph (key (second (rp/path trace)))))
+                                   (->coordinates (graph (key trace))))
+        post-bearing (math/bearing (->coordinates (graph (key trace)))
+                                   (->coordinates (graph (key trace-to))))
         angle        (mod (+ 360 (- post-bearing pre-bearing)) 360)
         modifier     (val (last (subseq bearing-turns <= angle)))
-        way-name     (:name (get ways way-id-to))
+        way-name     (:name (ways way-id-to))
         instruction  (str "Take " modifier (when way-name (str " on " way-name)))]
     {:location location
      ;; todo: implement maneuver type
@@ -121,7 +121,7 @@
      :duration (- (rp/cost (val trace-to))
                   (rp/cost (val trace)))
      :geometry linestring
-     :name     (str (:name (get ways way-id-to)))
+     :name     (str (:name (ways way-id-to)))
      :mode     "walking" ;;TODO this should not be hardcoded
      :maneuver (maneuver network destination origin)
      :intersections []})) ;; TODO
@@ -183,11 +183,10 @@
       {:code "NoRoute"}
       {:code "Ok"
        :routes [(route network steps trace)]
-       :waypoints [{:name (:name (get ways (some rp/way (rp/successors start))))
+       :waypoints [{:name (:name (ways (some rp/way (rp/successors (graph (key start))))))
                     :location (->coordinates (val start))}
-                   {:name (:name (get ways (some rp/way (rp/successors start))))
+                   {:name (:name (ways (some rp/way (rp/successors (graph (key start))))))
                     :location (->coordinates (val dst))}]})))
-
 
 ;(defonce network (time (update (time (osm/osm->network "resources/osm/saarland.osm"))
 ;                               :graph
