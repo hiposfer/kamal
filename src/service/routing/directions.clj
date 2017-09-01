@@ -2,9 +2,9 @@
   (:require [service.routing.osm :as osm]
             [service.routing.graph.algorithms :as alg]
             [service.routing.graph.protocols :as rp]
-            [service.routing.libs.math :as math]))
-            ;[service.routing.graph.generators :as g]))
-            ;[clojure.test.check.generators :as gen]))
+            [service.routing.libs.math :as math]
+            [service.routing.graph.generators :as g]
+            [clojure.test.check.generators :as gen]))
             ;[cheshire.core :as cheshire]))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
@@ -182,23 +182,18 @@
     (if (nil? trace)
       {:code "NoRoute"}
       {:code "Ok"
-       :waypoints [{:name (:name (get ways (wayver graph
-                                             (key start)
-                                             (key (last (butlast (rp/path trace)))))))
+       :routes [(route network steps trace)]
+       :waypoints [{:name (:name (get ways (some rp/way (rp/successors start))))
                     :location (->coordinates (val start))}
-                   {:name (:name (get ways (wayver graph
-                                             (key (second (rp/path trace)))
-                                             (key dst))))
-                    :location (->coordinates (val dst))}]
-       :routes [(route network steps trace)]})))
-
+                   {:name (:name (get ways (some rp/way (rp/successors start))))
+                    :location (->coordinates (val dst))}]})))
 
 
 ;(defonce network (time (update (time (osm/osm->network "resources/osm/saarland.osm"))
 ;                               :graph
 ;                               alg/biggest-component)))
 ;
-;(defonce network (g/complete (gen/generate (g/graph 1000))))
+;(def network (g/complete (gen/generate (g/graph 1000))))
 ;network
 
 ;(def origin [7.0016269 49.2373449])
