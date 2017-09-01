@@ -31,6 +31,7 @@
   (lat [_] lat)
   (lon [_] lon))
 
+;; useful for geojson coordinates manipulation
 (extend-type IPersistentVector
   rp/GeoCoordinate
   (lat [this] (second this))
@@ -38,11 +39,11 @@
 
 ;; this is specially useful for generative testing: there we use generated
 ;; nodes and arcs
-;; NOTE: we cannot know in advance if the map was created with only undirected
-;; arcs or if it was meant for both outgoing and incoming arcs. So we just check
-;; both cases
 (extend-type IPersistentMap
-  rp/Context ;; allow Clojure's maps to behave in the same way that Node records
+  ;; NOTE: we cannot know in advance if the map was created with only undirected
+  ;; arcs or if it was meant for both outgoing and incoming arcs. So we just check
+  ;; both cases
+  rp/Context
   (predecessors [this]
     (if (:in-arcs this)
       (:in-arcs this)
@@ -58,6 +59,8 @@
   rp/Arc
   (src [this] (:src this))
   (dst [this] (:dst this))
+  rp/Routable
+  (way [this] (:way this))
   rp/Reversible
   (mirror [this] (assoc this :src (:dst this)
                              :dst (:src this))))

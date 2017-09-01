@@ -1,4 +1,4 @@
-(ns service.routing.utils.math
+(ns service.routing.libs.math
   (:require [service.routing.graph.protocols :as rp]))
 
 ;; Note in these scripts, I generally use
@@ -24,17 +24,10 @@
                   (Math/cos φ1)))]
      (* RADIOUS 2 (Math/asin (Math/sqrt a)))))
   ([p1 p2]
-   (cond
-     (and (satisfies? rp/GeoCoordinate p1) (satisfies? rp/GeoCoordinate p2))
-     (haversine (rp/lon p1) (rp/lat p1)
-                (rp/lon p2) (rp/lat p2))
-
-     (and (sequential? p1) (sequential? p2))
+   (if (and (seq? p1) (seq? p2))
      (apply haversine (concat p1 p2))
-
-     (and (map? p1) (map? p2))
-     (haversine (:lon p1) (:lat p1)
-                (:lon p2) (:lat p2)))))
+     (haversine (rp/lon p1) (rp/lat p1)
+                (rp/lon p2) (rp/lat p2)))))
 
 ;; (frepos/distance [-86.67 36.12] [-118.40 33.94])
 ;=> 2887.2599506071106 km

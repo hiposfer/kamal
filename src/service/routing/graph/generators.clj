@@ -1,7 +1,9 @@
 (ns service.routing.graph.generators
   (:require [clojure.spec.alpha :as s]
             [clojure.test.check.generators :as gen]
-            [service.routing.graph.specs])) ;; loads the spec in the registry
+            [service.routing.graph.specs]
+            [clojure.string :as str]
+            [service.routing.graph.protocols :as rp])) ;; loads the spec in the registry
 
 (defn- clean-arcs
   "remove the arcs of node that point to unexistent nodes and fix the src id
@@ -48,3 +50,24 @@
 
 ;example usage
 ;(gen/generate (graph 10))
+
+(def string-alpha
+  "Generate alpha strings"
+  (gen/fmap str/join (gen/vector gen/char-alpha)))
+
+(defn complete
+  "returns a network with a fake ways element to conform to the generated graph"
+  [graph]
+  (let [arcs    (map rp/successors (vals graph))
+        way-ids (into #{} (comp cat
+                                (map rp/way)
+                                (remove nil?))
+                          arcs)
+        namer   (gen/fmap str/capitalize string-alpha)
+        ways    (map (fn [id] [id {:name (gen/generate (gen/such-that not-empty namer))}])
+                     way-ids)]
+    {:graph graph
+     :ways  (into {} ways)}))
+
+;; example usage
+;;(complete (gen/generate (graph 10)))

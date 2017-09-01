@@ -2,7 +2,7 @@
   (:require [service.routing.osm :as osm]
             [service.routing.graph.algorithms :as alg]
             [service.routing.graph.protocols :as rp]
-            [service.routing.utils.math :as math]))
+            [service.routing.libs.math :as math]))
             ;[cheshire.core :as cheshire]))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
