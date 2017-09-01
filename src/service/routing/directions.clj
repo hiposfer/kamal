@@ -198,8 +198,8 @@
 ;(def origin [7.0016269 49.2373449])
 ;(def destination [7.0240812 49.6021303])
 ;
-;;((juxt rp/lon rp/lat) (val (rand-nth (seq (:graph network)))))
-;;((juxt rp/lon rp/lat) (val (rand-nth (seq (:graph network)))))]
+;(def origin      ((juxt rp/lon rp/lat) (val (rand-nth (seq (:graph network))))))
+;(def destination ((juxt rp/lon rp/lat) (val (rand-nth (seq (:graph network))))))
 ;(def result (direction network
 ;              :coordinates [origin destination]
 ;              :steps true))
