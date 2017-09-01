@@ -17,6 +17,14 @@
               300  "slight left"
               340  "straight"))
 
+(def ->coordinates (juxt rp/lon rp/lat))
+
+(defn- wayver
+  "get the way id based on the src/dst id of the traversed nodes"
+  [graph src dst]
+  (rp/way (get (into {} (rp/successors (get graph src))) dst)))
+
+
 (defn duration
   "A very simple value computation function for Arcs in a graph.
   Returns the time it takes to go from arc src to dst based on osm/speeds"
@@ -45,12 +53,12 @@
   ([network trace]
    (geometry network trace nil))
   ([{:keys [graph]} trace last-id]
-   (let [locator     (juxt rp/lon rp/lat) ;; include the last point in the geometry
-         coordinates (transduce (comp (halt-when #(= (key %) last-id)
-                                        (fn [r h] (conj r (locator (get graph (key h))))))
+    ;; include the last point in the geometry
+   (let [coordinates (transduce (comp (halt-when #(= (key %) last-id)
+                                        (fn [r h] (conj r (->coordinates (get graph (key h))))))
                                       (map key)
                                       (map #(get graph %))
-                                      (map locator))
+                                      (map ->coordinates))
                                 conj
                                 []
                                 (rp/path trace))]
@@ -62,14 +70,12 @@
 (defn- partition-by-street-name
   "split the trace into a sequence of traces using the way id as separator"
   [{:keys [graph ways]} trace]
-  (let [way-ids (sequence (comp (map (fn [dst src] [(key dst) (rp/successors (get graph (key src)))]))
-                                (map (fn [[dst arcs]] (get (into {} arcs) dst)))
-                                (map rp/way))
-                         (rp/path trace)
-                         (rest (rp/path trace)))
+  (let [way-ids (sequence (map (fn [dst src] (wayver graph (key src) (key dst))))
+                          (rp/path trace)
+                          (rest (rp/path trace)))
         ;; last: little hack to get the way of the first point
         traces  (sequence (comp (map vector)
-                                (partition-by #(:name (get ways (second %))))
+                                (partition-by (fn [[_ wid]] (:name (get ways wid))))
                                 (map #(map first %)) ;; get the path traces
                                 (map first)) ;; get only the first trace
                           (rp/path trace)
@@ -85,12 +91,11 @@
 (defn- maneuver
   "returns a step manuever"
   [{:keys [graph ways]} [way-id-to trace-to :as destination] [_ trace  :as origin]]
-  (let [coordinate   (juxt rp/lon rp/lat)
-        location     (coordinate (get graph (key trace)))
-        pre-bearing  (math/bearing (coordinate (get graph (key (second (rp/path trace)))))
-                                   (coordinate (get graph (key trace))))
-        post-bearing (math/bearing (coordinate (get graph (key trace)))
-                                   (coordinate (get graph (key trace-to))))
+  (let [location     (->coordinates (get graph (key trace)))
+        pre-bearing  (math/bearing (->coordinates (get graph (key (second (rp/path trace)))))
+                                   (->coordinates (get graph (key trace))))
+        post-bearing (math/bearing (->coordinates (get graph (key trace)))
+                                   (->coordinates (get graph (key trace-to))))
         angle        (mod (+ 360 (- post-bearing pre-bearing)) 360)
         modifier     (val (last (subseq bearing-turns <= angle)))
         way-name     (:name (get ways way-id-to))
@@ -114,9 +119,9 @@
                   (rp/cost (val trace)))
      :geometry linestring
      :name     (str (:name (get ways way-id-to)))
-     :mode     "walking" ;;todo this should not be hardcoded
+     :mode     "walking" ;;TODO this should not be hardcoded
      :maneuver (maneuver network destination origin)
-     :intersections nil})) ;; todo
+     :intersections []})) ;; TODO
 
 
 ;https://www.mapbox.com/api-documentation/#routeleg-object
@@ -129,6 +134,7 @@
         ways&traces (partition-by-street-name network trace)]
     {:distance     (math/arc-length (:coordinates linestring))
      :duration     (rp/cost (val trace))
+     ;; TODO: add depart and arrival steps
      :steps        (if-not steps []
                      (reverse (map step (repeat network) ways&traces (rest ways&traces))))
      :summary      "" ;; TODO
@@ -160,12 +166,12 @@
 
    Example:
    (direction network :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
-  [network & params]
+  [{:keys [graph ways] :as network} & params]
   (let [{:keys [coordinates steps radiuses alternatives language]} params
         start     (brute-nearest network (first coordinates))
         dst       (brute-nearest network (last coordinates))
         traversal (alg/dijkstra (:graph network)
-                                :value-by #(duration (:graph network) %1 %2)
+                                :value-by #(duration graph %1 %2)
                                 :start-from #{(key start)})
         trace     (reduce (fn [_ trace] (when (= (key trace) (key dst)) (reduced trace)))
                           nil
@@ -173,9 +179,14 @@
     (if (nil? trace)
       {:code "NoRoute"}
       {:code "Ok"
-       :waypoints (map (fn [point] {:name "wonderland" ;;todo
-                                    :location ((juxt rp/lon rp/lat) point)})
-                       coordinates)
+       :waypoints [{:name (:name (get ways (wayver graph
+                                             (key start)
+                                             (key (last (butlast (rp/path trace)))))))
+                    :location (->coordinates (val start))}
+                   {:name (:name (get ways (wayver graph
+                                             (key (second (rp/path trace)))
+                                             (key dst))))
+                    :location (->coordinates (val dst))}]
        :routes [(route network steps trace)]})))
 
 
