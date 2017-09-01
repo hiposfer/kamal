@@ -5,51 +5,45 @@
             [clojure.string :as str]
             [service.routing.graph.protocols :as rp])) ;; loads the spec in the registry
 
-(defn- clean-arcs
-  "remove the arcs of node that point to unexistent nodes and fix the src id
-  to the one from the node"
-  [graph [id node]]
-  (let [arcs (sequence (comp (filter (fn [[dst _]] (contains? graph dst)))
-                             (map    (fn [[dst arc]] [dst (assoc arc :src id)]))
-                             (map    (fn [[dst arc]] (if (not= dst (:src arc))
-                                                       [dst arc]
-                                                       (let [new-dst (rand-nth (keys graph))]
-                                                         [new-dst (assoc arc :dst new-dst)])))))
-                       (:arcs node))]
-    [id (assoc node :arcs (into {} arcs))]))
-
-(defn- fix-dst
-  "set the node id of :arcs to dst"
-  [[id node]]
-  (let [arcs (map (fn [[_ arc]] [(:dst arc) arc])
-                  (:arcs node))]
-    [id (assoc node :arcs (into {} arcs))]))
-
-(defn- clean-graph
-  "remove all arcs that point to unexistent nodes"
-  [graph]
-  (let [graph2 (into {} (map fix-dst graph))]
-    (into {} (map #(clean-arcs graph2 %) graph2))))
+(def doubler (gen/double* {:infinite? false
+                           :NaN? false}))
+                           ;:min       - minimum value (inclusive, default none)
+                           ;:max       - maximum value (inclusive, default none)}))
 
 (defn- grapher
-  "returns a graph generator. The generated graph might not be consistent
-   since its node ids are randomly generated"
-  [max]
-  (let [picker #(gen/elements (range (* 3 max)))
-        arc     (s/gen :graph/arc {:arc/src picker
-                                   :arc/dst picker})
-        arcs   #(gen/map (picker) arc {:min-elements 3 :max-elements 5})
-        nodes   (s/gen :graph/node {:node/arcs arcs})]
-    (gen/map (picker) nodes {:num-elements max, :max-tries 100})))
+  "returns a graph based on the provided node ids. Random latitude and longitudes
+  are generated as well"
+  [ids]
+  (let [pick     #(rand-nth (seq ids))
+        arcer    #(hash-map :src (pick) :dst (pick)
+                            :way (rand-int (* 3 (count ids))))
+        arcs      (repeatedly (* 3 (count ids)) arcer)
+        outgoings (group-by rp/src arcs)
+        incomings (group-by rp/src (map rp/mirror arcs))
+        ;; first assoc all outgoing arcs
+        graph     (reduce-kv (fn [res node-id arcs] (assoc-in res [node-id :arcs]
+                                                      (into {} (map #(vector (rp/dst %) %) arcs))))
+                             {}
+                             outgoings)
+        ;; now mirror the outgoing arcs to make it a bidirectional graph
+        graph2    (reduce-kv (fn [res node-id arcs] (update-in res [node-id :arcs] merge
+                                                      (into {} (map #(vector (rp/dst %) %) arcs))))
+                             graph
+                             incomings)]
+    ;; now create random lat, lon pairs
+    (reduce-kv (fn [res id _] (update res id merge {:lat (gen/generate doubler)
+                                                    :lon (gen/generate doubler)}))
+               graph2
+               graph2)))
 
 (defn graph
   "returns a graph generator with node's id between 0 and 3*size.
   The generator creates a minimum of size elements"
   [size]
-  (gen/fmap clean-graph (grapher size)))
+  (gen/fmap grapher (gen/set (gen/resize (* 3 size) gen/nat))))
 
-;example usage
-;(gen/generate (graph 10))
+;;example usage
+;(gen/generate (graph 100))
 
 (def string-alpha
   "Generate alpha strings"
@@ -70,4 +64,4 @@
      :ways  (into {} ways)}))
 
 ;; example usage
-;;(complete (gen/generate (graph 10)))
+;(complete (gen/generate (graph 10)))
