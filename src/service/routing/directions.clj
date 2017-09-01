@@ -3,6 +3,8 @@
             [service.routing.graph.algorithms :as alg]
             [service.routing.graph.protocols :as rp]
             [service.routing.libs.math :as math]))
+            ;[service.routing.graph.generators :as g]))
+            ;[clojure.test.check.generators :as gen]))
             ;[cheshire.core :as cheshire]))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
@@ -22,7 +24,8 @@
 (defn- wayver
   "get the way id based on the src/dst id of the traversed nodes"
   [graph src dst]
-  (rp/way (get (into {} (rp/successors (get graph src))) dst)))
+  (rp/way (reduce (fn [_ arc] (when (= dst (rp/dst arc)) (reduced arc)))
+                  (rp/successors (get graph src)))))
 
 
 (defn duration
@@ -195,11 +198,15 @@
 ;                               :graph
 ;                               alg/biggest-component)))
 ;
+;(defonce network (g/complete (gen/generate (g/graph 1000))))
+;network
+
 ;(def origin [7.0016269 49.2373449])
 ;(def destination [7.0240812 49.6021303])
-;
+
 ;(def origin      ((juxt rp/lon rp/lat) (val (rand-nth (seq (:graph network))))))
 ;(def destination ((juxt rp/lon rp/lat) (val (rand-nth (seq (:graph network))))))
+;
 ;(def result (direction network
 ;              :coordinates [origin destination]
 ;              :steps true))
