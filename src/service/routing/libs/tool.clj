@@ -1,4 +1,4 @@
-(ns service.routing.utils.tool
+(ns service.routing.libs.tool
   "useful functions that have not found a proper place yet")
 
 

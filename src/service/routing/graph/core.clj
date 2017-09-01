@@ -2,7 +2,7 @@
   (:require [service.routing.graph.protocols :as rp]
             [clojure.data.int-map :as imap])
   (:import (java.util Map$Entry Queue PriorityQueue)
-           (clojure.lang IPersistentMap Seqable IReduceInit IReduce Sequential ITransientSet)))
+           (clojure.lang IPersistentMap Seqable IReduceInit IReduce Sequential ITransientSet IPersistentVector)))
 
 ; graph is an {id node}
 ; Node is a {:lon :lat :arcs {dst-id arc}}
@@ -31,13 +31,19 @@
   (lat [_] lat)
   (lon [_] lon))
 
+;; useful for geojson coordinates manipulation
+(extend-type IPersistentVector
+  rp/GeoCoordinate
+  (lat [this] (second this))
+  (lon [this] (first this)))
+
 ;; this is specially useful for generative testing: there we use generated
 ;; nodes and arcs
-;; NOTE: we cannot know in advance if the map was created with only undirected
-;; arcs or if it was meant for both outgoing and incoming arcs. So we just check
-;; both cases
 (extend-type IPersistentMap
-  rp/Context ;; allow Clojure's maps to behave in the same way that Node records
+  ;; NOTE: we cannot know in advance if the map was created with only undirected
+  ;; arcs or if it was meant for both outgoing and incoming arcs. So we just check
+  ;; both cases
+  rp/Context
   (predecessors [this]
     (if (:in-arcs this)
       (:in-arcs this)
@@ -53,6 +59,8 @@
   rp/Arc
   (src [this] (:src this))
   (dst [this] (:dst this))
+  rp/Routable
+  (way [this] (:way this))
   rp/Reversible
   (mirror [this] (assoc this :src (:dst this)
                              :dst (:src this))))
@@ -65,7 +73,8 @@
   (mirror [_] (->Arc dst src way))
   ;; TODO: apparently the 'performance' note doesnt apply as key and val are stored
   ;;       separatedly. Need to check later
-
+  rp/Routable
+  (way [_] way)
   ;; We store arcs based on their destination node. Thus an Arc has all the information
   ;; necessary to uniquely identify itself with src/dst combination. Therefore it would
   ;; be wasteful to store a MapEntry as [dst [src dst way-id]]. It is better to make an
@@ -108,7 +117,7 @@
            (apply = (map val t1) (map val t2)))))
   (hashCode [_] (hash [id value prior]))
   Object
-  (toString [_] (str "[" id " " value " ]")))
+  (toString [_] (str "[" id " " value "]")))
 
 ; travis-ci seems to complaint about not finding a matching constructor if the
 ; init size is not there. Funnily the ctor with a single comparator is not defined

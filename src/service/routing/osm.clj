@@ -75,9 +75,10 @@
   "return a [id way] pair with all unnecessary attributes removed with the
    exception of ::nodes. Reverse nodes if necessary"
   [[id attrs]]
-  (let [new-attrs (select-keys attrs (conj (:attrs pedestrian) ::nodes))]
+  (let [new-attrs (walk/keywordize-keys
+                    (select-keys attrs (conj (:attrs pedestrian) ::nodes)))]
     (if (= "-1" (get attrs "oneway"))
-      [id (walk/keywordize-keys (update new-attrs ::nodes rseq))]
+      [id (update new-attrs ::nodes rseq)]
       [id new-attrs])))
 
 (defn- strip-points
