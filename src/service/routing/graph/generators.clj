@@ -1,6 +1,5 @@
 (ns service.routing.graph.generators
-  (:require [clojure.spec.alpha :as s]
-            [clojure.test.check.generators :as gen]
+  (:require [clojure.test.check.generators :as gen]
             [service.routing.graph.specs]
             [clojure.string :as str]
             [service.routing.graph.protocols :as rp])) ;; loads the spec in the registry
