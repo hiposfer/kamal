@@ -9,8 +9,7 @@
                  [org.clojure/data.int-map "0.2.4"] ; fast integers-map
                  [metosin/compojure-api "2.0.0-alpha7"]
                  [metosin/spec-tools "0.3.3"]
-                 [org.clojure/test.check "0.9.0"]
-                 [org.apache.commons/commons-compress "1.4"]]
+                 [org.clojure/test.check "0.9.0"]]
   :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
                                   [expound "0.1.1"]
                                   [io.aviso/pretty "0.1.34"]]}}
