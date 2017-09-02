@@ -192,7 +192,6 @@
 ;                               :graph
 ;                               alg/biggest-component)))
 ;
-;(def network (g/complete (gen/generate (g/graph 1000))))
 ;network
 
 ;(def origin [7.0016269 49.2373449])
@@ -202,8 +201,8 @@
 ;(def destination ((juxt rp/lon rp/lat) (val (rand-nth (seq (:graph network))))))
 ;
 ;(def result (direction network
-;              :coordinates [origin destination]
-;              :steps true))
+;                       :coordinates [origin destination]
+;                       :steps true))
 ;
 ;result
 ;(:steps (first (:legs (first (:routes result)))))
