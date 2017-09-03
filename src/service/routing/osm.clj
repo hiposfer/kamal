@@ -3,7 +3,17 @@
             [clojure.data.int-map :as imap]
             [service.routing.graph.core :as route]
             [service.routing.graph.protocols :as rp]
-            [clojure.walk :as walk]))
+            [clojure.walk :as walk]
+            [clojure.java.io :as io])
+  (:import (org.apache.commons.compress.compressors.bzip2 BZip2CompressorInputStream)))
+
+(defn- bz2-reader
+  "Returns a streaming Reader for the given compressed BZip2
+  file. Use within (with-open)."
+  [filename]
+  (-> (io/input-stream filename)
+      (BZip2CompressorInputStream.)
+      (io/reader)))
 
 ;; routing profile taken from
 ;; http://wiki.openstreetmap.org/wiki/OSM_tags_for_routing/Telenav
@@ -123,30 +133,26 @@
 (defn- osm->ways
   "takes an OSM-file and returns an int-map of ways representing the road
    network"
-  [filename]
-  (with-open [file-rdr (clojure.java.io/reader filename)]
-    (let [osm   (:content (xml/parse file-rdr))
-          ways  (into (imap/int-map)
-                      (comp (filter #(= :way (:tag %)))
-                            (filter #(some highway-tag? (:content %)))
-                            (map highway->ways)
-                            (filter valid-way?)
-                            (map postprocess))
-                      osm)]
-      ways)))
+  [osm]
+  (let [ways  (into (imap/int-map)
+                    (comp (filter #(= :way (:tag %)))
+                          (filter #(some highway-tag? (:content %)))
+                          (map highway->ways)
+                          (filter valid-way?)
+                          (map postprocess))
+                    osm)]
+    ways))
 
 (defn- osm->nodes
   "takes an OSM-file and a set of node ids and returns a
    vector of point instances"
-  [filename ids]
-  (with-open [file-rdr (clojure.java.io/reader filename)]
-    (let [osm   (:content (xml/parse file-rdr))
-          nodes (into (imap/int-map)
-                      (comp (filter #(= :node (:tag %)))
-                            (filter #(contains? ids (Long/parseLong (:id (:attrs %)))))
-                            (map ->point-entry))
-                      osm)]
-      nodes)))
+  [osm ids]
+  (let [nodes (into (imap/int-map)
+                    (comp (filter #(= :node (:tag %)))
+                          (filter #(contains? ids (Long/parseLong (:id (:attrs %)))))
+                          (map ->point-entry))
+                    osm)]
+    nodes))
 
 ;; There are generally speaking two ways to process an OSM file for routing
 ; - read all points and ways and transform them in memory
@@ -161,11 +167,13 @@
   only the connected nodes, the points represent the shape of the connection
   and the ways are the metadata associated with the connections"
   [filename]
-  (let [ways          (osm->ways filename)
+  (let [ways          (with-open [file-rdr (bz2-reader filename)]
+                        (osm->ways (:content (xml/parse file-rdr))))
         ;; post procesing ways
         point-ids     (into (imap/int-set) (mapcat ::nodes) (vals ways))
         ;; post-processing nodes
-        points&nodes  (osm->nodes filename point-ids)
+        points&nodes  (with-open [file-rdr (bz2-reader filename)]
+                        (osm->nodes (:content (xml/parse file-rdr)) point-ids))
         simple-ways   (simplify ways)
         node-ids      (into (imap/int-set) (mapcat second) simple-ways)
         points        (into (imap/int-map)
@@ -181,8 +189,11 @@
 (def walking-speed  2.5);; m/s
 
 ;(System/gc)
-;(def network (time (osm->network "resources/osm/saarland.osm")))
+;(def network (time (osm->network "resources/osm/saarland.osm.bz2")))
+;(def network (time (osm->network "https://firebasestorage.googleapis.com/v0/b/hive-6c54a.appspot.com/o/routing%2Fosm%2Fsaarland.osm.bz2?alt=media&token=6534fe4c-415e-4ca3-9b8e-a10c0a85b6e6")))
 ;(take 10 (:graph network))
+;(take 10 (:ways network))
+;(:graph network)
 ;(def network nil)
 
 
