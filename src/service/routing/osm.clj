@@ -37,7 +37,8 @@
 
 ;; name=*   Street Name (Official). Also official_name / int_name / name:en / nat_name
 ;; name_1=* Street Name (Alternate). Also reg_name / loc_name / old_name
-;; ref=*    Route network and number, but information from parent Route Relations has priority, see below. Also int_ref=* / nat_ref=* / reg_ref=* / loc_ref=* / old_ref=*
+;; ref=*    Route network and number, but information from parent Route Relations has priority,
+;;          see below. Also int_ref=* / nat_ref=* / reg_ref=* / loc_ref=* / old_ref=*
 
 ;; <node id="298884269" lat="54.0901746" lon="12.2482632" user="SvenHRO"
 ;;      uid="46882" visible="true" version="1" changeset="676636"
@@ -49,7 +50,8 @@
    (route/->Point (Double/parseDouble (:lon (:attrs element)))
                   (Double/parseDouble (:lat (:attrs element))))])
 
-; <way id="26659127" user="Masch" uid="55988" visible="true" version="5" changeset="4142606" timestamp="2010-03-16T11:47:08Z">
+; <way id="26659127" user="Masch" uid="55988" visible="true" version="5" changeset="4142606"
+      ;timestamp="2010-03-16T11:47:08Z">
 ;   <nd ref="292403538"/>
 ;   <nd ref="298884289"/>
 ;   ...
