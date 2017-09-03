@@ -7,9 +7,6 @@
             [service.routing.osm :as osm]
             [service.routing.directions :as direction]))
 
-;; NOTE: to execute this algorithm you need to decompress the bz2 file
-;; in the resources/osm dir !!
-
 (def iterations 10)
 
 ;; This is just to show the difference between a randomly generated graph
@@ -35,7 +32,7 @@
                        coll)))
       :os :runtime :verbose)))
 
-(def networker (delay (osm/osm->network "resources/osm/saarland.osm")))
+(def networker (delay (osm/osm->network "resources/osm/saarland.osm.bz2")))
 
 (test/deftest ^:benchmark dijkstra-saarland-graph
   (let [graph        (:graph @networker) ;; force read
