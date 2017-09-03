@@ -1,79 +1,41 @@
 (ns service.routing.core
   (:gen-class)
-  (:require [clojure.spec.gen.alpha :as gen]
-            [ring.util.http-response :refer [ok]]
-            [compojure.api.sweet :refer [context GET api]]
-            [service.routing.spec :as spec]
-            [service.routing.directions :as dir]
-            [service.routing.graph.generators :as g]
-            [clojure.string :as str]
-            [clojure.edn :as edn]
+  (:require [clojure.edn :as edn]
+            [environ.core :refer [env]]
+            [ring.adapter.jetty :as jetty]
             [com.stuartsierra.component :as component]
-            [ring.adapter.jetty :as jetty]))
-            ;[expound.alpha :as expound]
+            [service.routing.server :as server])
+  (:import (org.eclipse.jetty.server Server)))
 
-(defn- parse-coordinates
-  [text]
-  (let [pairs (str/split text #";")]
-    (for [coords pairs]
-      (mapv edn/read-string (str/split coords #",")))))
-;(->coordinates "-122.42,37.78;-77.03,38.91")
-
-(defn- parse-radiuses
-  [text]
-  (map edn/read-string (str/split text #";")))
-;(->radiuses "1200.50;100;500;unlimited;100")
-
-
-(def app
-  (api {:swagger {:ui "/"
-                  :spec "/swagger.json"
-                  :data {:info {:title "Routing API"
-                                :description "Routing for hippos"}
-                         :tags [{:name "direction", :description "direction similar to mabbox"}]}}}
-    (GET "/spec/direction/:coordinates" []
-      :coercion :spec
-      :summary "direction with clojure.spec"
-      :path-params [coordinates :- ::spec/raw-coordinates]
-      :query-params [{steps :- boolean? false}
-                     {radiuses :- ::spec/raw-radiuses nil}
-                     {alternatives :- boolean? false}
-                     {language :- string? "en"}]
-      :return ::spec/direction
-      (ok (let [coordinates (parse-coordinates coordinates)
-                radiuses    (some-> radiuses (parse-radiuses))]
-            (if (and (not-empty radiuses) (not= (count radiuses) (count coordinates)))
-              {:message "The same amount of radiouses and coordinates must be provided"
-               :code    "InvalidInput"}
-              (dir/direction (g/complete (gen/generate (g/graph 1000)))
-                :coordinates coordinates
-                :steps steps
-                :radiuses radiuses
-                :alternatives alternatives
-                :language language)))))))
-
-(defrecord AppServer [port server]
+(defrecord AppServer [handler options]
   component/Lifecycle
   (start [component]
-    (println ";; Starting App server")
-    (let [server (jetty/run-jetty app {:port port})] ;:join? false})]
-      (assoc component :server server)))
+    (if (:server component)
+      component
+      (let [server (jetty/run-jetty handler options)]
+        (println ";; Starting App server")
+        (assoc component :server server))))
   (stop [component]
-    (println ";; Stopping App server")
-    (.stop server)
+    (if-let [server (:server component)]
+      (do (println ";; Stopping App server")
+          (.stop ^Server server)
+          (.join ^Server server)
+          (assoc component :server nil)))
     component))
 
 (defn system [config-options]
-  (-> (component/system-map
-        ;:config-options config-options
-        ;:db (new-database host port)
-        ;:sched (new-scheduler)
-        :app (map->AppServer config-options))))
-      ;(component/system-using
-      ;   {:app {:database  :db}
-      ;          :scheduler :sched)))))
+  (component/system-map
+    :config-options config-options
+    ;:db (new-database host port)
+    :app (map->AppServer {:handler server/app :options config-options})))
+  ;(component/system-using
+  ;   {:app {:database  :db}
+  ;          :scheduler :sched)))))
 
 (defn -main [& args]
-  (println "Welcome to my project! These are your args:" args)
-  (let [[port] args]
-    (component/start (system {:port 8080}))))
+  (println "Welcome to the org.n7a235/service.routing App")
+  (let [port (or (edn/read-string (first args))
+                 (env :port))
+        join (or (edn/read-string (env :join?)) true)]
+    (assert port "no port provided. Either set an ENV var or pass it as an argument")
+    (component/start (system {:port port :join? join}))))
