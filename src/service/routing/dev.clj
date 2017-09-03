@@ -38,8 +38,9 @@
 ;; WARN: this will fail if you just ran `lein uberjar` without
 ;; cleaning afterwards. See
 ;; https://stackoverflow.com/questions/44246924/clojure-tools-namespace-refresh-fails-with-no-namespace-foo
-(defn reset []
+(defn reset
   "reset the system to a fresh state. Prefer using this over go!"
+  []
   (stop!)
   (repl/refresh :after 'service.routing.dev/go!))
 
