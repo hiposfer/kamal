@@ -109,8 +109,8 @@
      :type     "turn"
      :bearing_before pre-bearing
      :bearing_after  post-bearing
-     :modifier modifier
-     :instruction instruction}))
+     :modifier       modifier
+     :instruction    instruction}))
 
 ;https://www.mapbox.com/api-documentation/#routestep-object
 (defn- step
