@@ -12,13 +12,15 @@
                  [metosin/spec-tools "0.3.3"]
                  [ring/ring-jetty-adapter "1.6.2"]
                  [com.stuartsierra/component "0.3.2"]
-                 [org.apache.commons/commons-compress "1.4"]] ;;bz2 files read
+                 [org.apache.commons/commons-compress "1.4"] ;;bz2 files read
+                 [environ "1.1.0"]] ;; read environment variables from several sources
   :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
                                   [expound "0.1.1"]
-                                  [io.aviso/pretty "0.1.34"]]}}
-  :uberjar-name "routing.jar"
-  :main service.routing.core
-  :aot [service.routing.core] ;; compile the entry point and all of its dependencies
+                                  [io.aviso/pretty "0.1.34"]
+                                  [org.clojure/tools.namespace "0.2.11"]]}
+             :uberjar {:aot [service.routing.core] ;; compile the entry point and all of its dependencies}
+                       :uberjar-name "routing.jar"
+                       :main service.routing.core}}
   :test-selectors {:default (complement :benchmark)
                    :benchmark :benchmark}
   :global-vars {*warn-on-reflection* true}
