@@ -19,8 +19,8 @@
                                   [io.aviso/pretty "0.1.34"]
                                   [org.clojure/tools.namespace "0.2.11"]]}
              :uberjar {:aot [service.routing.core] ;; compile the entry point and all of its dependencies}
-                       :uberjar-name "routing.jar"
-                       :main service.routing.core}}
+                       :uberjar-name "routing.jar"}}
+  :main service.routing.core
   :test-selectors {:default (complement :benchmark)
                    :benchmark :benchmark}
   :global-vars {*warn-on-reflection* true}
