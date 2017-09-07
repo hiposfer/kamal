@@ -34,8 +34,8 @@
 
 (defn -main [& args]
   (println "Welcome to the org.n7a235/service.routing App")
-  (let [port (or (edn/read-string (first args))
-                 (env :port))
+  (let [port (edn/read-string (or (first args)
+                                  (env :port)))
         join (or (edn/read-string (env :join?)) true)]
     (assert port "no port provided. Either set an ENV var or pass it as an argument")
     (component/start (system {:port port :join? join}))))
