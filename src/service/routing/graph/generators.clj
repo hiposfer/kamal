@@ -1,13 +1,9 @@
 (ns service.routing.graph.generators
   (:require [clojure.test.check.generators :as gen]
-            [service.routing.graph.specs]
+            [service.routing.graph.specs :as graph]
             [clojure.string :as str]
-            [service.routing.graph.protocols :as rp])) ;; loads the spec in the registry
-
-(def doubler (gen/double* {:infinite? false
-                           :NaN? false}))
-                           ;:min       - minimum value (inclusive, default none)
-                           ;:max       - maximum value (inclusive, default none)}))
+            [service.routing.graph.protocols :as rp]
+            [clojure.spec.alpha :as s])) ;; loads the spec in the registry
 
 (defn- grapher
   "returns a graph based on the provided node ids. Random latitude and longitudes
@@ -30,8 +26,9 @@
                              graph
                              incomings)]
     ;; now create random lat, lon pairs
-    (reduce-kv (fn [res id _] (update res id merge {:lat (gen/generate doubler)
-                                                    :lon (gen/generate doubler)}))
+    (reduce-kv (fn [res id _] (update res id merge
+                                {:lat (gen/generate (s/gen ::graph/lat))
+                                 :lon (gen/generate (s/gen ::graph/lon))}))
                graph2
                graph2)))
 
