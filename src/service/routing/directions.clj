@@ -134,16 +134,23 @@
 
   WARNING: we dont support multiple waypoints yet !!"
   [network steps trace]
-  (let [linestring  (geometry network trace)
-        ways&traces (partition-by-street-name network trace)]
+  (let [edge-case   (= 1 (count (rp/path trace))) ;; happens when origin = destination
+        linestring  (geometry network trace)
+        ;; prevent computation when edge case
+        ways&traces (lazy-seq (partition-by-street-name network trace))]
     {:distance     (math/arc-length (:coordinates linestring))
      :duration     (rp/cost (val trace))
      ;; TODO: add depart and arrival steps
-     :steps        (if-not steps []
-                     (reverse (map step (repeat network) ways&traces (rest ways&traces))))
+     :steps        (if (or (not steps) edge-case) []
+                     (reverse (map step (repeat network)
+                                        ways&traces
+                                        (rest ways&traces))))
      :summary      "" ;; TODO
      :annotation   [] ;; TODO
-     :geometry     linestring}))
+     :geometry     (if-not edge-case linestring
+                     (assoc linestring
+                            :coordinates
+                            (repeat 2 (first (:coordinates linestring)))))}))
 
 ;https://www.mapbox.com/api-documentation/#route-object
 (defn- route
@@ -184,9 +191,9 @@
       {:code "NoRoute"}
       {:code "Ok"
        :routes [(route network steps trace)]
-       :waypoints [{:name (:name (ways (some rp/way (rp/successors (graph (key start))))))
+       :waypoints [{:name (or "" (:name (ways (some rp/way (rp/successors (graph (key start)))))))
                     :location (->coordinates (val start))}
-                   {:name (:name (ways (some rp/way (rp/successors (graph (key start))))))
+                   {:name (or "" (:name (ways (some rp/way (rp/successors (graph (key start)))))))
                     :location (->coordinates (val dst))}]})))
 
 ;(defonce network (time (update (time (osm/osm->network "resources/osm/saarland.osm"))

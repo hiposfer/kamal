@@ -15,9 +15,7 @@
   component/Lifecycle
   (start [this]
     (if (:network this) this
-      (let [result (future (let [net (osm/osm->network url)]
-                             (println "OSM road network build !!")
-                             net))]
+      (let [result (future (time (osm/osm->network url)))]
         (println "-- Starting OSM road network from" url)
         (assoc this :network result))))
   (stop [this]
@@ -30,9 +28,7 @@
   component/Lifecycle
   (start [this]
     (if (:network this) this
-      (let [result (future (let [net (g/complete (gen/generate (g/graph size)))]
-                             (println "OSM road network build !!")
-                             net))]
+      (let [result (future (time (g/complete (gen/generate (g/graph size)))))]
         (println "-- Starting fake OSM road network with size " size)
         (assoc this :network result))))
   (stop [this]
@@ -44,7 +40,7 @@
   "creates a network component map based on the given configuration"
   [config]
   (if (:dev config)
-    (map->FakeNetwork {:size (or (:network-size config) 10000)})
+    (map->FakeNetwork {:size (or (:network-size config) 1000)})
     (map->RoadNetwork {:url (:osm-url config)})))
 
 ;; --------
