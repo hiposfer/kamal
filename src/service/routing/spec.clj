@@ -22,8 +22,7 @@
 (s/def ::coordinate  (s/tuple ::graph/lon ::graph/lat))
 (s/def ::location    ::coordinate)
 (s/def ::type        string?)
-;; todo: coordinates should have a min-count of 2 but if start = dst then only one point is necessary
-(s/def ::coordinates (s/coll-of ::coordinate :kind sequential? :min-count 1))
+(s/def ::coordinates (s/coll-of ::coordinate :kind sequential? :min-count 2))
 (s/def ::duration    (s/and spec/number? natural?))
 (s/def ::distance    (s/and spec/number? natural?))
 (s/def ::weight      (s/and spec/number? natural?)) ;; a negative weight doesnt make sense
