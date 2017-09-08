@@ -25,6 +25,7 @@
   "get the way id based on the src/dst id of the traversed nodes"
   [graph src dst]
   (rp/way (reduce (fn [_ arc] (when (= dst (rp/dst arc)) (reduced arc)))
+                  nil
                   (rp/successors (graph src)))))
 
 
