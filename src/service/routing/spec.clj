@@ -7,6 +7,8 @@
 (def coordinate-regex #"(-?\d+(\.\d+)?),(-?\d+(\.\d+)?)(;(-?\d+(\.\d+)?),(-?\d+(\.\d+)?))+")
 (def rads-regex #"((\d+(\.\d+)?)|unlimited)(;((\d+(\.\d+)?)|unlimited))*")
 
+(defn natural? "positive or zero number" [number] (or (pos? number) (zero? number)))
+
 ;; todo ::annotation => https://www.mapbox.com/api-documentation/#routeleg-object
 (s/def ::code        string?);;it actually should be an enum i.e. one of "bla bla" or "foo"
 (s/def ::name        string?)
@@ -22,9 +24,9 @@
 (s/def ::type        string?)
 ;; todo: coordinates should have a min-count of 2 but if start = dst then only one point is necessary
 (s/def ::coordinates (s/coll-of ::coordinate :kind sequential? :min-count 1))
-(s/def ::duration    (s/and spec/number? nat-int?))
-(s/def ::distance    (s/and spec/number? nat-int?))
-(s/def ::weight      (s/and spec/number? nat-int?)) ;; a negative weight doesnt make sense
+(s/def ::duration    (s/and spec/number? natural?))
+(s/def ::distance    (s/and spec/number? natural?))
+(s/def ::weight      (s/and spec/number? natural?)) ;; a negative weight doesnt make sense
 (s/def ::weight_name string?)
 ;; structures
 (s/def ::maneuver    (s/keys :req-un [::location      ::bearing_before
