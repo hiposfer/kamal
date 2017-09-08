@@ -36,7 +36,8 @@
   "returns a graph generator with node's id between 0 and 3*size.
   The generator creates a minimum of size elements"
   [size]
-  (gen/fmap grapher (gen/set (gen/resize (* 3 size) gen/nat))))
+  (gen/fmap grapher (gen/set (gen/resize (* 3 size) gen/nat)
+                             {:min-elements size})))
 
 ;;example usage
 ;(gen/generate (graph 100))
@@ -53,8 +54,10 @@
                                 (map rp/way)
                                 (remove nil?))
                           arcs)
-        namer   (gen/fmap str/capitalize string-alpha)
-        ways    (map (fn [id] [id {:name (gen/generate (gen/such-that not-empty namer))}])
+        ;; An string 90% of the time, nil 10%
+        namer   (gen/frequency [[1 (gen/return nil)]
+                                [9 (gen/fmap str/capitalize string-alpha)]])
+        ways    (map (fn [id] [id {:name (gen/generate namer)}])
                      way-ids)]
     {:graph graph
      :ways  (into {} ways)}))
