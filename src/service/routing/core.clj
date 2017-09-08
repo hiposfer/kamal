@@ -47,7 +47,7 @@
             custom-options))))
 
 (defn -main [& args]
-  (println "Welcome to the org.n7a235/service.routing App")
+  (println "\n\nWelcome to the org.n7a235/service.routing App")
   (let [config     (config)
         port       (edn/read-string (first args))
         new-config (merge config
