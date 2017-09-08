@@ -191,9 +191,9 @@
       {:code "NoRoute"}
       {:code "Ok"
        :routes [(route network steps trace)]
-       :waypoints [{:name (or "" (:name (ways (some rp/way (rp/successors (graph (key start)))))))
+       :waypoints [{:name (str (:name (ways (some rp/way (rp/successors (graph (key start)))))))
                     :location (->coordinates (val start))}
-                   {:name (or "" (:name (ways (some rp/way (rp/successors (graph (key start)))))))
+                   {:name (str (:name (ways (some rp/way (rp/successors (graph (key start)))))))
                     :location (->coordinates (val dst))}]})))
 
 ;(defonce network (time (update (time (osm/osm->network "resources/osm/saarland.osm"))
