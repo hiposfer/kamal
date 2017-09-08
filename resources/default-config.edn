@@ -1,5 +1,5 @@
-{:osm-file "resources/osm/saarland.osm.bz2"
- :port     3000}
+{:url/osm "resources/osm/saarland.osm.bz2"
+ :port    3000}
 
 
 
