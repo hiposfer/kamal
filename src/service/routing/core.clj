@@ -15,7 +15,7 @@
   component/Lifecycle
   (start [this]
     (if (:network this) this
-      (let [result (future osm/osm->network url)]
+      (let [result (future (osm/osm->network url))]
         (println "-- Starting OSM road network from" url)
         (assoc this :network result))))
   (stop [this]
