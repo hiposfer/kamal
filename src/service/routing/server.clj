@@ -21,7 +21,9 @@
 ;(->radiuses "1200.50;100;500;unlimited;100")
 
 
-(def app
+(defn create
+  "creates an API handler with a closure around the grid"
+  [grid]
   (api {:swagger {:ui "/"
                   :spec "/swagger.json"
                   :data {:info {:title "Routing API"
@@ -41,7 +43,7 @@
             (if (and (not-empty radiuses) (not= (count radiuses) (count coordinates)))
               {:message "The same amount of radiouses and coordinates must be provided"
                :code    "InvalidInput"}
-              (dir/direction (g/complete (gen/generate (g/graph 1000)))
+              (dir/direction @(:network grid)
                              :coordinates coordinates
                              :steps steps
                              :radiuses radiuses
