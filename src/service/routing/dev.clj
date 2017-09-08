@@ -2,20 +2,17 @@
   "Tools for interactive development with the REPL. This file should
   not be included in a production build of the application."
   (:require [com.stuartsierra.component :as component]
-            [clojure.edn :as edn]
             [environ.core :refer [env]]
             [service.routing.core :as routing]
             [clojure.tools.namespace.repl :as repl]))
 
-;; todo: why not use an atom for this?
 (def system nil)
 
 (defn init!
   "Constructs the current development system."
   []
   (alter-var-root #'system
-    (constantly (routing/system {:port (edn/read-string (env :port))
-                                 :join? (edn/read-string (env :join?))}))))
+    (constantly (routing/system (routing/config)))))
 
 (defn start!
   "Starts the current development system."

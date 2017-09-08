@@ -32,10 +32,24 @@
   ;   {:app {:database  :db}
   ;          :scheduler :sched)))))
 
+(defn config
+  "returns a configuration for the system based on defaults, environment
+  variables and custom options. The configuration will be merged in that
+  order. Returns a configuration map for starting a system"
+  ([] (config {}))
+  ([custom-options]
+   (let [default  (edn/read-string (slurp "resources/default-config.edn"))
+         env-opts {:port     (edn/read-string (env :port))
+                   :join?    (edn/read-string (env :join?))
+                   :osm-file (env :osm-file)}]
+     (merge default
+            (into {} (remove (comp nil? second) env-opts)) ;; ignore nil values
+            custom-options))))
+
 (defn -main [& args]
   (println "Welcome to the org.n7a235/service.routing App")
-  (let [port (edn/read-string (or (first args)
-                                  (env :port)))
-        join (or (edn/read-string (env :join?)) true)]
-    (assert port "no port provided. Either set an ENV var or pass it as an argument")
-    (component/start (system {:port port :join? join}))))
+  (let [config     (config)
+        port       (edn/read-string (first args))
+        new-config (if (not port) config
+                     (merge config {:port port}))]
+    (component/start (system new-config))))
