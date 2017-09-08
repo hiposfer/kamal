@@ -12,7 +12,7 @@
   "Constructs the current development system."
   []
   (alter-var-root #'system
-    (constantly (routing/system (routing/config {:dev true})))))
+    (constantly (routing/system (routing/config {:dev false})))))
 
 (defn start!
   "Starts the current development system."
@@ -42,3 +42,7 @@
   (repl/refresh :after 'service.routing.dev/go!))
 
 ;(reset)
+
+;(:grid system)
+
+;(System/gc)
