@@ -50,6 +50,7 @@
   (println "Welcome to the org.n7a235/service.routing App")
   (let [config     (config)
         port       (edn/read-string (first args))
-        new-config (if (not port) config
-                     (merge config {:port port}))]
+        new-config (merge config
+                     (into {} (remove (comp nil? second))
+                              {:port port}))] ;; ignore nil values
     (component/start (system new-config))))
