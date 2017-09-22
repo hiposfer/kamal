@@ -18,7 +18,9 @@
   :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
                                   [expound "0.1.1"]
                                   [io.aviso/pretty "0.1.34"]
-                                  [org.clojure/tools.namespace "0.2.11"]]}
+                                  [org.clojure/tools.namespace "0.2.11"]]
+                   :plugins [[jonase/eastwood "0.2.3"]
+                             [io.aviso/pretty "0.1.34"]]}
              :uberjar {:aot [service.routing.core] ;; compile the entry point and all of its dependencies}
                        :uberjar-name "routing.jar"}}
                        ;:jvm-opts ["-Dclojure.compiler.direct-linking=true"]}}
@@ -28,8 +30,6 @@
   :global-vars {*warn-on-reflection* true}
   ;;FIXME: https://github.com/technomancy/leiningen/issues/2173
   :monkeypatch-clojure-test false
-  :plugins [[jonase/eastwood "0.2.3"]
-            [io.aviso/pretty "0.1.34"]]
   :jvm-opts ["-Xmx1g" "-XX:-OmitStackTraceInFastThrow"])
   ;; "-Dclojure.compiler.direct-linking=true"
   ;; https://github.com/clojure/clojure/blob/master/changes.md#11-direct-linking
