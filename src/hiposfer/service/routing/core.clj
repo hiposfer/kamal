@@ -89,7 +89,7 @@
             custom-options))))
 
 (defn -main [& args]
-  (println "\n\nWelcome to the org.n7a235/hiposfer.service.routing App")
+  (println "\n\nWelcome to the hiposfer/service.routing App")
   (let [config     (config)
         port       (edn/read-string (first args))
         overwrites (into {} (remove (comp nil? second))
