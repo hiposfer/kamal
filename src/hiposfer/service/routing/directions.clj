@@ -2,9 +2,7 @@
   (:require [hyposfer.service.routing.osm :as osm]
             [hyposfer.service.routing.graph.algorithms :as alg]
             [hyposfer.service.routing.graph.protocols :as rp]
-            [hyposfer.service.routing.libs.math :as math]
-            [hyposfer.service.routing.graph.generators :as g]
-            [clojure.test.check.generators :as gen]))
+            [hyposfer.service.routing.libs.math :as math]))
             ;[cheshire.core :as cheshire]))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
