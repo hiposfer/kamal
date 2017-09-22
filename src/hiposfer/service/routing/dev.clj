@@ -1,9 +1,9 @@
-(ns hyposfer.service.routing.dev
+(ns hiposfer.service.routing.dev
   "Tools for interactive development with the REPL. This file should
   not be included in a production build of the application."
   (:require [com.stuartsierra.component :as component]
             [environ.core :refer [env]]
-            [hyposfer.service.routing.core :as routing]
+            [hiposfer.service.routing.core :as routing]
             [clojure.tools.namespace.repl :as repl]))
 
 (def system nil)

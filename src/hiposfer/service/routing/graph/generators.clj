@@ -1,8 +1,8 @@
-(ns hyposfer.service.routing.graph.generators
+(ns hiposfer.service.routing.graph.generators
   (:require [clojure.test.check.generators :as gen]
-            [hyposfer.service.routing.graph.specs :as graph]
+            [hiposfer.service.routing.graph.specs :as graph]
             [clojure.string :as str]
-            [hyposfer.service.routing.graph.protocols :as rp]
+            [hiposfer.service.routing.graph.protocols :as rp]
             [clojure.spec.alpha :as s])) ;; loads the spec in the registry
 
 (defn- grapher

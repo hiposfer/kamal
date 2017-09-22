@@ -1,12 +1,12 @@
-(ns hyposfer.service.routing.core
+(ns hiposfer.service.routing.core
   (:gen-class)
   (:require [clojure.edn :as edn]
             [environ.core :refer [env]]
             [ring.adapter.jetty :as jetty]
             [com.stuartsierra.component :as component]
-            [hyposfer.service.routing.server :as server]
-            [hyposfer.service.routing.osm :as osm]
-            [hyposfer.service.routing.graph.generators :as g]
+            [hiposfer.service.routing.server :as server]
+            [hiposfer.service.routing.osm :as osm]
+            [hiposfer.service.routing.graph.generators :as g]
             [clojure.spec.gen.alpha :as gen])
   (:import (org.eclipse.jetty.server Server)))
 

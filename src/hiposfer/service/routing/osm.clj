@@ -1,8 +1,8 @@
-(ns hyposfer.service.routing.osm
+(ns hiposfer.service.routing.osm
   (:require [clojure.data.xml :as xml]
             [clojure.data.int-map :as imap]
-            [hyposfer.service.routing.graph.core :as route]
-            [hyposfer.service.routing.graph.protocols :as rp]
+            [hiposfer.service.routing.graph.core :as route]
+            [hiposfer.service.routing.graph.protocols :as rp]
             [clojure.walk :as walk]
             [clojure.java.io :as io])
   (:import (org.apache.commons.compress.compressors.bzip2 BZip2CompressorInputStream)))

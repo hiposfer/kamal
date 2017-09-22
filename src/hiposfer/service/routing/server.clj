@@ -1,9 +1,9 @@
-(ns hyposfer.service.routing.server
+(ns hiposfer.service.routing.server
   (:require [ring.util.http-response :refer [ok]]
             [compojure.api.sweet :refer [context GET api]]
-            [hyposfer.service.routing.spec :as spec]
-            [hyposfer.service.routing.directions :as dir]
-            [hyposfer.service.routing.graph.generators :as g]
+            [hiposfer.service.routing.spec :as spec]
+            [hiposfer.service.routing.directions :as dir]
+            [hiposfer.service.routing.graph.generators :as g]
             [clojure.string :as str]
             [clojure.edn :as edn]))
 
