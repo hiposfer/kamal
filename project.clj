@@ -21,10 +21,10 @@
                                   [org.clojure/tools.namespace "0.2.11"]]
                    :plugins [[jonase/eastwood "0.2.3"]
                              [io.aviso/pretty "0.1.34"]]}
-             :uberjar {:aot [service.routing.core] ;; compile the entry point and all of its dependencies}
+             :uberjar {:aot [hiposfer.service.routing.core] ;; compile the entry point and all of its dependencies}
+                       :main hiposfer.service.routing.core
                        :uberjar-name "routing.jar"}}
                        ;:jvm-opts ["-Dclojure.compiler.direct-linking=true"]}}
-  :main hiposfer.service.routing.core
   :test-selectors {:default (complement :benchmark)
                    :benchmark :benchmark}
   :global-vars {*warn-on-reflection* true}
