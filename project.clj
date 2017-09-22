@@ -24,7 +24,7 @@
              :uberjar {:aot [service.routing.core] ;; compile the entry point and all of its dependencies}
                        :uberjar-name "routing.jar"}}
                        ;:jvm-opts ["-Dclojure.compiler.direct-linking=true"]}}
-  :main service.routing.core
+  :main hiposfer.service.routing.core
   :test-selectors {:default (complement :benchmark)
                    :benchmark :benchmark}
   :global-vars {*warn-on-reflection* true}
