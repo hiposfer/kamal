@@ -1,6 +1,6 @@
-(ns service.routing.graph.algorithms
-  (:require [service.routing.graph.protocols :as rp]
-            [service.routing.graph.core :as route]
+(ns hyposfer.service.routing.graph.algorithms
+  (:require [hyposfer.service.routing.graph.protocols :as rp]
+            [hyposfer.service.routing.graph.core :as route]
             [clojure.data.int-map :as imap]))
 
 (defn dijkstra

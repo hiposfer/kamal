@@ -1,12 +1,12 @@
-(ns service.routing.core
+(ns hyposfer.service.routing.core
   (:gen-class)
   (:require [clojure.edn :as edn]
             [environ.core :refer [env]]
             [ring.adapter.jetty :as jetty]
             [com.stuartsierra.component :as component]
-            [service.routing.server :as server]
-            [service.routing.osm :as osm]
-            [service.routing.graph.generators :as g]
+            [hyposfer.service.routing.server :as server]
+            [hyposfer.service.routing.osm :as osm]
+            [hyposfer.service.routing.graph.generators :as g]
             [clojure.spec.gen.alpha :as gen])
   (:import (org.eclipse.jetty.server Server)))
 
@@ -89,7 +89,7 @@
             custom-options))))
 
 (defn -main [& args]
-  (println "\n\nWelcome to the org.n7a235/service.routing App")
+  (println "\n\nWelcome to the org.n7a235/hiposfer.service.routing App")
   (let [config     (config)
         port       (edn/read-string (first args))
         overwrites (into {} (remove (comp nil? second))

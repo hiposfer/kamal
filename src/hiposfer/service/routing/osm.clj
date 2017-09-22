@@ -1,8 +1,8 @@
-(ns service.routing.osm
+(ns hyposfer.service.routing.osm
   (:require [clojure.data.xml :as xml]
             [clojure.data.int-map :as imap]
-            [service.routing.graph.core :as route]
-            [service.routing.graph.protocols :as rp]
+            [hyposfer.service.routing.graph.core :as route]
+            [hyposfer.service.routing.graph.protocols :as rp]
             [clojure.walk :as walk]
             [clojure.java.io :as io])
   (:import (org.apache.commons.compress.compressors.bzip2 BZip2CompressorInputStream)))
@@ -20,7 +20,7 @@
 (def pedestrian
   {:highways #{"trunk"     "trunk_link"     "primary"     "primary_link"
                "secondary" "secondary_link" "residential"
-               "residential_link"           "service"     "tertiary"
+               "residential_link"           "hiposfer.service"     "tertiary"
                "tertiary_link"              "road"       "track"        "unclassified"
                "undefined" "unknown"        "living_street"             "private"
                "footway"   "pedestrian"     "steps"}

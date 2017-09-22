@@ -1,11 +1,11 @@
-(ns service.routing.graph.benchmark
+(ns hyposfer.service.routing.graph.benchmark
   (:require [criterium.core :as c]
             [clojure.test :as test]
             [clojure.spec.gen.alpha :as gen]
-            [service.routing.graph.generators :as g]
-            [service.routing.graph.algorithms :as alg]
-            [service.routing.osm :as osm]
-            [service.routing.directions :as direction]))
+            [hyposfer.service.routing.graph.generators :as g]
+            [hyposfer.service.routing.graph.algorithms :as alg]
+            [hyposfer.service.routing.osm :as osm]
+            [hyposfer.service.routing.directions :as direction]))
 
 (def iterations 10)
 

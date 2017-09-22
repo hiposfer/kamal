@@ -1,9 +1,9 @@
-(ns service.routing.directions
-  (:require [service.routing.osm :as osm]
-            [service.routing.graph.algorithms :as alg]
-            [service.routing.graph.protocols :as rp]
-            [service.routing.libs.math :as math]
-            [service.routing.graph.generators :as g]
+(ns hyposfer.service.routing.directions
+  (:require [hyposfer.service.routing.osm :as osm]
+            [hyposfer.service.routing.graph.algorithms :as alg]
+            [hyposfer.service.routing.graph.protocols :as rp]
+            [hyposfer.service.routing.libs.math :as math]
+            [hyposfer.service.routing.graph.generators :as g]
             [clojure.test.check.generators :as gen]))
             ;[cheshire.core :as cheshire]))
 

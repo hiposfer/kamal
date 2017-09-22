@@ -1,13 +1,13 @@
-(ns service.routing.graph.tests
+(ns hyposfer.service.routing.graph.tests
   (:require [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
             ;[clojure.test.check :as tc]
             [clojure.test.check.generators :as gen]
             [clojure.test :refer [is deftest]]
-            [service.routing.graph.algorithms :as alg]
-            [service.routing.graph.protocols :as rp]
-            [service.routing.graph.generators :as g]
-            [service.routing.directions :as direction]))
+            [hyposfer.service.routing.graph.algorithms :as alg]
+            [hyposfer.service.routing.graph.protocols :as rp]
+            [hyposfer.service.routing.graph.generators :as g]
+            [hyposfer.service.routing.directions :as direction]))
 
 ;; https://rosettacode.org/wiki/Dijkstra%27s_algorithm
 (def rosetta {1 {:out-arcs {2 {:dst 2 :length 7}

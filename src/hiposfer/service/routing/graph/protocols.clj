@@ -1,4 +1,4 @@
-(ns service.routing.graph.protocols)
+(ns hyposfer.service.routing.graph.protocols)
 
 ;; TODO: consider replacing the uses of defprotocol with definterface+
 ;;       as described in https://github.com/ztellman/potemkin#definterface
@@ -16,8 +16,9 @@
 ; can be completely determined by a cost function regardless of how that cost
 ; is calculated.
 
-;; Protocols for Inductive graph implementation as defined by Martin Erwig
+;; Protocols for Inductive graph implementation inspired by Martin Erwig
 ;; https://web.engr.oregonstate.edu/~erwig/papers/InductiveGraphs_JFP01.pdf
+;; this implementation (currently) is not an inductive Graph. Maybe in the future?
 (defprotocol View ;; in FGL this is called a Decomposition
   (context [this] "a one step inductive graph extension")
   (graph   [this] "the rest of the graph"))
