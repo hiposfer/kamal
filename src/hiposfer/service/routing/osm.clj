@@ -20,7 +20,7 @@
 (def pedestrian
   {:highways #{"trunk"     "trunk_link"     "primary"     "primary_link"
                "secondary" "secondary_link" "residential"
-               "residential_link"           "hiposfer.service"     "tertiary"
+               "residential_link"           "service"     "tertiary"
                "tertiary_link"              "road"       "track"        "unclassified"
                "undefined" "unknown"        "living_street"             "private"
                "footway"   "pedestrian"     "steps"}
