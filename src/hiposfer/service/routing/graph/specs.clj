@@ -1,19 +1,17 @@
-(ns service.routing.graph.specs
+(ns hiposfer.service.routing.graph.specs
   (:require [clojure.set :as set]
             [clojure.spec.alpha :as s]
-            [service.routing.graph.protocols :as rp]))
+            [hiposfer.service.routing.graph.protocols :as rp]
+            [hiposfer.geojson.specs :as geojson]))
 
 (s/def ::way int?)
 (s/def ::dst int?)
 (s/def ::src int?)
 
 (s/def ::arc (s/keys :req-un [::src ::dst ::way]))
-
-(s/def ::lat (s/and number? #(<= -90 % 90)))
-(s/def ::lon (s/and number? #(<= -180 % 180)))
 (s/def ::arcs (s/map-of int? ::arc))
 
-(s/def ::node (s/keys :req-un [::lat ::lon ::arcs]))
+(s/def ::node (s/keys :req-un [::geojson/lat ::geojson/lon ::arcs]))
 (s/def ::graph (s/map-of int? ::node))
 
 ;; todo: also need to validate src id since it can be reversed

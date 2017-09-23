@@ -4,12 +4,12 @@ jdk:
   - oraclejdk8
 # check that it compiles && run linters && run tests
 # stop if any of them fails
-#script: lein do clean, compile, check, eastwood '{:exclude-namespaces [service.conjectures.specs]}', test
+#script: lein do clean, compile, check, eastwood '{:exclude-namespaces [hiposfer.service.conjectures.specs]}', test
 script:
   - lein clean
   - lein compile
   - lein check
-  - lein eastwood '{:exclude-namespaces [service.routing.graph.specs service.routing.spec]}'
+  - lein eastwood '{:exclude-namespaces [hiposfer.service.routing.graph.specs hiposfer.service.routing.spec]}'
   - lein test
 #TODO: slack notification
 notifications:

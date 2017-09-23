@@ -1,5 +1,5 @@
-(ns service.routing.libs.math
-  (:require [service.routing.graph.protocols :as rp]))
+(ns hiposfer.service.routing.libs.math
+  (:require [hiposfer.service.routing.graph.protocols :as rp]))
 
 ;; Note in these scripts, I generally use
 ;; - latitude, longitude in degrees
