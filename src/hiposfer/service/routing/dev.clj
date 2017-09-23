@@ -1,9 +1,9 @@
-(ns service.routing.dev
+(ns hiposfer.service.routing.dev
   "Tools for interactive development with the REPL. This file should
   not be included in a production build of the application."
   (:require [com.stuartsierra.component :as component]
             [environ.core :refer [env]]
-            [service.routing.core :as routing]
+            [hiposfer.service.routing.core :as routing]
             [clojure.tools.namespace.repl :as repl]))
 
 (def system nil)
@@ -12,7 +12,7 @@
   "Constructs the current development system."
   []
   (alter-var-root #'system
-    (constantly (routing/system (routing/config {:dev false})))))
+    (constantly (routing/system (routing/config {:dev true})))))
 
 (defn start!
   "Starts the current development system."
@@ -39,7 +39,7 @@
   "reset the system to a fresh state. Prefer using this over go!"
   []
   (stop!)
-  (repl/refresh :after 'service.routing.dev/go!))
+  (repl/refresh :after 'hiposfer.service.routing.dev/go!))
 
 ;(reset)
 

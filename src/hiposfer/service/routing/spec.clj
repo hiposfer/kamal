@@ -1,7 +1,7 @@
-(ns service.routing.spec
+(ns hiposfer.service.routing.spec
   (:require [clojure.spec.alpha :as s]
             [spec-tools.spec :as spec]
-            [service.routing.graph.specs :as graph]))
+            [hiposfer.geojson.specs :as geojson]))
             ;[expound.alpha :as expound]))
 
 (def coordinate-regex #"(-?\d+(\.\d+)?),(-?\d+(\.\d+)?)(;(-?\d+(\.\d+)?),(-?\d+(\.\d+)?))+")
@@ -19,10 +19,7 @@
 (s/def ::bearing     (s/and spec/number? #(<= 0 % 360)))
 (s/def ::bearing_before ::bearing)
 (s/def ::bearing_after  ::bearing)
-(s/def ::coordinate  (s/tuple ::graph/lon ::graph/lat))
-(s/def ::location    ::coordinate)
-(s/def ::type        string?)
-(s/def ::coordinates (s/coll-of ::coordinate :kind sequential? :min-count 2))
+(s/def ::location    ::geojson/position)
 (s/def ::duration    (s/and spec/number? natural?))
 (s/def ::distance    (s/and spec/number? natural?))
 (s/def ::weight      (s/and spec/number? natural?)) ;; a negative weight doesnt make sense
@@ -39,7 +36,7 @@
 (s/def ::legs        (s/coll-of ::route-leg :kind sequential?))
 (s/def ::waypoint    (s/keys :req-un [::name ::location]))
 (s/def ::waypoints   (s/coll-of ::waypoint :kind sequential? :min-count 2))
-(s/def ::geometry    (s/keys :req-un [::type ::coordinates]))
+(s/def ::geometry    ::geojson/linestring)
 (s/def ::route       (s/keys :req-un [::geometry ::duration    ::distance
                                       ::weight   ::weight_name ::legs]))
 (s/def ::routes      (s/coll-of ::route :kind sequential?))

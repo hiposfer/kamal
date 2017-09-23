@@ -1,4 +1,4 @@
-# service.routing [![Build Status](https://travis-ci.org/n7a235/service.routing.svg?branch=master)](https://travis-ci.org/n7a235/service.routing)
+# service.routing [![Build Status](https://travis-ci.org/hiposfer/service.routing.svg?branch=master)](https://travis-ci.org/hiposfer/service.routing)
 
 FIXME: description
 
@@ -10,7 +10,7 @@ Download from http://example.com/FIXME.
 
 You can always grab the latest docker image and run it directly:
 
-    $ docker run -it -p 3000:3000 n7a235/service.routing
+    $ docker run -it -p 3000:3000 hiposfer/service.routing
 
 You can also build a docker image locally out of your changes:
 

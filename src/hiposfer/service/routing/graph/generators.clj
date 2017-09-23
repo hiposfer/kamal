@@ -1,8 +1,8 @@
-(ns service.routing.graph.generators
+(ns hiposfer.service.routing.graph.generators
   (:require [clojure.test.check.generators :as gen]
-            [service.routing.graph.specs :as graph]
+            [hiposfer.geojson.specs :as geojson]
             [clojure.string :as str]
-            [service.routing.graph.protocols :as rp]
+            [hiposfer.service.routing.graph.protocols :as rp]
             [clojure.spec.alpha :as s])) ;; loads the spec in the registry
 
 (defn- grapher
@@ -27,8 +27,8 @@
                              incomings)]
     ;; now create random lat, lon pairs
     (reduce-kv (fn [res id _] (update res id merge
-                                {:lat (gen/generate (s/gen ::graph/lat))
-                                 :lon (gen/generate (s/gen ::graph/lon))}))
+                                {:lat (gen/generate (s/gen ::geojson/lat))
+                                 :lon (gen/generate (s/gen ::geojson/lon))}))
                graph2
                graph2)))
 

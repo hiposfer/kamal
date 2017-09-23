@@ -1,10 +1,8 @@
-(ns service.routing.directions
-  (:require [service.routing.osm :as osm]
-            [service.routing.graph.algorithms :as alg]
-            [service.routing.graph.protocols :as rp]
-            [service.routing.libs.math :as math]
-            [service.routing.graph.generators :as g]
-            [clojure.test.check.generators :as gen]))
+(ns hiposfer.service.routing.directions
+  (:require [hiposfer.service.routing.osm :as osm]
+            [hiposfer.service.routing.graph.algorithms :as alg]
+            [hiposfer.service.routing.graph.protocols :as rp]
+            [hiposfer.service.routing.libs.math :as math]))
             ;[cheshire.core :as cheshire]))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
