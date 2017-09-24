@@ -4,7 +4,8 @@
   (:require [com.stuartsierra.component :as component]
             [environ.core :refer [env]]
             [hiposfer.service.routing.core :as routing]
-            [clojure.tools.namespace.repl :as repl]))
+            [clojure.tools.namespace.repl :as repl]
+            [cheshire.core :as cheshire]))
 
 (def system nil)
 
@@ -12,7 +13,7 @@
   "Constructs the current development system."
   []
   (alter-var-root #'system
-    (constantly (routing/system (routing/config {:dev true})))))
+    (constantly (routing/system (routing/config {:dev false})))))
 
 (defn start!
   "Starts the current development system."
@@ -43,6 +44,13 @@
 
 ;(reset)
 
-;(:grid system)
+;(set! *print-length* 50)
+;@(:network (:grid system))
 
 ;(System/gc)
+
+;(time (cheshire/generate-stream @(:network (:grid system))
+;        (clojure.java.io/writer "resources/saarland.json")))
+;
+;(time (last (cheshire/parse-stream
+;              (clojure.java.io/reader "resources/saarland.json"))))
