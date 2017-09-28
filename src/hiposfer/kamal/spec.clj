@@ -1,4 +1,4 @@
-(ns hiposfer.service.routing.spec
+(ns hiposfer.kamal.spec
   (:require [clojure.spec.alpha :as s]
             [spec-tools.spec :as spec]
             [hiposfer.geojson.specs :as geojson]))

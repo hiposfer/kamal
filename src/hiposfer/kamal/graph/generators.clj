@@ -1,8 +1,8 @@
-(ns hiposfer.service.routing.graph.generators
+(ns hiposfer.kamal.graph.generators
   (:require [clojure.test.check.generators :as gen]
             [hiposfer.geojson.specs :as geojson]
             [clojure.string :as str]
-            [hiposfer.service.routing.graph.protocols :as rp]
+            [hiposfer.kamal.graph.protocols :as rp]
             [clojure.spec.alpha :as s])) ;; loads the spec in the registry
 
 (defn- grapher

@@ -9,7 +9,7 @@ script:
   - lein clean
   - lein compile
   - lein check
-  - lein eastwood '{:exclude-namespaces [hiposfer.service.routing.graph.specs hiposfer.service.routing.spec]}'
+  - lein eastwood '{:exclude-namespaces [hiposfer.kamal.graph.specs hiposfer.kamal.spec]}'
   - lein test
 #TODO: slack notification
 notifications:

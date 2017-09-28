@@ -1,8 +1,8 @@
-(ns hiposfer.service.routing.directions
-  (:require [hiposfer.service.routing.osm :as osm]
-            [hiposfer.service.routing.graph.algorithms :as alg]
-            [hiposfer.service.routing.graph.protocols :as rp]
-            [hiposfer.service.routing.libs.math :as math]))
+(ns hiposfer.kamal.directions
+  (:require [hiposfer.kamal.osm :as osm]
+            [hiposfer.kamal.graph.algorithms :as alg]
+            [hiposfer.kamal.graph.protocols :as rp]
+            [hiposfer.kamal.libs.math :as math]))
             ;[cheshire.core :as cheshire]))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object

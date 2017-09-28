@@ -1,12 +1,12 @@
-(ns hiposfer.service.routing.core
+(ns hiposfer.kamal.core
   (:gen-class)
   (:require [clojure.edn :as edn]
             [environ.core :refer [env]]
             [ring.adapter.jetty :as jetty]
             [com.stuartsierra.component :as component]
-            [hiposfer.service.routing.server :as server]
-            [hiposfer.service.routing.osm :as osm]
-            [hiposfer.service.routing.graph.generators :as g]
+            [hiposfer.kamal.server :as server]
+            [hiposfer.kamal.osm :as osm]
+            [hiposfer.kamal.graph.generators :as g]
             [clojure.spec.gen.alpha :as gen])
   (:import (org.eclipse.jetty.server Server)))
 
@@ -89,7 +89,7 @@
             custom-options))))
 
 (defn -main [& args]
-  (println "\n\nWelcome to the hiposfer/service.routing App")
+  (println "\n\nWelcome to the hiposfer/service.kamal App")
   (let [config     (config)
         port       (edn/read-string (first args))
         overwrites (into {} (remove (comp nil? second))
