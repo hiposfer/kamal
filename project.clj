@@ -27,6 +27,7 @@
                        ;:jvm-opts ["-Dclojure.compiler.direct-linking=true"]}}
   :test-selectors {:default (complement :benchmark)
                    :benchmark :benchmark}
+  :main hiposfer.kamal.core
   :global-vars {*warn-on-reflection* true}
   ;;FIXME: https://github.com/technomancy/leiningen/issues/2173
   :monkeypatch-clojure-test false
