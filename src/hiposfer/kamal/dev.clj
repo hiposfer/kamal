@@ -40,12 +40,12 @@
   "reset the system to a fresh state. Prefer using this over go!"
   []
   (stop!)
-  (repl/refresh :after 'hiposfer.service.routing.dev/go!))
+  (repl/refresh :after 'hiposfer.kamal.dev/go!))
 
 ;(reset)
 
 ;(set! *print-length* 50)
-;@(:network (:grid system))
+;(take 10 @(:network (:grid system)))
 
 ;(System/gc)
 

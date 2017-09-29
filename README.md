@@ -13,17 +13,17 @@ check [try.hyposfer.com](http://try.hiposfer.com/index.html)
 
 - locally
 
-
-    $ lein uberjar
-    $ java -jar target/kamal.jar
-
+```
+$ lein uberjar
+$ java -jar target/kamal.jar
+```
 
 - With Docker
 
 Grab the latest docker image and run it:
-
-    $ docker run -it -p 3000:3000 hiposfer/kamal
-
+```
+$ docker run -it -p 3000:3000 hiposfer/kamal
+```
 
 ### Development
 
