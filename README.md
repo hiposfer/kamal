@@ -1,4 +1,4 @@
-# kamal [![Build Status](https://travis-ci.org/hiposfer/kamal.svg?branch=master)](https://travis-ci.org/hiposfer/kamal)
+# kamal [![Build Status](https://travis-ci.org/hiposfer/kamal.svg?branch=master)](https://travis-ci.org/hiposfer/kamal) [![Clojars Project](https://img.shields.io/clojars/v/hiposfer/kamal.svg)](https://clojars.org/hiposfer/kamal)
 
 A routing engine service using Open Street Map as data source. Its current focus are
 flexibility, speed and stability in that order.
