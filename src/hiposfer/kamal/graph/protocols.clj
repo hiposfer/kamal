@@ -1,4 +1,4 @@
-(ns hiposfer.service.routing.graph.protocols)
+(ns hiposfer.kamal.graph.protocols)
 
 ;; TODO: consider replacing the uses of defprotocol with definterface+
 ;;       as described in https://github.com/ztellman/potemkin#definterface
