@@ -23,7 +23,9 @@
                              [io.aviso/pretty "0.1.34"]]}
              :uberjar {:aot [hiposfer.kamal.core] ;; compile the entry point and all of its dependencies}
                        :main hiposfer.kamal.core
-                       :uberjar-name "kamal.jar"}}
+                       :uberjar-name "kamal.jar"
+                       :jar-exclusions [#".*\.bz2"]
+                       :uberjar-exclusions [#".*\.bz2"]}}
                        ;:jvm-opts ["-Dclojure.compiler.direct-linking=true"]}}
   :test-selectors {:default (complement :benchmark)
                    :benchmark :benchmark}
