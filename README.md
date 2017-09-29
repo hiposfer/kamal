@@ -1,11 +1,11 @@
-# service.routing [![Build Status](https://travis-ci.org/hiposfer/kamal.svg?branch=master)](https://travis-ci.org/hiposfer/kamal)
+# kamal [![Build Status](https://travis-ci.org/hiposfer/kamal.svg?branch=master)](https://travis-ci.org/hiposfer/kamal)
 
 A routing engine service using Open Street Map as data source. Its current focus are
 flexibility, speed and stability in that order.
 
 ## Usage
 
-`service.routing` creates an API server with a Swagger interface for your convenience.
+`kamal` creates an API server with a Swagger interface for your convenience.
 You can find it at [localhost:3000](http://localhost:3000). For a quick test, you can
 check [try.hyposfer.com](http://try.hiposfer.com/index.html)
 
@@ -15,7 +15,7 @@ check [try.hyposfer.com](http://try.hiposfer.com/index.html)
 
 
     $ lein uberjar
-    $ java -jar target/routing.jar
+    $ java -jar target/kamal.jar
 
 
 - With Docker

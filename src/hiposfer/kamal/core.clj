@@ -89,7 +89,7 @@
             custom-options))))
 
 (defn -main [& args]
-  (println "\n\nWelcome to the hiposfer/service.kamal App")
+  (println "\n\nWelcome to the hiposfer/kamal App")
   (let [config     (config)
         port       (edn/read-string (first args))
         overwrites (into {} (remove (comp nil? second))
