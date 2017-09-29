@@ -7,6 +7,18 @@
             [clojure.string :as str]
             [clojure.edn :as edn]))
 
+(defn- longitude-in-range?
+  [lon]
+  (and (<= lon 180) (>= lon -180)))
+
+(defn- latitude-in-range?
+  [lat]
+  (and (<= lat 90) (>= lat -90)))
+
+(defn- coord-in-range?
+  [lon lat]
+  (and (longitude-in-range? lon) (latitude-in-range? lat)))
+
 (defn- parse-coordinates
   [text]
   (let [pairs (str/split text #";")]
@@ -38,10 +50,16 @@
                      {language :- string? "en"}]
       :return ::spec/direction
       (ok (let [coordinates (parse-coordinates coordinates)
-                radiuses    (some-> radiuses (parse-radiuses))]
-            (if (and (not-empty radiuses) (not= (count radiuses) (count coordinates)))
+                radiuses    (some-> radiuses (parse-radiuses))
+                out-of-range-coord (first (filter #(not(apply coord-in-range? %)) coordinates))]
+            (cond
+              out-of-range-coord
+              {:message (format "Coordinate is invalid: %s" out-of-range-coord)
+               :code "InvalidInput"}
+              (and (not-empty radiuses) (not= (count radiuses) (count coordinates)))
               {:message "The same amount of radiouses and coordinates must be provided"
-               :code    "InvalidInput"}
+               :code "InvalidInput"}
+              :else
               (dir/direction @(:network grid)
                              :coordinates coordinates
                              :steps steps
