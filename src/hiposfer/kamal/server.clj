@@ -5,19 +5,8 @@
             [hiposfer.kamal.directions :as dir]
             [hiposfer.kamal.graph.generators :as g]
             [clojure.string :as str]
-            [clojure.edn :as edn]))
-
-(defn- longitude-in-range?
-  [lon]
-  (and (<= lon 180) (>= lon -180)))
-
-(defn- latitude-in-range?
-  [lat]
-  (and (<= lat 90) (>= lat -90)))
-
-(defn- coord-in-range?
-  [lon lat]
-  (and (longitude-in-range? lon) (latitude-in-range? lat)))
+            [clojure.edn :as edn]
+            [clojure.spec.alpha :as s]))
 
 (defn- parse-coordinates
   [text]
@@ -30,7 +19,6 @@
   [text]
   (map edn/read-string (str/split text #";")))
 ;(->radiuses "1200.50;100;500;unlimited;100")
-
 
 (defn create
   "creates an API handler with a closure around the grid"
@@ -50,11 +38,12 @@
                      {language :- string? "en"}]
       :return ::spec/direction
       (ok (let [coordinates (parse-coordinates coordinates)
-                radiuses    (some-> radiuses (parse-radiuses))
-                out-of-range-coord (first (filter #(not(apply coord-in-range? %)) coordinates))]
+                radiuses    (some-> radiuses (parse-radiuses))]
             (cond
-              out-of-range-coord
-              {:message (format "Coordinate is invalid: %s" out-of-range-coord)
+              (not (s/valid? :hiposfer.geojson.specs.linestring/coordinates coordinates))
+              {:message (format "Coordinate is invalid: %s"
+                          (first (:clojure.spec.alpha/value 
+                                  (s/explain-data :hiposfer.geojson.specs.linestring/coordinates coordinates))))
                :code "InvalidInput"}
               (and (not-empty radiuses) (not= (count radiuses) (count coordinates)))
               {:message "The same amount of radiouses and coordinates must be provided"
