@@ -1,8 +1,8 @@
-(defproject hiposfer/service.routing "0.1.0"
-  :description "An application that provides routing services based on external sources and OSM data"
-  :url "https://github.com/hiposfer/service.routing"
+(defproject hiposfer/kamal "0.1.0"
+  :description "An application that provides routing based on external sources and OSM data"
+  :url "https://github.com/hiposfer/kamal"
   :license {:name "LGPLv3"
-            :url "https://github.com/hiposfer/service/blob/master/LICENSE"}
+            :url "https://github.com/hiposfer/kamal/blob/master/LICENSE"}
   :min-lein-version "2.0.0"
   :dependencies [[org.clojure/clojure "1.9.0-alpha17"]
                  [org.clojure/data.xml "0.0.8"] ; parse xml lazily
@@ -21,9 +21,9 @@
                                   [org.clojure/tools.namespace "0.2.11"]]
                    :plugins [[jonase/eastwood "0.2.3"]
                              [io.aviso/pretty "0.1.34"]]}
-             :uberjar {:aot [hiposfer.service.routing.core] ;; compile the entry point and all of its dependencies}
-                       :main hiposfer.service.routing.core
-                       :uberjar-name "routing.jar"}}
+             :uberjar {:aot [hiposfer.kamal.core] ;; compile the entry point and all of its dependencies}
+                       :main hiposfer.kamal.core
+                       :uberjar-name "kamal.jar"}}
                        ;:jvm-opts ["-Dclojure.compiler.direct-linking=true"]}}
   :test-selectors {:default (complement :benchmark)
                    :benchmark :benchmark}

@@ -1,4 +1,4 @@
-(ns hiposfer.service.routing.spec
+(ns hiposfer.kamal.spec
   (:require [clojure.spec.alpha :as s]
             [spec-tools.spec :as spec]
             [hiposfer.geojson.specs :as geojson]))
@@ -13,6 +13,7 @@
 (s/def ::code        string?);;it actually should be an enum i.e. one of "bla bla" or "foo"
 (s/def ::name        string?)
 (s/def ::summary     string?)
+(s/def ::type        string?);;it actually should be an enum i.e. one of "bla bla" or "foo"
 (s/def ::mode        string?);;it actually should be an enum i.e. one of "bla bla" or "foo"
 (s/def ::instruction string?)
 (s/def ::modifier    string?)

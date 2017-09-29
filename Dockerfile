@@ -6,4 +6,4 @@ RUN lein deps
 COPY . /usr/src/app
 RUN lein uberjar
 EXPOSE 3000
-CMD ["java", "-Xmx500m", "-Xss512k", "-jar", "target/routing.jar"]
+CMD ["java", "-Xmx500m", "-Xss512k", "-jar", "target/kamal.jar"]
