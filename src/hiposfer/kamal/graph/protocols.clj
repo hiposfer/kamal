@@ -18,10 +18,10 @@
 
 ;; Protocols for Inductive graph implementation inspired by Martin Erwig
 ;; https://web.engr.oregonstate.edu/~erwig/papers/InductiveGraphs_JFP01.pdf
-;; this implementation (currently) is not an inductive Graph. Maybe in the future?
-(defprotocol View ;; in FGL this is called a Decomposition
-  (context [this] "a one step inductive graph extension")
-  (graph   [this] "the rest of the graph"))
+;; TODO: this implementation (currently) is not an inductive Graph. Maybe in the future?
+;(defprotocol View ;; in FGL this is called a Decomposition
+;  (context [this] "a one step inductive graph extension")
+;  (graph   [this] "the rest of the graph"))
 
 (defprotocol Context ;; in FGL this also includes the Node id and its labels
   (predecessors [this] "returns a sequence of incoming arcs of this node under the current view")
@@ -32,14 +32,13 @@
 ; functionality simply implement the `Clojure.lang.Ilookup` interface
 
 ; I intentionally left the ID out of the Context protocol in order to avoid
-; carrying to much information simultaneously. For example if you just want
-; to know the id and worth of an element, having more than that is only noise.
+; carrying to much information simultaneously.
 ; This way (hopefully) allows the algorithm developer to leverage more flexibility
 ; while providing maximum performance
 
-; a possible way to implement a Context in an IntMap is to use clojure's
-; `find` function to get the MapEntry which includes the id and value
-; and use `get` to only get the value. That way the context can be separated
+; If you want to get the id of a node together with its data, please use Clojure's
+; `find` function to get the MapEntry which includes the id and value.
+; Use `get` to only get the value. That way the context can be separated
 ; from the Id without losing information
 
 ;; ------ special protocols for Dijkstra graph traversal
@@ -48,21 +47,29 @@
   (path  [this] "sequence of Traceable elements taken to get to this one (in reverse order)"))
 
 (defprotocol Valuable "A simple representation of a generic routing worth function result"
-  (cost [this] "a number indicating how difficult it is to get to a specific node")
-  (sum [this that] "adds two valuables into one. Needed to avoid making Valuable
-                    implementations more than just numbers."))
+  (cost [this]     "a number indicating how difficult it is to get to a specific node")
+  (sum [this that] "adds two Valuable implementations. This way a Valuable implementation
+                    doesnt need to be a Number"))
 
-(defprotocol Arc
-  (src [this] "the start node id of an Arc")
-  (dst [this] "the destination node id of an Arc"))
+(defprotocol Link "A connection between two nodes. Directed or undirected"
+  (src [this] "the start node id of a Link")
+  (dst [this] "the destination node id of a Link"))
 
 ;; todo: do we need a separate protocol for routable? should this be included in the Arc
-(defprotocol Routable
-  (way [this] "return the way id that an Arc is associated with"))
+(defprotocol Passage
+  (way [this] "return the way id that a Link is associated with"))
 
 (defprotocol Reversible
-  (mirror [this] "returns an Arc in the opposite direction than the original"))
+  (mirror [this] "returns a Link in the opposite direction than the original"))
 
 (defprotocol GeoCoordinate
   (lat [this] "latitude in decimal numbers")
   (lon [this] "longitude in decimal numbers"))
+
+(defprotocol Coherent "having a natural or due agreement of parts; harmonious: "
+  (connect [coll node-id node-id-2]
+           [coll arc-or-edge] "connect two nodes in a graph")
+  (disconnect [coll src dst] "disconnect two nodes in a graph"))
+
+(defprotocol Queryable "The ability to find out about complex relationships in a graph"
+  (query [graph setup]))

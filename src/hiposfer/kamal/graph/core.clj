@@ -2,27 +2,74 @@
   (:require [hiposfer.kamal.graph.protocols :as rp]
             [clojure.data.int-map :as imap])
   (:import (java.util Map$Entry Queue PriorityQueue)
-           (clojure.lang IPersistentMap Seqable IReduceInit IReduce Sequential ITransientSet IPersistentVector)))
+           (clojure.lang IPersistentMap Seqable IReduceInit IReduce Sequential ITransientSet IPersistentVector Associative)))
+
+;; ----- utility functions
+(defn node? [coll] (satisfies? coll rp/Context))
+
+(defn edge? [coll] (and (satisfies? coll rp/Link)
+                        (satisfies? coll rp/Reversible)))
+
+(defn arc? [coll] (satisfies? coll rp/Link))
+
+(defn graph? [coll] (and (satisfies? coll rp/Coherent) ;; connect, disconnect
+                         (implements? coll IPersistentMap) ;; assoc, dissoc, contains
+                         (satisfies? coll rp/Queryable))) ;; query
 
 ; graph is an {id node}
 ; Node is a {:lon :lat :arcs {dst-id arc}}
 ; Arc is a {:src :dst :way-id}
 
-;; ------------------------------------------------------
+(defrecord Arc [^long src ^long dst ^long way]
+  rp/Link
+  (src [_] src)
+  (dst [_] dst)
+  rp/Reversible
+  (mirror [_] (->Arc dst src way))
+  ;; TODO: apparently the 'performance' note doesnt apply as key and val are stored
+  ;;       separatedly. Need to check later
+  rp/Passage
+  (way [_] way)
+  ;; We store arcs based on their destination node. Thus an Arc has all the information
+  ;; necessary to uniquely identify itself with src/dst combination. Therefore it would
+  ;; be wasteful to store a MapEntry as [dst [src dst way-id]]. It is better to make an
+  ;; Arc extend the MapEntry interface such that it can represent itself in a hash-map
+  Map$Entry ; https://docs.oracle.com/javase/7/docs/api/java/util/Map.Entry.html
+  (getKey [_] dst)
+  (getValue [this] this)
+  (setValue [_ _] (throw (ex-info "Unsupported Operation" {} "cannot change an immutable value"))))
+;; records already implement equals and hashCode
+
+
 ;; A Node is an element that can be included in a graph
 ;; for routing purposes
-;; NOTE: This Node representation can only contain Edges (bidirectional Arcs).
-;;       for convenience reasons we represent the edges as a directed outgoing arc
+;; NOTE: for convenience reasons we represent the edges as a directed outgoing arc
 ;;       and reverse it only if necessary (see predecesors)
 (defrecord Node [^double lon ^double lat arcs]
   rp/Context
-  (predecessors [this] (sequence (comp (map val)
-                                       (map rp/mirror))
-                                 (:arcs this)))
-  (successors   [this] (vals (:arcs this)))
+  (predecessors [this] (concat (sequence (map rp/mirror) (vals (:arcs this)))
+                               (:in-arcs this)))
+  (successors   [this] (concat (vals (:arcs this))
+                               (:out-arcs this)))
   rp/GeoCoordinate
   (lat [_] lat)
-  (lon [_] lon))
+  (lon [_] lon)
+  rp/Coherent
+  (connect [this src dst] (assoc-in this [:arcs dst] (map->Arc {:src src :dst dst})))
+  (connect [this arc-or-edge]
+    (cond
+      ;; outgoing arc
+      (and (arc? arc-or-edge) (= (rp/dst arc-or-edge)
+                                 (rp/dst (first (or (:out-arcs this) (:arcs this))))))
+      (assoc-in this [:out-arcs (rp/dst arc-or-edge)] arc-or-edge)
+      ;; incoming arc
+      (arc? arc-or-edge)
+      (assoc-in this [:in-arcs (rp/src arc-or-edge)] arc-or-edge)
+      :edge (assoc-in this [:arcs (rp/dst arc-or-edge)] arc-or-edge)))
+  (disconnect [this src dst]
+    (-> (update this :arcs dissoc dst)
+        (update :out-arcs dissoc dst)
+        (update :in-arcs dissoc src))))
 
 ;; a Point is a simple longitude, latitude pair used to
 ;; represent the geometry of a way
@@ -64,26 +111,6 @@
   rp/Reversible
   (mirror [this] (assoc this :src (:dst this)
                              :dst (:src this))))
-
-(defrecord Arc [^long src ^long dst ^long way]
-  rp/Arc
-  (src [_] src)
-  (dst [_] dst)
-  rp/Reversible
-  (mirror [_] (->Arc dst src way))
-  ;; TODO: apparently the 'performance' note doesnt apply as key and val are stored
-  ;;       separatedly. Need to check later
-  rp/Routable
-  (way [_] way)
-  ;; We store arcs based on their destination node. Thus an Arc has all the information
-  ;; necessary to uniquely identify itself with src/dst combination. Therefore it would
-  ;; be wasteful to store a MapEntry as [dst [src dst way-id]]. It is better to make an
-  ;; Arc extend the MapEntry interface such that it can represent itself in a hash-map
-  Map$Entry ; https://docs.oracle.com/javase/7/docs/api/java/util/Map.Entry.html
-  (getKey [_] dst)
-  (getValue [this] this)
-  (setValue [_ _] (throw (ex-info "Unsupported Operation" {} "cannot change an immutable value"))))
-;; records already implement equals and hashCode
 
 ;; the simplest way to represent the Cost in a graph traversal
 (extend-type Number
