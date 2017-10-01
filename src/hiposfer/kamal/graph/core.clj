@@ -57,12 +57,12 @@
   (lon [_] lon)
   rp/Coherent
   (connect [this arc-or-edge]
-    (cond
-      (edge? arc-or-edge) (assoc-in this [:arcs (rp/dst arc-or-edge)] arc-or-edge)
+    (if (edge? arc-or-edge)
+      (assoc-in this [:arcs (rp/dst arc-or-edge)] arc-or-edge)
       ;; -- arc otherwise
-      ;incoming arc
-      (rp/mirror? arc-or-edge) (assoc-in this [:in-arcs (rp/src arc-or-edge)] arc-or-edge)
-      :outgoing (assoc-in this [:arcs (rp/dst arc-or-edge)] arc-or-edge)))
+      (if (rp/mirror? arc-or-edge) ;incoming arc
+        (assoc-in this [:in-arcs (rp/src arc-or-edge)] arc-or-edge)
+        (assoc-in this [:arcs (rp/dst arc-or-edge)] arc-or-edge))))
   (disconnect [this arc-or-edge]
     (let [src (rp/src arc-or-edge)
           dst (rp/dst arc-or-edge)]
@@ -108,12 +108,12 @@
                                (vals (:out-arcs this))))
   rp/Coherent
   (connect [this arc-or-edge]
-    (cond
-      (edge? arc-or-edge) (assoc-in this [:edges (rp/dst arc-or-edge)] arc-or-edge)
+    (if (edge? arc-or-edge)
+      (assoc-in this [:edges (rp/dst arc-or-edge)] arc-or-edge)
       ;; -- arc otherwise
-      ;incoming arc
-      (rp/mirror? arc-or-edge) (assoc-in this [:in-arcs (rp/src arc-or-edge)] arc-or-edge)
-      :outgoing (assoc-in this [:out-arcs (rp/dst arc-or-edge)] arc-or-edge)))
+      (if (rp/mirror? arc-or-edge) ;incoming arc
+        (assoc-in this [:in-arcs (rp/src arc-or-edge)] arc-or-edge)
+        (assoc-in this [:out-arcs (rp/dst arc-or-edge)] arc-or-edge))))
   (disconnect [this arc-or-edge]
     (let [src (rp/src arc-or-edge)
           dst (rp/dst arc-or-edge)]
