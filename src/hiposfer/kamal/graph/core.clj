@@ -15,7 +15,7 @@
 (defn arc? [coll] (satisfies? coll rp/Link))
 
 (defn graph? [coll] (and (satisfies? coll rp/Coherent) ;; connect, disconnect
-                         (implements? coll IPersistentMap) ;; assoc, dissoc, contains, get
+                         (instance? IPersistentMap coll) ;; assoc, dissoc, contains, get
                          (satisfies? coll rp/Queryable))) ;; query
 
 ;; -------------------------------
@@ -69,6 +69,8 @@
       (-> (update this :arcs dissoc dst)
           (update      :in-arcs dissoc src)))))
 
+;; we use a persistent Int Map as graph representation since it is fast
+;; and memory efficient
 (extend-type PersistentIntMap
   rp/Coherent
   (connect [graph arc-or-edge] ;; NOTE: we assume that both src and dst nodes exists
