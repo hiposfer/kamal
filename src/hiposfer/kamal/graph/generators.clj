@@ -4,7 +4,8 @@
             [clojure.string :as str]
             [hiposfer.kamal.graph.protocols :as rp]
             [clojure.spec.alpha :as s]
-            [hiposfer.kamal.graph.core :as route])) ;; loads the spec in the registry
+            [hiposfer.kamal.graph.core :as route]
+            [clojure.data.int-map :as imap])) ;; loads the spec in the registry
 
 (defn- grapher
   "returns a graph based on the provided node ids. Random latitude and longitudes
@@ -13,15 +14,14 @@
   (let [pick     #(rand-nth (seq ids))
         lat-gen   (partial gen/generate (s/gen ::geojson/lat))
         lon-gen   (partial gen/generate (s/gen ::geojson/lon))
-        arcer    #(route/map->Edge {:src (pick) :dst (pick)
-                                    :way (rand-int (* 3 (count ids)))})
+        arcer    #(route/->Edge (pick) (pick) (rand-int (* 3 (count ids))))
         ;; create 3 times as many edges as node IDs
         edges     (repeatedly (* 3 (count ids)) arcer)
         ;; first create nodes to store the edges
-        graph     (into {} (map #(vector % (route/->NodeInfo (lat-gen)
-                                                             (lon-gen)
-                                                             nil)))
-                           ids)]
+        graph     (into (imap/int-map) (map #(vector % (route/->NodeInfo (lat-gen)
+                                                                         (lon-gen)
+                                                                         nil)))
+                        ids)]
     ;; now connect the nodes
     (reduce rp/connect graph edges)))
 

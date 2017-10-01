@@ -6,17 +6,17 @@
            (clojure.data.int_map PersistentIntMap)))
 
 ;; ----- utility functions
-(defn node? [coll] (and (satisfies? coll rp/Context)
-                        (satisfies? coll rp/Coherent)))
+(defn node? [coll] (and (satisfies? rp/Context coll)
+                        (satisfies? rp/Coherent coll)))
 
-(defn edge? [coll] (and (satisfies? coll rp/Link)
-                        (satisfies? coll rp/UndirectedLink)))
+(defn edge? [coll] (and (satisfies? rp/Link coll)
+                        (satisfies? rp/UndirectedLink coll)))
 
-(defn arc? [coll] (satisfies? coll rp/Link))
+(defn arc? [coll] (satisfies? rp/Link coll))
 
-(defn graph? [coll] (and (satisfies? coll rp/Coherent) ;; connect, disconnect
+(defn graph? [coll] (and (satisfies? rp/Coherent coll) ;; connect, disconnect
                          (instance? IPersistentMap coll) ;; assoc, dissoc, contains, get
-                         (satisfies? coll rp/Queryable))) ;; query
+                         (satisfies? rp/Queryable coll))) ;; query
 
 ;; -------------------------------
 ; graph is an {id node}
