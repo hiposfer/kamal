@@ -3,34 +3,27 @@
             [hiposfer.geojson.specs :as geojson]
             [clojure.string :as str]
             [hiposfer.kamal.graph.protocols :as rp]
-            [clojure.spec.alpha :as s])) ;; loads the spec in the registry
+            [clojure.spec.alpha :as s]
+            [hiposfer.kamal.graph.core :as route])) ;; loads the spec in the registry
 
 (defn- grapher
   "returns a graph based on the provided node ids. Random latitude and longitudes
   are generated as well"
   [ids]
   (let [pick     #(rand-nth (seq ids))
-        arcer    #(hash-map :src (pick) :dst (pick)
-                            :way (rand-int (* 3 (count ids))))
-        arcs      (repeatedly (* 3 (count ids)) arcer)
-        outgoings (group-by rp/src arcs)
-        incomings (group-by rp/src (map rp/mirror arcs))
-        ;; first assoc all outgoing arcs
-        graph     (reduce-kv (fn [res node-id arcs] (assoc-in res [node-id :arcs]
-                                                      (into {} (map #(vector (rp/dst %) %) arcs))))
-                             {}
-                             outgoings)
-        ;; now mirror the outgoing arcs to make it a bidirectional graph
-        graph2    (reduce-kv (fn [res node-id arcs] (update-in res [node-id :arcs] merge
-                                                      (into {} (map #(vector (rp/dst %) %) arcs))))
-                             graph
-                             incomings)]
-    ;; now create random lat, lon pairs
-    (reduce-kv (fn [res id _] (update res id merge
-                                {:lat (gen/generate (s/gen ::geojson/lat))
-                                 :lon (gen/generate (s/gen ::geojson/lon))}))
-               graph2
-               graph2)))
+        lat-gen   (partial gen/generate (s/gen ::geojson/lat))
+        lon-gen   (partial gen/generate (s/gen ::geojson/lon))
+        arcer    #(route/map->Edge {:src (pick) :dst (pick)
+                                    :way (rand-int (* 3 (count ids)))})
+        ;; create 3 times as many edges as node IDs
+        edges     (repeatedly (* 3 (count ids)) arcer)
+        ;; first create nodes to store the edges
+        graph     (into {} (map #(vector % (route/->NodeInfo (lat-gen)
+                                                             (lon-gen)
+                                                             nil)))
+                           ids)]
+    ;; now connect the nodes
+    (reduce rp/connect graph edges)))
 
 (defn graph
   "returns a graph generator with node's id between 0 and 3*size.

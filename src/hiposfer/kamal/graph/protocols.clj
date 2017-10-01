@@ -51,25 +51,32 @@
   (sum [this that] "adds two Valuable implementations. This way a Valuable implementation
                     doesnt need to be a Number"))
 
+
+;; ------ protocols for Edge & Arcs
 (defprotocol Link "A connection between two nodes. Directed or undirected"
   (src [this] "the start node id of a Link")
-  (dst [this] "the destination node id of a Link"))
+  (dst [this] "the destination node id of a Link")
+  (mirror [this] "returns a Link in the opposite direction than the original")
+  (mirror? [this]))
 
 ;; todo: do we need a separate protocol for routable? should this be included in the Arc
 (defprotocol Passage
   (way [this] "return the way id that a Link is associated with"))
 
-(defprotocol Reversible
-  (mirror [this] "returns a Link in the opposite direction than the original"))
+(defprotocol UndirectedLink "A flagging protocol to distinguish Arcs from Edges")
 
+;; ------- protocols for Nodes
 (defprotocol GeoCoordinate
   (lat [this] "latitude in decimal numbers")
   (lon [this] "longitude in decimal numbers"))
 
-(defprotocol Coherent "having a natural or due agreement of parts; harmonious: "
-  (connect [coll node-id node-id-2]
-           [coll arc-or-edge] "connect two nodes in a graph")
-  (disconnect [coll src dst] "disconnect two nodes in a graph"))
+;; ------- protocols for Graphs & Nodes
+(defprotocol Coherent "having a natural or due agreement of parts; harmonious. This
+                       protocol is used by both Graph and Nodes. Graphs use it to
+                       update more then 1 node if necessary, whereas Nodes use it
+                       to update only themselves"
+  (connect [coll arc-or-edge] "connect two nodes in a graph")
+  (disconnect [coll arc-or-edge] "disconnect two nodes in a graph"))
 
 (defprotocol Queryable "The ability to find out about complex relationships in a graph"
   (query [graph setup]))

@@ -2,74 +2,85 @@
   (:require [hiposfer.kamal.graph.protocols :as rp]
             [clojure.data.int-map :as imap])
   (:import (java.util Map$Entry Queue PriorityQueue)
-           (clojure.lang IPersistentMap Seqable IReduceInit IReduce Sequential ITransientSet IPersistentVector Associative)))
+           (clojure.lang IPersistentMap Seqable IReduceInit IReduce Sequential ITransientSet IPersistentVector Associative)
+           (clojure.data.int_map PersistentIntMap)))
 
 ;; ----- utility functions
-(defn node? [coll] (satisfies? coll rp/Context))
+(defn node? [coll] (and (satisfies? coll rp/Context)
+                        (satisfies? coll rp/Coherent)))
 
 (defn edge? [coll] (and (satisfies? coll rp/Link)
-                        (satisfies? coll rp/Reversible)))
+                        (satisfies? coll rp/UndirectedLink)))
 
 (defn arc? [coll] (satisfies? coll rp/Link))
 
 (defn graph? [coll] (and (satisfies? coll rp/Coherent) ;; connect, disconnect
-                         (implements? coll IPersistentMap) ;; assoc, dissoc, contains
+                         (implements? coll IPersistentMap) ;; assoc, dissoc, contains, get
                          (satisfies? coll rp/Queryable))) ;; query
 
+;; -------------------------------
 ; graph is an {id node}
 ; Node is a {:lon :lat :arcs {dst-id arc}}
 ; Arc is a {:src :dst :way-id}
+(defrecord Edge [^long src ^long dst ^long way]
+  rp/Link
+  (src [_] src)
+  (dst [_] dst)
+  (mirror [_] (map->Edge {:src dst :dst src :way way :mirror? true}))
+  (mirror? [this] (:mirror? this))
+  rp/Passage
+  (way [_] way)
+  rp/UndirectedLink)
 
 (defrecord Arc [^long src ^long dst ^long way]
   rp/Link
   (src [_] src)
   (dst [_] dst)
-  rp/Reversible
-  (mirror [_] (->Arc dst src way))
-  ;; TODO: apparently the 'performance' note doesnt apply as key and val are stored
-  ;;       separatedly. Need to check later
+  (mirror [_] (map->Arc {:src dst :dst src :way way :mirror? true}))
+  (mirror? [this] (:mirror? this))
   rp/Passage
-  (way [_] way)
-  ;; We store arcs based on their destination node. Thus an Arc has all the information
-  ;; necessary to uniquely identify itself with src/dst combination. Therefore it would
-  ;; be wasteful to store a MapEntry as [dst [src dst way-id]]. It is better to make an
-  ;; Arc extend the MapEntry interface such that it can represent itself in a hash-map
-  Map$Entry ; https://docs.oracle.com/javase/7/docs/api/java/util/Map.Entry.html
-  (getKey [_] dst)
-  (getValue [this] this)
-  (setValue [_ _] (throw (ex-info "Unsupported Operation" {} "cannot change an immutable value"))))
-;; records already implement equals and hashCode
+  (way [_] way))
 
-
-;; A Node is an element that can be included in a graph
+;; A NodeInfo is an element that can be included in a graph
 ;; for routing purposes
-;; NOTE: for convenience reasons we represent the edges as a directed outgoing arc
+;; NOTE: for (memory) convenience we represent the edges as a directed outgoing arc
 ;;       and reverse it only if necessary (see predecesors)
-(defrecord Node [^double lon ^double lat arcs]
+;; This implementation of NodeInfo only accepts one Edge/Arc per dst node
+(defrecord NodeInfo [^double lon ^double lat arcs]
   rp/Context
-  (predecessors [this] (concat (sequence (map rp/mirror) (vals (:arcs this)))
-                               (:in-arcs this)))
-  (successors   [this] (concat (vals (:arcs this))
-                               (:out-arcs this)))
+  (predecessors [this] (concat (sequence (comp (filter edge?) (map rp/mirror))
+                                         (vals (:arcs this)))
+                               (vals (:in-arcs this))))
+  (successors   [this] (vals (:arcs this)))
   rp/GeoCoordinate
   (lat [_] lat)
   (lon [_] lon)
   rp/Coherent
-  (connect [this src dst] (assoc-in this [:arcs dst] (map->Arc {:src src :dst dst})))
   (connect [this arc-or-edge]
     (cond
-      ;; outgoing arc
-      (and (arc? arc-or-edge) (= (rp/dst arc-or-edge)
-                                 (rp/dst (first (or (:out-arcs this) (:arcs this))))))
-      (assoc-in this [:out-arcs (rp/dst arc-or-edge)] arc-or-edge)
-      ;; incoming arc
-      (arc? arc-or-edge)
-      (assoc-in this [:in-arcs (rp/src arc-or-edge)] arc-or-edge)
-      :edge (assoc-in this [:arcs (rp/dst arc-or-edge)] arc-or-edge)))
-  (disconnect [this src dst]
-    (-> (update this :arcs dissoc dst)
-        (update :out-arcs dissoc dst)
-        (update :in-arcs dissoc src))))
+      (edge? arc-or-edge) (assoc-in this [:arcs (rp/dst arc-or-edge)] arc-or-edge)
+      ;; -- arc otherwise
+      ;incoming arc
+      (rp/mirror? arc-or-edge) (assoc-in this [:in-arcs (rp/src arc-or-edge)] arc-or-edge)
+      :outgoing (assoc-in this [:arcs (rp/dst arc-or-edge)] arc-or-edge)))
+  (disconnect [this arc-or-edge]
+    (let [src (rp/src arc-or-edge)
+          dst (rp/dst arc-or-edge)]
+      (-> (update this :arcs dissoc dst)
+          (update      :in-arcs dissoc src)))))
+
+(extend-type PersistentIntMap
+  rp/Coherent
+  (connect [graph arc-or-edge] ;; NOTE: we assume that both src and dst nodes exists
+    (-> (update graph (rp/src arc-or-edge) rp/connect arc-or-edge)
+        (update       (rp/dst arc-or-edge) rp/connect (rp/mirror arc-or-edge))))
+  (disconnect [graph arc-or-edge] ;; NOTE: we assume that both src and dst nodes exists
+    (let [src (rp/src arc-or-edge)
+          dst (rp/dst arc-or-edge)]
+      (-> (update graph src rp/disconnect src dst)
+          (update       dst rp/disconnect dst src))))
+  rp/Queryable
+  (query [graph query] (throw (ex-info "this method has not been implemented yet!" query))))
 
 ;; a Point is a simple longitude, latitude pair used to
 ;; represent the geometry of a way
@@ -85,32 +96,41 @@
   (lon [this] (first this)))
 
 ;; this is specially useful for generative testing: there we use generated
-;; nodes and arcs
+;; nodes and arcs. Here we prefer distinguishing between arcs and edges
+;; explicitly as performance is not an issue
 (extend-type IPersistentMap
-  ;; NOTE: we cannot know in advance if the map was created with only undirected
-  ;; arcs or if it was meant for both outgoing and incoming arcs. So we just check
-  ;; both cases
   rp/Context
-  (predecessors [this]
-    (if (:in-arcs this)
-      (:in-arcs this)
-      (sequence (comp (map val) (map rp/mirror))
-                (:arcs this))))
-  (successors [this]
-    (if (:out-arcs this)
-      (vals (:out-arcs this))
-      (vals (:arcs this))))
+  (predecessors [this] (concat (map rp/mirror (vals (:edges this)))
+                               (vals (:in-arcs this))))
+  (successors   [this] (concat (vals (:edges this))
+                               (vals (:out-arcs this))))
+  rp/Coherent
+  (connect [this arc-or-edge]
+    (cond
+      (edge? arc-or-edge) (assoc-in this [:edges (rp/dst arc-or-edge)] arc-or-edge)
+      ;; -- arc otherwise
+      ;incoming arc
+      (rp/mirror? arc-or-edge) (assoc-in this [:in-arcs (rp/src arc-or-edge)] arc-or-edge)
+      :outgoing (assoc-in this [:out-arcs (rp/dst arc-or-edge)] arc-or-edge)))
+  (disconnect [this arc-or-edge]
+    (let [src (rp/src arc-or-edge)
+          dst (rp/dst arc-or-edge)]
+      (-> (update this :edges dissoc dst)
+          (update      :out-arcs dissoc dst)
+          (update      :in-arcs dissoc src))))
   rp/GeoCoordinate
   (lat [this] (:lat this))
   (lon [this] (:lon this))
-  rp/Arc
+  ;; arc representation
+  rp/Link
   (src [this] (:src this))
   (dst [this] (:dst this))
-  rp/Routable
-  (way [this] (:way this))
-  rp/Reversible
   (mirror [this] (assoc this :src (:dst this)
-                             :dst (:src this))))
+                             :dst (:src this)
+                             :mirror? true))
+  (mirror? [this] (:mirror? this))
+  rp/Passage
+  (way [this] (:way this)))
 
 ;; the simplest way to represent the Cost in a graph traversal
 (extend-type Number
