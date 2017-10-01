@@ -38,7 +38,7 @@
   rp/Link
   (src [_] src)
   (dst [_] dst)
-  (mirror [_] (map->Arc {:src dst :dst src :way way})); :mirror? true}))
+  (mirror [_] (map->Arc {:src dst :dst src :way way :mirror? true}))
   (mirror? [this] (:mirror? this))
   rp/Passage
   (way [_] way))
