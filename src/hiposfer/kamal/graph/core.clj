@@ -22,11 +22,13 @@
 ; graph is an {id node}
 ; Node is a {:lon :lat :arcs {dst-id arc}}
 ; Arc is a {:src :dst :way-id}
+
+;; TODO: do I need the :mirror? flag?
 (defrecord Edge [^long src ^long dst ^long way]
   rp/Link
   (src [_] src)
   (dst [_] dst)
-  (mirror [_] (map->Edge {:src dst :dst src :way way :mirror? true}))
+  (mirror [_] (map->Edge {:src dst :dst src :way way})) ;:mirror? true}))
   (mirror? [this] (:mirror? this))
   rp/Passage
   (way [_] way)
@@ -36,7 +38,7 @@
   rp/Link
   (src [_] src)
   (dst [_] dst)
-  (mirror [_] (map->Arc {:src dst :dst src :way way :mirror? true}))
+  (mirror [_] (map->Arc {:src dst :dst src :way way})); :mirror? true}))
   (mirror? [this] (:mirror? this))
   rp/Passage
   (way [_] way))
