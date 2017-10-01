@@ -48,6 +48,13 @@
 ;; NOTE: for (memory) convenience we represent the edges as a directed outgoing arc
 ;;       and reverse it only if necessary (see predecesors)
 ;; This implementation of NodeInfo only accepts one Edge/Arc per dst node
+;;TODO: an alternate way of representing the connections for Nodes
+;; is to have a protocol with (outbound), (inbound) such that
+;; both arcs and edges can be passed. The implementation can then
+;; choose how to store those internally. That would solve the issue
+;; that I am having right now for figuring out the direction of
+;; a Link. The disadvantage with that method is that Coherent
+;; would no longer be a protocol for both graph and Nodes
 (defrecord NodeInfo [^double lon ^double lat arcs]
   rp/Context
   (predecessors [this] (concat (sequence (comp (filter edge?) (map rp/mirror))
