@@ -5,7 +5,8 @@
             [hiposfer.kamal.directions :as dir]
             [hiposfer.kamal.graph.generators :as g]
             [clojure.string :as str]
-            [clojure.edn :as edn]))
+            [clojure.edn :as edn]
+            [clojure.spec.alpha :as s]))
 
 (defn- parse-coordinates
   [text]
@@ -18,7 +19,6 @@
   [text]
   (map edn/read-string (str/split text #";")))
 ;(->radiuses "1200.50;100;500;unlimited;100")
-
 
 (defn create
   "creates an API handler with a closure around the grid"
@@ -39,9 +39,16 @@
       :return ::spec/direction
       (ok (let [coordinates (parse-coordinates coordinates)
                 radiuses    (some-> radiuses (parse-radiuses))]
-            (if (and (not-empty radiuses) (not= (count radiuses) (count coordinates)))
+            (cond
+              (not (s/valid? :hiposfer.geojson.specs.linestring/coordinates coordinates))
+              {:message (format "Coordinate is invalid: %s"
+                          (first (:clojure.spec.alpha/value 
+                                  (s/explain-data :hiposfer.geojson.specs.linestring/coordinates coordinates))))
+               :code "InvalidInput"}
+              (and (not-empty radiuses) (not= (count radiuses) (count coordinates)))
               {:message "The same amount of radiouses and coordinates must be provided"
-               :code    "InvalidInput"}
+               :code "InvalidInput"}
+              :else
               (dir/direction @(:network grid)
                              :coordinates coordinates
                              :steps steps
