@@ -20,7 +20,7 @@
         ;; first create nodes to store the edges
         graph     (into (imap/int-map) (map #(vector % (route/->NodeInfo (lat-gen)
                                                                          (lon-gen)
-                                                                         nil)))
+                                                                         nil nil)))
                         ids)]
     ;; now connect the nodes
     (reduce rp/connect graph edges)))

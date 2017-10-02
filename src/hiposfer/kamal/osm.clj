@@ -178,7 +178,7 @@
                             points&nodes)
         nodes         (into (imap/int-map)
                             (comp (filter #(contains? node-ids (key %)))
-                                  (map (fn [[k v]] [k (route/->NodeInfo (:lon v) (:lat v) nil)])))
+                                  (map (fn [[k v]] [k (route/->NodeInfo (:lon v) (:lat v) nil nil)])))
                             points&nodes)
         graph         (connect nodes simple-ways)]
     {:ways ways :graph graph :points points}))
