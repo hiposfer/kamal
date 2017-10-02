@@ -134,9 +134,9 @@
   (src [this] (:src this))
   (dst [this] (:dst this))
   (mirror [this] (assoc this :src (:dst this)
-                             :dst (:src this)
-                             :mirror? true))
-  (mirror? [this] (:mirror? this))
+                             :dst (:src this)))
+                             ;:mirror? true))
+  ;(mirror? [this] (:mirror? this))
   rp/Passage
   (way [this] (:way this)))
 

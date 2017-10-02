@@ -1,5 +1,4 @@
-(ns hiposfer.kamal.graph.protocols
-  (:import (hiposfer.kamal.graph.protocols Binder)))
+(ns hiposfer.kamal.graph.protocols)
 
 ;; TODO: consider replacing the uses of defprotocol with definterface+
 ;;       as described in https://github.com/ztellman/potemkin#definterface
