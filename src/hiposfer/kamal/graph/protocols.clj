@@ -59,10 +59,10 @@
   (mirror [this] "returns a Link in the opposite direction than the original"))
   ;(mirror? [this]))
 
-;; todo: do we need a separate protocol for routable? should this be included in the Arc
 (defprotocol Passage
   (way [this] "return the way id that a Link is associated with"))
 
+;; TODO: does this need to be a flag protocol? should it rather be a method?
 (defprotocol UndirectedLink "A flagging protocol to distinguish Arcs from Edges")
 
 ;; ------- protocols for Nodes
