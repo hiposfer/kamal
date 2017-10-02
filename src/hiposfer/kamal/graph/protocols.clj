@@ -1,4 +1,5 @@
-(ns hiposfer.kamal.graph.protocols)
+(ns hiposfer.kamal.graph.protocols
+  (:import (hiposfer.kamal.graph.protocols Binder)))
 
 ;; TODO: consider replacing the uses of defprotocol with definterface+
 ;;       as described in https://github.com/ztellman/potemkin#definterface
@@ -56,8 +57,8 @@
 (defprotocol Link "A connection between two nodes. Directed or undirected"
   (src [this] "the start node id of a Link")
   (dst [this] "the destination node id of a Link")
-  (mirror [this] "returns a Link in the opposite direction than the original")
-  (mirror? [this]))
+  (mirror [this] "returns a Link in the opposite direction than the original"))
+  ;(mirror? [this]))
 
 ;; todo: do we need a separate protocol for routable? should this be included in the Arc
 (defprotocol Passage
@@ -71,12 +72,15 @@
   (lon [this] "longitude in decimal numbers"))
 
 ;; ------- protocols for Graphs & Nodes
-(defprotocol Coherent "having a natural or due agreement of parts; harmonious. This
-                       protocol is used by both Graph and Nodes. Graphs use it to
-                       update more then 1 node if necessary, whereas Nodes use it
-                       to update only themselves"
-  (connect [coll arc-or-edge] "connect two nodes in a graph")
+(defprotocol Coherent "having a natural or due agreement of parts; harmonious"
+  (connect [coll arc-or-edge] "connect two nodes in a graph"))
+
+(defprotocol Incoherent
   (disconnect [coll arc-or-edge] "disconnect two nodes in a graph"))
+
+(defprotocol Binder
+  (inbound  [node arc-or-edge] "bind the given incoming Link to this Node")
+  (outbound [node arc-or-edge] "bind the given outgoing Link to this Node"))
 
 (defprotocol Queryable "The ability to find out about complex relationships in a graph"
   (query [graph setup]))

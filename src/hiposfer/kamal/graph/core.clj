@@ -7,14 +7,16 @@
 
 ;; ----- utility functions
 (defn node? [coll] (and (satisfies? rp/Context coll)
-                        (satisfies? rp/Coherent coll)))
+                        (satisfies? rp/Binder coll)
+                        (satisfies? rp/Incoherent coll)))
 
 (defn edge? [coll] (and (satisfies? rp/Link coll)
                         (satisfies? rp/UndirectedLink coll)))
 
 (defn arc? [coll] (satisfies? rp/Link coll))
 
-(defn graph? [coll] (and (satisfies? rp/Coherent coll) ;; connect, disconnect
+(defn graph? [coll] (and (satisfies? rp/Coherent coll) ;; connect
+                         (satisfies? rp/Incoherent coll) ;; disconnect
                          (instance? IPersistentMap coll) ;; assoc, dissoc, contains, get
                          (satisfies? rp/Queryable coll))) ;; query
 
@@ -29,7 +31,7 @@
   (src [_] src)
   (dst [_] dst)
   (mirror [_] (map->Edge {:src dst :dst src :way way})) ;:mirror? true}))
-  (mirror? [this] (:mirror? this))
+  ;(mirror? [this] (:mirror? this))
   rp/Passage
   (way [_] way)
   rp/UndirectedLink)
@@ -38,8 +40,8 @@
   rp/Link
   (src [_] src)
   (dst [_] dst)
-  (mirror [_] (map->Arc {:src dst :dst src :way way :mirror? true}))
-  (mirror? [this] (:mirror? this))
+  (mirror [_] (map->Arc {:src dst :dst src :way way})); :mirror? true}))
+  ;(mirror? [this] (:mirror? this))
   rp/Passage
   (way [_] way))
 
@@ -47,45 +49,41 @@
 ;; for routing purposes
 ;; NOTE: for (memory) convenience we represent the edges as a directed outgoing arc
 ;;       and reverse it only if necessary (see predecesors)
-;; This implementation of NodeInfo only accepts one Edge/Arc per dst node
-;;TODO: an alternate way of representing the connections for Nodes
-;; is to have a protocol with (outbound), (inbound) such that
-;; both arcs and edges can be passed. The implementation can then
-;; choose how to store those internally. That would solve the issue
-;; that I am having right now for figuring out the direction of
-;; a Link. The disadvantage with that method is that Coherent
-;; would no longer be a protocol for both graph and Nodes
-(defrecord NodeInfo [^double lon ^double lat arcs]
+;; This implementation of NodeInfo only accepts one Edge/Arc per src/dst node
+(defrecord NodeInfo [^double lon ^double lat outgoing incoming]
   rp/Context
-  (predecessors [this] (concat (sequence (comp (filter edge?) (map rp/mirror))
-                                         (vals (:arcs this)))
-                               (vals (:in-arcs this))))
-  (successors   [this] (vals (:arcs this)))
+  (predecessors [this] (concat (sequence (comp (filter edge?)
+                                               (map rp/mirror))
+                                         (vals (:outgoing this)))
+                               (vals (:incoming this))))
+  (successors   [this] (concat (sequence (comp (filter edge?)
+                                               (map rp/mirror))
+                                         (vals (:incoming)))
+                               (vals (:outgoing this))))
   rp/GeoCoordinate
   (lat [_] lat)
   (lon [_] lon)
-  rp/Coherent
-  (connect [this arc-or-edge]
-    (if (edge? arc-or-edge)
-      (assoc-in this [:arcs (rp/dst arc-or-edge)] arc-or-edge)
-      ;; -- arc otherwise
-      (if (rp/mirror? arc-or-edge) ;incoming arc
-        (assoc-in this [:in-arcs (rp/src arc-or-edge)] arc-or-edge)
-        (assoc-in this [:arcs (rp/dst arc-or-edge)] arc-or-edge))))
+  rp/Binder
+  (inbound  [this arc-or-edge]
+    (assoc-in this [:incoming (rp/src arc-or-edge)] arc-or-edge))
+  (outbound [this arc-or-edge]
+    (assoc-in this [:outgoing (rp/dst arc-or-edge)] arc-or-edge))
+  rp/Incoherent
   (disconnect [this arc-or-edge]
-    (let [src (rp/src arc-or-edge)
-          dst (rp/dst arc-or-edge)]
-      (-> (update this :arcs dissoc dst)
-          (update      :in-arcs dissoc src)))))
+    (-> (update this :outgoing dissoc (rp/src arc-or-edge))
+        (update      :incoming dissoc (rp/dst arc-or-edge)))))
 
 ;; we use a persistent Int Map as graph representation since it is fast
 ;; and memory efficient
 (extend-type PersistentIntMap
   rp/Coherent
-  (connect [graph arc-or-edge] ;; NOTE: we assume that both src and dst nodes exists
-    (-> (update graph (rp/src arc-or-edge) rp/connect arc-or-edge)
-        (update       (rp/dst arc-or-edge) rp/connect (rp/mirror arc-or-edge))))
-  (disconnect [graph arc-or-edge] ;; NOTE: we assume that both src and dst nodes exists
+  (connect [graph arc-or-edge] ;; we assume that both src and dst nodes exists
+    (let [graph2 (update graph (rp/src arc-or-edge) rp/outbound arc-or-edge)]
+      (if (edge? arc-or-edge) ;; arc otherwise
+        (update graph2 (rp/dst arc-or-edge) rp/inbound arc-or-edge)
+        (update graph2 (rp/dst arc-or-edge) rp/inbound (rp/mirror arc-or-edge)))))
+  rp/Incoherent
+  (disconnect [graph arc-or-edge] ;; we assume that both src and dst nodes exists
     (let [src (rp/src arc-or-edge)
           dst (rp/dst arc-or-edge)]
       (-> (update graph src rp/disconnect src dst)
@@ -111,27 +109,26 @@
 ;; explicitly as performance is not an issue
 (extend-type IPersistentMap
   rp/Context
-  (predecessors [this] (concat (map rp/mirror (vals (:edges this)))
-                               (vals (:in-arcs this))))
-  (successors   [this] (concat (vals (:edges this))
-                               (vals (:out-arcs this))))
-  rp/Coherent
-  (connect [this arc-or-edge]
-    (if (edge? arc-or-edge)
-      (assoc-in this [:edges (rp/dst arc-or-edge)] arc-or-edge)
-      ;; -- arc otherwise
-      (if (rp/mirror? arc-or-edge) ;incoming arc
-        (assoc-in this [:in-arcs (rp/src arc-or-edge)] arc-or-edge)
-        (assoc-in this [:out-arcs (rp/dst arc-or-edge)] arc-or-edge))))
-  (disconnect [this arc-or-edge]
-    (let [src (rp/src arc-or-edge)
-          dst (rp/dst arc-or-edge)]
-      (-> (update this :edges dissoc dst)
-          (update      :out-arcs dissoc dst)
-          (update      :in-arcs dissoc src))))
+  (predecessors [this] (concat (sequence (comp (filter edge?)
+                                               (map rp/mirror))
+                                         (vals (:outgoing this)))
+                               (vals (:incoming this))))
+  (successors   [this] (concat (sequence (comp (filter edge?)
+                                               (map rp/mirror))
+                                         (vals (:incoming)))
+                               (vals (:outgoing this))))
   rp/GeoCoordinate
   (lat [this] (:lat this))
   (lon [this] (:lon this))
+  rp/Binder
+  (inbound  [this arc-or-edge]
+    (assoc-in this [:incoming (rp/src arc-or-edge)] arc-or-edge))
+  (outbound [this arc-or-edge]
+    (assoc-in this [:outgoing (rp/dst arc-or-edge)] arc-or-edge))
+  rp/Incoherent
+  (disconnect [this arc-or-edge]
+    (-> (update this :outgoing dissoc (rp/src arc-or-edge))
+        (update      :incoming dissoc (rp/dst arc-or-edge))))
   ;; arc representation
   rp/Link
   (src [this] (:src this))
