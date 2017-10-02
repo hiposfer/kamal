@@ -58,7 +58,7 @@
                                (vals (:incoming this))))
   (successors   [this] (concat (sequence (comp (filter edge?)
                                                (map rp/mirror))
-                                         (vals (:incoming)))
+                                         (vals (:incoming this)))
                                (vals (:outgoing this))))
   rp/GeoCoordinate
   (lat [_] lat)
@@ -115,7 +115,7 @@
                                (vals (:incoming this))))
   (successors   [this] (concat (sequence (comp (filter edge?)
                                                (map rp/mirror))
-                                         (vals (:incoming)))
+                                         (vals (:incoming this)))
                                (vals (:outgoing this))))
   rp/GeoCoordinate
   (lat [this] (:lat this))
