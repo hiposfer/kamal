@@ -122,14 +122,9 @@
   "takes a hashmap of nodes and a hashmap of {way [nodes]} and create
   arcs between each node to form a graph"
   [nodes simple-ways]
-  (let [arcs (mapcat (fn g [[way-id nodes]] (map route/->Arc nodes (rest nodes) (repeat way-id))))]
-    (transduce arcs ;; this approach only works if Arc implements MapEntry
-      (completing
-        (fn f [graph arc]
-          (-> (update-in graph [(rp/src arc) :arcs] conj arc)
-              (update-in       [(rp/dst arc) :arcs] conj (rp/mirror arc)))))
-      nodes
-      simple-ways)))
+  (let [arcs (mapcat (fn [[way-id nodes]] (map route/->Edge nodes (rest nodes) (repeat way-id)))
+                     simple-ways)]
+    (reduce rp/connect nodes arcs)))
 
 ;; xml-parse: (element tag attrs & content)
 (defn- osm->ways
@@ -183,7 +178,7 @@
                             points&nodes)
         nodes         (into (imap/int-map)
                             (comp (filter #(contains? node-ids (key %)))
-                                  (map (fn [[k v]] [k (route/->Node (:lon v) (:lat v) {})])))
+                                  (map (fn [[k v]] [k (route/->NodeInfo (:lon v) (:lat v) nil nil)])))
                             points&nodes)
         graph         (connect nodes simple-ways)]
     {:ways ways :graph graph :points points}))
@@ -192,10 +187,8 @@
 
 ;(System/gc)
 ;(def network (time (osm->network "resources/osm/saarland.osm.bz2")))
-;(def network (time (osm->network "https://firebasestorage.googleapis.com/v0/b/hive-6c54a.appspot.com/o/routing%2Fosm%2Fsaarland.osm.bz2?alt=media&token=6534fe4c-415e-4ca3-9b8e-a10c0a85b6e6")))
 ;(take 10 (:graph network))
 ;(take 10 (:ways network))
-;(:graph network)
 ;(def network nil)
 
 
