@@ -10,22 +10,22 @@
             [hiposfer.kamal.directions :as direction]))
 
 ;; https://rosettacode.org/wiki/Dijkstra%27s_algorithm
-(def rosetta {1 {:out-arcs {2 {:dst 2 :length 7}
+(def rosetta {1 {:outgoing {2 {:dst 2 :length 7}
                             3 {:dst 3 :length 9}
                             5 {:dst 6 :length 14}}}
-              2 {:out-arcs {3 {:dst 3 :length 10}
+              2 {:outgoing {3 {:dst 3 :length 10}
                             4 {:dst 4 :length 15}}
-                 :in-arcs  {1 {:src 1 :length 7}}}
-              3 {:out-arcs {4 {:dst 4 :length 11}
+                 :incoming {1 {:src 1 :length 7}}}
+              3 {:outgoing {4 {:dst 4 :length 11}
                             6 {:dst 6 :length 2}}
-                 :in-arcs  {1 {:src 1 :length 9}
+                 :incoming {1 {:src 1 :length 9}
                             2 {:src 2 :length 10}}}
-              4 {:out-arcs {5 {:dst 5 :length 6}}
-                 :in-arcs  {2 {:src 2 :length 15}
+              4 {:outgoing {5 {:dst 5 :length 6}}
+                 :incoming {2 {:src 2 :length 15}
                             3 {:src 3 :length 11}}}
-              5 {:out-arcs {6 {:dst 6 :length 9}}
-                 :in-arcs  {4 {:src 4 :length 6}}}
-              6 {:in-arcs  {1 {:src 1 :length 14}
+              5 {:outgoing {6 {:dst 6 :length 9}}
+                 :incoming {4 {:src 4 :length 6}}}
+              6 {:incoming {1 {:src 1 :length 14}
                             3 {:src 3 :length 2}
                             5 {:src 5 :length 9}}}})
 
