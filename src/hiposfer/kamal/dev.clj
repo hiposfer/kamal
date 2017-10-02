@@ -45,7 +45,7 @@
 ;(reset)
 
 ;(set! *print-length* 50)
-;(take 10 @(:network (:grid system)))
+;(take 10 (:graph @(:network (:grid system))))
 
 ;(System/gc)
 

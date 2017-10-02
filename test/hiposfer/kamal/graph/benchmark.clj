@@ -5,7 +5,8 @@
             [hiposfer.kamal.graph.generators :as g]
             [hiposfer.kamal.graph.algorithms :as alg]
             [hiposfer.kamal.osm :as osm]
-            [hiposfer.kamal.directions :as direction]))
+            [hiposfer.kamal.directions :as direction]
+            [hiposfer.kamal.graph.protocols :as rp]))
 
 (def iterations 10)
 
@@ -19,7 +20,7 @@
         destinations (into [] (repeatedly iterations #(rand-nth (keys graph))))]
     (println "\nrandomly generated graphs:" iterations "execution with random src/dst")
     (println "dijkstra forward with:" (count graph) "nodes and"
-             (reduce + (map (comp count :arcs) (vals graph))) "edges")
+             (reduce + (map (comp count rp/successors) (vals graph))) "edges")
     (c/quick-bench
       (dorun (for [i (range iterations)
                    :let [src (get sources i)
@@ -40,7 +41,7 @@
         destinations (into [] (repeatedly iterations #(rand-nth (keys graph))))]
     (println "\nsaarland graph:" iterations "executions with random src/dst")
     (println "dijkstra forward with:" (count graph) "nodes and"
-             (reduce + (map (comp count :arcs) (vals graph))) "edges")
+             (reduce + (map (comp count rp/successors) (vals graph))) "edges")
     (c/quick-bench
       (dorun (for [i (range iterations)
                    :let [src (get sources i)
@@ -61,7 +62,7 @@
     (println "\nsaarland graph:" iterations "executions with random src/dst")
     (println "using only strongly connected components of the original graph")
     (println "dijkstra forward with:" (count graph) "nodes and"
-             (reduce + (map (comp count :arcs) (vals graph))) "edges")
+             (reduce + (map (comp count rp/successors) (vals graph))) "edges")
     (c/quick-bench
       (dorun (for [i (range iterations)
                    :let [src (get sources i)
