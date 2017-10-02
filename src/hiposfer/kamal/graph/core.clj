@@ -2,7 +2,7 @@
   (:require [hiposfer.kamal.graph.protocols :as rp]
             [clojure.data.int-map :as imap])
   (:import (java.util Map$Entry Queue PriorityQueue)
-           (clojure.lang IPersistentMap Seqable IReduceInit IReduce Sequential ITransientSet IPersistentVector Associative)
+           (clojure.lang IPersistentMap Seqable IReduceInit IReduce Sequential ITransientSet IPersistentVector)
            (clojure.data.int_map PersistentIntMap)))
 
 ;; ----- utility functions
