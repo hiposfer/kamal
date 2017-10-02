@@ -3,6 +3,7 @@
             [hiposfer.kamal.graph.algorithms :as alg]
             [hiposfer.kamal.graph.protocols :as rp]
             [hiposfer.kamal.libs.math :as math]))
+            ;[hiposfer.kamal.dev :as dev]))
             ;[cheshire.core :as cheshire]))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
@@ -215,3 +216,7 @@
 ;
 ;(spit "resources/linestring.json"
 ;  (cheshire/generate-string (:geometry (first (:routes result)))))
+
+;(brute-nearest @(:network (:grid dev/system))
+;               {:lon 7.0288485, :lat 49.1064844}
+;               {:lon 6.957843, :lat 49.298881}})))
