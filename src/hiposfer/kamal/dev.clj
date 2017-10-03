@@ -4,7 +4,11 @@
   (:require [com.stuartsierra.component :as component]
             [environ.core :refer [env]]
             [hiposfer.kamal.core :as routing]
-            [clojure.tools.namespace.repl :as repl]))
+            [clojure.tools.namespace.repl :as repl]
+            [clojure.data.avl :as avl]
+            [clojure.set :as set]
+            [hiposfer.kamal.graph.protocols :as rp]
+            [hiposfer.kamal.directions :as dir]))
             ;[cheshire.core :as cheshire]))
 
 (def system nil)
@@ -54,3 +58,16 @@
 ;
 ;(time (last (cheshire/parse-stream
 ;              (clojure.java.io/reader "resources/saarland.json"))))
+
+#_(into (avl/sorted-map) (map vector (range 100) (range 100)))
+
+#_(defn compare-points [x y]
+    (compare [(rp/lat x) (rp/lon x)]
+             [(rp/lat y) (rp/lon y)]))
+
+#_(let [finder (into (avl/sorted-map-by compare-points)
+                     (set/map-invert (:graph @(:network (:grid system)))))]
+    (time (avl/nearest finder <= {:lon 7.0557485 :lat 49.1088782})))
+
+#_(time (dir/brute-nearest @(:network (:grid system))
+                            {:lat 49.1088782 :lon 7.0557485}))

@@ -38,7 +38,7 @@
                                (rp/lon dst) (rp/lat dst))]
     (/ length osm/walking-speed)))
 
-(defn- brute-nearest
+(defn brute-nearest
   "search the nearest node in network to point using the distance function f.
   f defaults to the euclidean distance squared"
   ([network point f]
