@@ -79,6 +79,7 @@
         src          (val (last graph))]
     (println "\n\nsaarland graph: nearest neighbour search with random src/dst")
     (println "AVL tree with:" (count graph) "nodes")
+    ;; https://github.com/clojure/data.avl
     ;; They add some memory overhead -- a reference and two ints per key. The
     ;; additional node fields are used to support transients (one reference
     ;; field per key), rank queries (one int) and the rebalancing algorithm
