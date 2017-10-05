@@ -4,7 +4,9 @@
             [hiposfer.kamal.graph.core :as route]
             [hiposfer.kamal.graph.protocols :as rp]
             [clojure.walk :as walk]
-            [clojure.java.io :as io])
+            [clojure.java.io :as io]
+            [clojure.data.avl :as avl]
+            [clojure.set :as set])
   (:import (org.apache.commons.compress.compressors.bzip2 BZip2CompressorInputStream)))
 
 (defn- bz2-reader
@@ -14,6 +16,15 @@
   (-> (io/input-stream filename)
       (BZip2CompressorInputStream.)
       (io/reader)))
+
+(defn position-comparator
+  "comparator function to order nodes in a graph
+  WARNING: this assumes that two points cannot occupy the same
+  space. e.g. no 3D points since two point with different height
+  but equal lat, lon would collide"
+  [x y]
+  (compare [(rp/lat x) (rp/lon x)]
+           [(rp/lat y) (rp/lon y)]))
 
 ;; routing profile taken from
 ;; http://wiki.openstreetmap.org/wiki/OSM_tags_for_routing/Telenav
@@ -180,8 +191,11 @@
                             (comp (filter #(contains? node-ids (key %)))
                                   (map (fn [[k v]] [k (route/->NodeInfo (:lon v) (:lat v) nil nil)])))
                             points&nodes)
-        graph         (connect nodes simple-ways)]
-    {:ways ways :graph graph :points points}))
+        graph         (connect nodes simple-ways)
+        neighbours    (into (avl/sorted-map-by position-comparator)
+                            (set/map-invert graph))]
+    {:ways   ways :graph graph
+     :points points :neighbours neighbours}))
 
 (def walking-speed  2.5);; m/s
 

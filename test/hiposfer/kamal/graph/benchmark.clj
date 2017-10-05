@@ -6,9 +6,9 @@
             [hiposfer.kamal.graph.algorithms :as alg]
             [hiposfer.kamal.osm :as osm]
             [hiposfer.kamal.directions :as direction]
-            [hiposfer.kamal.graph.protocols :as rp]))
-
-(def iterations 10)
+            [hiposfer.kamal.graph.protocols :as rp]
+            [hiposfer.kamal.libs.math :as math]
+            [clojure.data.avl :as avl]))
 
 ;; This is just to show the difference between a randomly generated graph
 ;; and a real-world graph. The randomly generated graph does not have a structure
@@ -16,61 +16,77 @@
 ;; finds a path (really fast)
 (test/deftest ^:benchmark dijkstra-random-graph
   (let [graph        (gen/generate (g/graph 1000))
-        sources      (into [] (repeatedly iterations #(rand-nth (keys graph))))
-        destinations (into [] (repeatedly iterations #(rand-nth (keys graph))))]
-    (println "\nrandomly generated graphs:" iterations "execution with random src/dst")
-    (println "dijkstra forward with:" (count graph) "nodes and"
+        src          (rand-nth (keys graph))
+        dst          (rand-nth (keys graph))]
+    (println "DIJKSTRA forward with:" (count graph) "nodes and"
              (reduce + (map (comp count rp/successors) (vals graph))) "edges")
+    (println "\nrandom graph:")
     (c/quick-bench
-      (dorun (for [i (range iterations)
-                   :let [src (get sources i)
-                         dst (get destinations i)
-                         coll (alg/dijkstra graph
-                                            :start-from #{src}
-                                            :value-by (partial direction/duration graph))]]
-               (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
-                       nil
-                       coll)))
+      (let [coll (alg/dijkstra graph
+                   :start-from #{src}
+                   :value-by (partial direction/duration graph))]
+        (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
+                nil
+                coll))
       :os :runtime :verbose)))
 
 (def networker (delay (osm/osm->network "resources/osm/saarland.osm.bz2")))
 
 (test/deftest ^:benchmark dijkstra-saarland-graph
   (let [graph        (:graph @networker) ;; force read
-        sources      (into [] (repeatedly iterations #(rand-nth (keys graph))))
-        destinations (into [] (repeatedly iterations #(rand-nth (keys graph))))]
-    (println "\nsaarland graph:" iterations "executions with random src/dst")
-    (println "dijkstra forward with:" (count graph) "nodes and"
+        src          (rand-nth (keys graph))
+        dst          (rand-nth (keys graph))
+        Cgraph       (alg/biggest-component (:graph @networker))]
+    (println "DIJKSTRA forward with:" (count graph) "nodes and"
              (reduce + (map (comp count rp/successors) (vals graph))) "edges")
+    (println "\nsaarland graph:")
     (c/quick-bench
-      (dorun (for [i (range iterations)
-                   :let [src (get sources i)
-                         dst (get destinations i)
-                         coll (alg/dijkstra graph
-                                            :start-from #{src}
-                                            :value-by (partial direction/duration graph))]]
-               (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
-                       nil
-                       coll)))
+      (let [coll (alg/dijkstra graph
+                   :start-from #{src}
+                   :value-by (partial direction/duration graph))]
+        (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
+                nil
+                coll))
+      :os :runtime :verbose)
+    (println "--------")
+    (println "using only strongly connected components of the original graph")
+    (c/quick-bench
+      (let [coll (alg/dijkstra Cgraph
+                   :start-from #{src}
+                   :value-by (partial direction/duration Cgraph))]
+        (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
+                nil
+                coll))
       :os :runtime :verbose)))
+
+(defn- brute-nearest
+  "search the nearest node in network to point using the distance function f.
+  f defaults to the euclidean distance squared"
+  ([network point f]
+   (reduce (fn [best entry] (if (< (f point (second entry))
+                                   (f point (second best)))
+                              entry
+                              best))
+           (first (:graph network))
+           (:graph network)))
+  ([network point]
+   (brute-nearest network point math/euclidean-pow2)))
 
 ;; only the connected nodes
 (test/deftest ^:benchmark dijkstra-saarland-biggest-component
-  (let [graph        (alg/biggest-component (:graph @networker))
-        sources      (into [] (repeatedly iterations #(rand-nth (keys graph))))
-        destinations (into [] (repeatedly iterations #(rand-nth (keys graph))))]
-    (println "\nsaarland graph:" iterations "executions with random src/dst")
-    (println "using only strongly connected components of the original graph")
-    (println "dijkstra forward with:" (count graph) "nodes and"
-             (reduce + (map (comp count rp/successors) (vals graph))) "edges")
-    (c/quick-bench
-      (dorun (for [i (range iterations)
-                   :let [src (get sources i)
-                         dst (get destinations i)
-                         coll (alg/dijkstra graph
-                                            :start-from #{src}
-                                            :value-by (partial direction/duration graph))]]
-               (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
-                       nil
-                       coll)))
+  (let [neighbours   (:neighbours @networker)
+        graph        (:graph @networker)
+        src          (rand-nth (vals graph))]
+    (println "\nsaarland graph: nearest neighbour search with random src/dst")
+    (println "AVL tree with:" (count graph) "nodes")
+    ;; They add some memory overhead -- a reference and two ints per key. The
+    ;; additional node fields are used to support transients (one reference
+    ;; field per key), rank queries (one int) and the rebalancing algorithm
+    ;; itself (the final int).
+    ;; + 1 due to integer key duplicated
+    (println "extra space required:" (/ (* (* 4 8) (count graph)) 1e6) " MB")
+    (c/quick-bench (avl/nearest neighbours <= src)
+      :os :runtime :verbose)
+    (println "BRUTE force with:" (count graph) "nodes")
+    (c/quick-bench (brute-nearest @networker src)
       :os :runtime :verbose)))
