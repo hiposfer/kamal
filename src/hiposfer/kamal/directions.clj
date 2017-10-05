@@ -2,7 +2,8 @@
   (:require [hiposfer.kamal.osm :as osm]
             [hiposfer.kamal.graph.algorithms :as alg]
             [hiposfer.kamal.graph.protocols :as rp]
-            [hiposfer.kamal.libs.math :as math]))
+            [hiposfer.kamal.libs.math :as math]
+            [clojure.data.avl :as avl]))
             ;[hiposfer.kamal.dev :as dev]))
             ;[cheshire.core :as cheshire]))
 
@@ -37,19 +38,6 @@
         length (math/haversine (rp/lon src) (rp/lat src)
                                (rp/lon dst) (rp/lat dst))]
     (/ length osm/walking-speed)))
-
-(defn brute-nearest
-  "search the nearest node in network to point using the distance function f.
-  f defaults to the euclidean distance squared"
-  ([network point f]
-   (reduce (fn [best entry] (if (< (f point (second entry))
-                                   (f point (second best)))
-                              entry
-                              best))
-           (first (:graph network))
-           (:graph network)))
-  ([network point]
-   (brute-nearest network point math/euclidean-pow2)))
 
 (defn- geometry
   "get a geojson linestring based on the route path"
@@ -176,24 +164,24 @@
 
    Example:
    (direction network :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
-  [{:keys [graph ways] :as network} & params]
+  [{:keys [graph ways neighbours] :as network} & params]
   (let [{:keys [coordinates steps radiuses alternatives language]} params
-        start     (brute-nearest network (first coordinates))
-        dst       (brute-nearest network (last coordinates))
+        start     (avl/nearest neighbours <= (first coordinates))
+        dst       (avl/nearest neighbours <= (last coordinates))
         traversal (alg/dijkstra (:graph network)
                                 :value-by #(duration graph %1 %2)
-                                :start-from #{(key start)})
-        trace     (reduce (fn [_ trace] (when (= (key trace) (key dst)) (reduced trace)))
+                                :start-from #{(val start)})
+        trace     (reduce (fn [_ trace] (when (= (key trace) (val dst)) (reduced trace)))
                           nil
                           traversal)]
     (if (nil? trace)
       {:code "NoRoute"}
       {:code "Ok"
        :routes [(route network steps trace)]
-       :waypoints [{:name (str (:name (ways (some rp/way (rp/successors (graph (key start)))))))
-                    :location (->coordinates (val start))}
-                   {:name (str (:name (ways (some rp/way (rp/successors (graph (key start)))))))
-                    :location (->coordinates (val dst))}]})))
+       :waypoints [{:name (str (:name (ways (some rp/way (rp/successors (key start))))))
+                    :location (->coordinates (key start))}
+                   {:name (str (:name (ways (some rp/way (rp/successors (key dst))))))
+                    :location (->coordinates (key dst))}]})))
 
 ;(defonce network (time (update (time (osm/osm->network "resources/osm/saarland.osm"))
 ;                               :graph
