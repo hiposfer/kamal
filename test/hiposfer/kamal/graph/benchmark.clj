@@ -18,9 +18,9 @@
   (let [graph        (gen/generate (g/graph 1000))
         src          (key (first graph))
         dst          (key (last graph))]
-    (println "DIJKSTRA forward with:" (count graph) "nodes and"
+    (println "\n\nDIJKSTRA forward with:" (count graph) "nodes and"
              (reduce + (map (comp count rp/successors) (vals graph))) "edges")
-    (println "\nrandom graph:")
+    (println "**random graph")
     (c/quick-bench
       (let [coll (alg/dijkstra graph
                    :start-from #{src}
@@ -37,9 +37,9 @@
         src          (key (first graph))
         dst          (key (last graph))
         Cgraph       (alg/biggest-component (:graph @networker))]
-    (println "DIJKSTRA forward with:" (count graph) "nodes and"
+    (println "\n\nDIJKSTRA forward with:" (count graph) "nodes and"
              (reduce + (map (comp count rp/successors) (vals graph))) "edges")
-    (println "\nsaarland graph:")
+    (println "saarland graph:")
     (c/quick-bench
       (let [coll (alg/dijkstra graph
                    :start-from #{src}
@@ -77,7 +77,7 @@
   (let [neighbours   (:neighbours @networker)
         graph        (:graph @networker)
         src          (val (last graph))]
-    (println "\nsaarland graph: nearest neighbour search with random src/dst")
+    (println "\n\nsaarland graph: nearest neighbour search with random src/dst")
     (println "AVL tree with:" (count graph) "nodes")
     ;; They add some memory overhead -- a reference and two ints per key. The
     ;; additional node fields are used to support transients (one reference
@@ -87,6 +87,7 @@
     (println "extra space required:" (/ (* (* 4 8) (count graph)) 1e6) " MB")
     (c/quick-bench (avl/nearest neighbours <= src)
       :os :runtime :verbose)
+    (println "--------")
     (println "BRUTE force with:" (count graph) "nodes")
     (c/quick-bench (brute-nearest @networker src)
       :os :runtime :verbose)))
