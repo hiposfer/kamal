@@ -16,8 +16,8 @@
 ;; finds a path (really fast)
 (test/deftest ^:benchmark dijkstra-random-graph
   (let [graph        (gen/generate (g/graph 1000))
-        src          (rand-nth (keys graph))
-        dst          (rand-nth (keys graph))]
+        src          (key (first graph))
+        dst          (key (last graph))]
     (println "DIJKSTRA forward with:" (count graph) "nodes and"
              (reduce + (map (comp count rp/successors) (vals graph))) "edges")
     (println "\nrandom graph:")
@@ -34,8 +34,8 @@
 
 (test/deftest ^:benchmark dijkstra-saarland-graph
   (let [graph        (:graph @networker) ;; force read
-        src          (rand-nth (keys graph))
-        dst          (rand-nth (keys graph))
+        src          (key (first graph))
+        dst          (key (last graph))
         Cgraph       (alg/biggest-component (:graph @networker))]
     (println "DIJKSTRA forward with:" (count graph) "nodes and"
              (reduce + (map (comp count rp/successors) (vals graph))) "edges")
@@ -76,7 +76,7 @@
 (test/deftest ^:benchmark dijkstra-saarland-biggest-component
   (let [neighbours   (:neighbours @networker)
         graph        (:graph @networker)
-        src          (rand-nth (vals graph))]
+        src          (val (last graph))]
     (println "\nsaarland graph: nearest neighbour search with random src/dst")
     (println "AVL tree with:" (count graph) "nodes")
     ;; They add some memory overhead -- a reference and two ints per key. The
