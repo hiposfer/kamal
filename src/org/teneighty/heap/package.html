@@ -1,0 +1,434 @@
+<html>
+<body>
+This package contains the teneighty.org heap collection.
+<p>The table below summarizes the available implementations:
+<table cellspacing="1" cellpadding="3" border="0" bgcolor="#999999">
+	<tr bgcolor="#FFFFFF">
+		<th>&nbsp;</th>
+		<th>Construction</th>
+		<th>{@linkplain org.teneighty.heap.Heap#insert(Object, Object)
+		Insert}</th>
+		<th>{@linkplain org.teneighty.heap.Heap#getMinimum() Get Minimum}</th>
+		<th>{@linkplain org.teneighty.heap.Heap#extractMinimum() Extract
+		Minimum}</th>
+		<th>{@linkplain
+		org.teneighty.heap.Heap#delete(org.teneighty.heap.Heap.Entry) Delete}</th>
+		<th>{@linkplain
+		org.teneighty.heap.Heap#decreaseKey(org.teneighty.heap.Heap.Entry,
+		Object) Decrease Key}</th>
+		<th>{@linkplain org.teneighty.heap.Heap#union(Heap)}</th>
+		<th>{@linkplain java.lang.Iterable Iteration}</th>
+		<th>{@linkplain java.io.Serializable Serialization}</th>
+		<th>{@linkplain org.teneighty.heap.Heap#equals(Object) Equality}</th>
+	</tr>
+	<tr bgcolor="#CCCCCC">
+		<td bgcolor="#FFFFFF" nowrap>{@link
+		org.teneighty.heap.BinaryHeap}</td>
+		<td nowrap><code>&theta;(1)</code></td>
+		<td nowrap><code>&theta;(log n)</code></td>
+		<td nowrap><code>&theta;(1)</code></td>
+		<td nowrap><code>&theta;(log n)</code></td>
+		<td nowrap><code>&theta;(log n)</code></td>
+		<td nowrap><code>&theta;(log n)</code></td>
+		<td nowrap><code>&theta;(n + m)</code></td>
+		<td nowrap><code>&theta;(n)</code></td>
+		<td nowrap><code>&theta;(n)</code></td>
+		<td nowrap><code>&theta;(n<sup>2</sup>)</code></td>
+	</tr>
+	<tr bgcolor="#FFFFFF">
+		<td bgcolor="#FFFFFF" nowrap>{@link
+		org.teneighty.heap.BinomialHeap}</td>
+		<td nowrap><code>&theta;(1)</code></td>
+		<td nowrap><code>O(log n)</code></td>
+		<td nowrap><code>O(log n)</code></td>
+		<td nowrap><code>&theta;(log n)</code></td>
+		<td nowrap><code>O(log n)</code></td>
+		<td nowrap><code>&theta;(log n)</code></td>
+		<td nowrap><code>O(log (n + m))</code></td>
+		<td nowrap><code>&theta;(n)</code></td>
+		<td nowrap><code>&theta;(n log n)</code></td>
+		<td nowrap><code>O(n<sup>2</sup>)</code></td>
+	</tr>
+	<tr bgcolor="#CCCCCC">
+		<td bgcolor="#FFFFFF" nowrap>{@link
+		org.teneighty.heap.LeftistHeap}</td>
+		<td nowrap><code>&theta;(1)</code></td>
+		<td nowrap><code>O(log n)</code></td>
+		<td nowrap><code>&theta;(1)</code></td>
+		<td nowrap><code>O(log n)</code></td>
+		<td nowrap><code>O(log n)</code></td>
+		<td nowrap><code>O(log n)</code></td>
+		<td nowrap><code>O(log n)</code></td>
+		<td nowrap><code>&theta;(n)</code></td>
+		<td nowrap><code>&theta;(n log n)</code></td>
+		<td nowrap><code>O(n<sup>2</sup>)</code></td>
+	</tr>
+	<tr bgcolor="#FFFFFF">
+		<td bgcolor="#FFFFFF" nowrap>{@link
+		org.teneighty.heap.FibonacciHeap}</td>
+		<td nowrap><code>&theta;(1)</code></td>
+		<td nowrap><code>&theta;(1)</code></td>
+		<td nowrap><code>&theta;(1)</code></td>
+		<td nowrap><code>O(log n)&dagger;</code></td>
+		<td nowrap><code>O(log n)&dagger;</code></td>
+		<td nowrap><code>&theta;(1)&dagger;</code></td>
+		<td nowrap><code>&theta;(1)</code></td>
+		<td nowrap><code>&theta;(n)</code></td>
+		<td nowrap><code>&theta;(n)</code></td>
+		<td nowrap><code>O(n<sup>2</sup>)</code></td>
+	</tr>
+	<tr bgcolor="#CCCCCC">
+		<td bgcolor="#FFFFFF" nowrap>{@link
+		org.teneighty.heap.PairingHeap}</td>
+		<td nowrap><code>&theta;(1)</code></td>
+		<td nowrap><code>O(1)&dagger;</code></td>
+		<td nowrap><code>&theta;(1)</code></td>
+		<td nowrap><code>O(log n)&dagger;</code></td>
+		<td nowrap><code>&Omega;(log log n), 2<sup>O(&radic;log log n)</sup></code></td>
+		<td nowrap><code>&Omega;(log log n), 2<sup>O(&radic;log log n)</sup></code></td>
+		<td nowrap><code>O(1)&dagger;</code></td>
+		<td nowrap><code>&theta;(n)</code></td>
+		<td nowrap><code>&theta;(n)</code></td>
+		<td nowrap><code>O(n<sup>2</sup>)</code></td>
+	</tr>
+	<tr bgcolor="#FFFFFF">
+		<td bgcolor="#FFFFFF" nowrap>{@link org.teneighty.heap.SkewHeap}</td>
+		<td nowrap><code>&theta;(1)</code></td>
+		<td nowrap><code>O(log n)&dagger;</code></td>
+		<td nowrap><code>&theta;(1)</code></td>
+		<td nowrap><code>O(log n)&dagger;</code></td>
+		<td nowrap><code>O(log n)&dagger;</code></td>
+		<td nowrap><code>O(log n)&dagger;</code></td>
+		<td nowrap><code>O(log (n + m))&dagger;</code></td>
+		<td nowrap><code>&theta;(n)</code></td>
+		<td nowrap><code>&theta;(n)</code></td>
+		<td nowrap><code>O(n<sup>2</sup>)</code></td>
+	</tr>
+
+</table>
+&dagger; = Amortized complexity.
+
+
+<h1>Frequently Asked Questions</h1>
+<ol>
+
+	<li><b>What's new in the latest release (2.0.0.0)?</b> <br>
+	There are several new features and bug fixes. In no particular order:
+	<ul>
+		<li>This package is now compilable against Java 1.5 and Java 1.6.</li>
+		<li>The {@link org.teneighty.heap.Heap} interface now extends
+		{@link java.lang.Iterable}, allowing you to use instances of the <code>Heap</code>
+		interface within Java's <code>for( ... )</code> construct.
+		Specifically, this allows you to iterate over the entries in the heap.</li>
+		<li>The {@link org.teneighty.heap.Heap#getEntries()} method now
+		returns a {@link java.util.Collection} rather than a {@link
+		java.util.Set}.</li>
+		<li>The collection implementations returned by the collection
+		view methods (<code>getEntries</code>, {@link
+		org.teneighty.heap.Heap#getKeys()} , {@link
+		org.teneighty.heap.Heap#getValues()} ) now correctly implement {@link
+		java.util.Collection#hashCode()} and {@link
+		java.util.Collection#equals(Object)}.</li>
+		<li>The collections returned by the aforementioned collection
+		view methods are read-only. Specifically, they will throw {@link
+		java.util.UnsupportedOperationException}s. if you call them.</li>
+		<li>The {@link org.teneighty.heap.AbstractHeap} class now takes
+		care of all collection view logic - implementations extending this
+		class need only provide an iterator over the entry set. (Specifically,
+		implementations must now suply an iterator via the {@link
+		org.teneighty.heap.Heap#iterator()} method.)</li>
+		<li>The unit test harness has been refactored and greatly
+		expanded:
+		<ul>
+			<li>A base-class test provides a fairly decent set of unit
+			tests, for any <code>Heap</code> instances. In order to test any heap
+			implementation, you need only extend this class and implement one
+			method (a method that returns an empty heap, as it were).</li>
+			<li>There are now individual test suites for each heap
+			implementation.</li>
+			<li>There are specific tests to ensure that all heaps and their
+			collection views correctly implement <code>equals(Object)</code> and
+			<code>hashCode()</code>, according to the definitions in the
+			JavaDocs.</li>
+			<li>The tests can be easily configured to run on different input
+			sizes and to use either randomized or deterministic inputs.</li>
+		</ul>
+		</li>
+		<li><code>PairingHeap</code> no longer implements {@link
+		java.lang.Cloneable}.</li>
+		<li>Fixed a bug in the <code>PairingHeap</code> iteration code
+		logic that (sometimes) caused incomplete iteration. The new iteration
+		code is also much cleaner and simpler.</li>
+		<li>The iteration logic in <code>PairingHeap</code>, <code>FibonacciHeap</code>,
+		<code>LeftistHeap</code>, and <code>BinomialHeap</code> has been
+		properly encapsulated/hidden from subclasses. (These classes still
+		suffer, to a large degree, from the brittle base class problem, but
+		this is one step in making them more robust.)</li>
+		<li>I reduced the number accesses via synthetic accessors in all
+		heap implementations. There are still a few, but I refuse to make
+		these fields package protected like various classes in the <code>java.util</code>
+		package (I prefer to keep them private).</li>
+		<li>I've added <code>SuppressWarning</code> attributes to shut
+		the compiler up about erased casts, where necessary.</li>
+		<li>I've cleaned up the JavaDocs quite a bit. The JavaDocs for
+		all these classes should now be extremely easy on your eyes. I've also
+		fixed a few erroneous comments in this package manifest.</li>
+		<li>I've added the implementation of the see <code>SkewHeap</code>.</li>
+		<li>I've fixed the performance table (the table above). First,
+		some recent research on pairing heaps has revealed some new and
+		important bounds. Second, I've changed many of the bounds to use Big
+		Theta (&theta;), where appropriate. (Reminder: Big Theta means that
+		the complexity of both Big O and Big Omega, i.e. it's bounded
+		asymptotically from above and below.) Finally, I've indicated which
+		methods have amortized, rather than worst case, complexity.</li>
+		<li>Outside of this package per se (but important to this as a
+		project), I've refactored the build file.</li>
+	</ul>
+
+	<p>
+	</li>
+
+	<li><b>Which heap implementation should I use? ...or... Which
+	heap implementation is the best?</b> <br>
+	This depends on your problem (i.e. which methods of the heap interface
+	will you be using, how often etc.), the size of your dataset, your
+	virtual machine, and your hardware. Several things to keep in mind:
+
+	<ul>
+		<li>Theoretically, the <code>PairingHeap</code> and <code>FibonacciHeap</code>
+		will have higher performance than both the <code>LeftistHeap</code>
+		and <code>BinomialHeap</code>, which would in turn be faster than the
+		<code>BinaryHeap</code> and <code>SkewHeap</code>. In practice,
+		maintaining the more complicated bookkeeping necessitated by the more
+		advanced data structures takes a constant but non-trivial amount of
+		time. In the face of very small datasets, the theoretically lower
+		performance implementations actually perform better, since they
+		require little or no overhead.</li>
+
+		<li>In the <code>src/test</code> directory, there is a small
+		JUnit test case called <code>PerformanceTest</code>. This test allows
+		you to control the ratio of different types of calls as well as
+		problem size. From the matrix above, you can see that different heaps
+		are best at doing different types of operations: If you're doing lots
+		and lots of <code>getMinimum</code> calls, you probably don't want to
+		to use a <code>BinomialHeap</code>. On the other hand, a <code>BinomialHeap</code>
+		might make perfect sense if you're doing lots of <code>decreaseKey</code>
+		calls. Examine your problem (or the algorithm you're implementing) to
+		determine the ratio of operations. Plug these ratios (and a problem
+		size) into the test case and run it. This will give you the best idea
+		of which implementation to use.</li>
+
+		<li>If one of these implementations were "the best", why would I
+		go through all the trouble of implementing the other ones? As further
+		vindication, it is trivial to tweak the aforementioned <code>PerformanceTest</code>
+		to make any one implementation look "the best".</li>
+
+	</ul>
+
+	<p>
+	</li>
+
+
+	<li><b>Why have a Heap package when the Java Collection
+	Framework contains the {@link java.util.Queue} interface?</b> <br>
+	The Heap ADT is fundamentally different from the Queue ADT. The basic
+	Queue ADT is <code>add</code>, <code>peek</code>, and <code>removeFirst</code>
+	(and other dumb utility methods); heaps provide all this, but with the
+	ability to {@linkplain
+	org.teneighty.heap.Heap#delete(org.teneighty.heap.Heap.Entry) delete an
+	arbitrary entry}, {@linkplain
+	org.teneighty.heap.Heap#decreaseKey(org.teneighty.heap.Heap.Entry,
+	Object) decrease the key of an arbitrary entry}, and {@linkplain
+	org.teneighty.heap.Heap#union(Heap) union/meld two heaps together} (and
+	other lame utility methods). These additional operations should
+	generally be supported in sublinear time by a heap, whereas they are
+	generally not available for queues or must be performed externally at
+	significant expense. Every CS student learns that the job of creating a
+	queue is reduced to the one of creating a heap - with a binary heap
+	implemenation e.g., one can easily create a priority, FIFO, or LIFO
+	queue. However, the ability to reduce the problem of implementing a
+	queue to the problem of implenting of a heap does not mean they are the
+	same thing.
+	<p>
+	</li>
+
+
+	<li><b>How come the Heap interface does not extends {@link
+	java.util.Map}?</b> <br>
+	For the same reason as above: Maps/Dictionarys and Heaps are
+	fundamentally different ADTs.
+	<p>
+	</li>
+
+
+	<li><b>Why does the Heap interface not extend <code>java.util.Collection</code>?</b>
+	<br>
+	This is a legitimate question. The main reason is that the items passed
+	to <code>delete</code> and <code>decreaseKey</code> are allocated
+	internally by the creating heap and generally contain
+	heap/implementation specific information - they are, in fact, the
+	objects returned from the <code>insert</code> method. Contrast this to
+	a standard <code>Collection</code>, in which the objects to be removed
+	(or retained) are, in fact, not returned from the add/insert method,
+	but rather allocated externally. The heap interface would thus have
+	some ill-defined methods and generally be less elegant (IMHO).
+	<p>
+	</li>
+
+
+	<li><b>Isn't this re-inventing the wheel? I mean, surely,
+	someone else has implemented these stupid things?</b> <br>
+	Well, yes, there are implementations of these things out there.
+	However, none that I have seen have a unified, Java Collection
+	Framework-esque interface or bridges to said Framework (this package
+	does). Furthermore, most of the implementations out there were done for
+	fun/academic purposes; as such, they usually impose lame constraints
+	(e.g. only <code>long</code>s can be keys) or have other highly
+	annoying problems (memory leaks, no documentation, no unit tests, code
+	that fails unit tests, no serialization support, etc.). The point of
+	this package is to avoid/remedy those problems. It's turned out to have
+	been a surprising amount of work...
+	<p>
+	</li>
+
+
+	<li><b>Why does the {@link org.teneighty.heap.Comparators}
+	class contain the {@link
+	org.teneighty.heap.Comparators#invertComparator(Comparator)} method
+	when such a method ({@link
+	java.util.Collections#reverseOrder(Comparator)}) already exists in
+	{@link java.util.Collections}?</b> <br>
+	The implementation in <code>java.util.Collections</code> is implemented
+	in a very weird way, such that passing a <code>null</code> value will
+	result in a reversed natural order comparator. I found this a bit
+	goofy. Also, the returned object does not properly implement <code>hashCode</code>
+	or <code>equals</code>, which annoys the hell out of me. Lastly, I
+	think the term "invert" more properly describes what's going on. (You <i>invert</i>
+	a function, but <i>reverse</i> a sequence. Put another way, an <i>inverted</i>
+	comparator will resulted in a <i>reversed</i> object collection. And,
+	yes, I'm a jerk when it comes to semantics. But what do you want from
+	me? I was a classics major.)
+	<p>
+	</li>
+
+
+	<li><b>What if I want an inverted natural order comparator?</b> <br>
+	Well, you could create a {@link
+	org.teneighty.heap.NaturalOrderComparator} and then invert it...
+	<p>
+	</li>
+
+
+	<li><b>Why does <code>XXXHeap</code>'s <code>equals</code>
+	(and <code>hashCode</code>) method run so slowly?</b> <br>
+	Unfortunately, there is no way to quickly compare to different heaps,
+	even of the same implementation. (Even if they contain the same set of
+	key/value pairs, heaps of the same implementation may have vastly
+	different internal structures.) Thus, the current equals method for
+	most heaps works by comparing the entry sets, which is an <code>O(n<sup>2</sup>)</code>
+	operation (where <code>n</code> is the size of the two heaps).
+	<p>
+	</li>
+
+
+	<li><b>How come the <code>BinaryHeap</code> no longer supports
+	removing entries via the Collection-view objects?</b> <br>
+	See the class docs for {@link org.teneighty.heap.BinaryHeap}. There's a
+	decent discussion there.
+	<p>
+	</li>
+
+
+	<li><b>What ever happened to the mythical <code>TwoThreeHeap</code>?</b>
+	<br>
+	It was filled with bugs, and despite it's theoretically higher
+	performance, was routinely spanked by the Fibonacci and Pairing heaps.
+	<p>
+	</li>
+
+
+	<li><b>What is your obsession with overriding <code>equals</code>
+	and <code>hashCode</code>?</b> <br>
+	This is not something I can rationally explain. It's just something I
+	think must be done.
+	<p>
+	</li>
+
+
+	<li><b>I've found a bug. What should I do?</b> <br>
+	You can report bugs here: <a
+		href="http://code.google.com/p/java-heaps/issues/list">http://code.google.com/p/java-heaps/issues/list</a>.
+	<p>
+	</li>
+
+
+	<li><b>Under what license is this software distributed?</b> <br>
+	The teneighty.org heap collection is distributed under the very liberal
+	MIT License. (This is known as the X or X11 License in some circles.)
+	You can incorporate this package, in source or binary forms, with or
+	without modification, into open or closed source projects. The MIT
+	License is a <i>copycenter</i> style license (c.f. copyright and
+	copyleft), as in: "Take it down to the copy center and make as many
+	copies as you want."
+	<p>
+	</li>
+
+
+	<li><b>Why did you create this package?</b> <br>
+	Heaps are fun and useful! Also, in my college days, my roommate and I
+	did a fairly cool project on maximum flows. I've been playing with
+	heaps ever since.
+	<p>
+	</li>
+
+
+	<li><b>Why did you use Java 1.6?</b> <br>
+	Because it was there.
+	<p>
+	</li>
+
+
+	<li><b>Is a pre-1.6 version available?</b> <br>
+	This package will compile and pass all unit tests against Java 1.5 as
+	well. There is, however, no version available for pre-Java 1.5. (You
+	could do this by simply removing all the 1.5/1.6 features, e.g.
+	generic, enums, the <code>Iterable</code> interface, etc.).
+	<p>
+	</li>
+
+
+	<li><b>What's next for the Heap Collection?</b> <br>
+	I am currently implementing and testing a <i>thin heap</i>, a spiffy
+	new data structure from Robert Tarjan and Haim Kaplan. The <i>fat
+	heap</i> should offer superior performance for a wide range of problems.
+	<p>Also in the works in the notion of a mapped heap - one which
+	provides not only all the wonders of a regular heap, but it also
+	capable of doing lookup by key in sublinear time. I am attempting to
+	implement a bi-parental heap and/or van Emde-Boas heap as the first two
+	mapped heaps.
+	<p>Finally, I'm working on a C# port/re-implementation of this
+	package, because C# is pretty badass (even if it is backed by the Evil
+	Empire). Should be coming soon...
+	<p>
+	</li>
+
+
+</ol>
+
+
+<p>&nbsp;
+<p>A few quick thanks:
+<ul>
+	<li>Mike Horwitz, uberprogrammer</li>
+	<li>Dr. Sampath Kannan, who piqued my interest in graph theory</li>
+	<li>Dr. Benjamin Pierce, who taught me the true nature of The
+	Lambda</li>
+	<li>Matt Zelesko, my boss at Ipsum Networks</li>
+	<li>Dr. Robert Tarjan, who has probably forgotten more about heaps
+	than I will ever know</li>
+	<li>Hassan Sultan, who reminded me that coding can be fun</li>
+</ul>
+
+@author Fran Lattanzio
+</body>
+</html>
