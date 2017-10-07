@@ -16,6 +16,7 @@
                  [org.apache.commons/commons-compress "1.4"] ;;bz2 files read
                  [org.clojure/data.avl "0.0.17"]
                  [environ "1.1.0"]] ;; read environment variables from several sources
+  :java-source-paths ["src/"]
   :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
                                   [expound "0.1.1"]
                                   [io.aviso/pretty "0.1.34"]

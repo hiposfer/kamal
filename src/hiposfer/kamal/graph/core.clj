@@ -3,7 +3,8 @@
             [clojure.data.int-map :as imap])
   (:import (java.util Map$Entry Queue PriorityQueue)
            (clojure.lang IPersistentMap Seqable IReduceInit IReduce Sequential ITransientSet IPersistentVector)
-           (clojure.data.int_map PersistentIntMap)))
+           (clojure.data.int_map PersistentIntMap)
+           (org.teneighty.heap FibonacciHeap Heap)))
 
 ;; ----- utility functions
 (defn node? [coll] (and (satisfies? rp/Context coll)
@@ -180,32 +181,29 @@
 (defn- init-queue
   "Returns a new MUTABLE priority queue and adds all the sources id to
   the beginning of the queue."
-  ^Queue
-  [init-set]
-  (let [cheapest-path (fn ^long [trace1 trace2] (compare (rp/cost (val trace1))
-                                                         (rp/cost (val trace2))))
-        queue  ^Queue (new PriorityQueue 10 cheapest-path)]; 10 init size
-    (run! (fn [id] (.add queue (->Trace id 0 nil))) init-set)
+  ^Heap [init-set]
+  (let [queue  ^Heap (new FibonacciHeap)]; 10 init size]
+    (run! (fn [id] (.insert queue 0 (->Trace id 0 nil))) init-set)
     queue))
 
 (defn- poll-unsettled!
   "moves the queue's head to an unsettled node id and returns the element
   containing it"
-  [^Queue queue ^ITransientSet settled]
-  (let [trace (.poll queue)]
-    (if (nil? trace) nil
-      (if (.contains settled (key trace))
+  [^Heap queue ^ITransientSet settled]
+  (if (.isEmpty queue) nil
+    (let [trace (.extractMinimum queue)]
+      (if (.contains settled (key (.getValue trace)))
         (recur queue settled)
-        trace))))
+        (.getValue trace)))))
 
 (defn- relax-nodes!
   "polls the next unsettled trace from the queue and adds all its neighbours
   to it"
-  [value f node-arcs trace ^Queue queue]
+  [value f node-arcs trace ^Heap queue]
   (reduce (fn [_ arc]
             (let [weight (rp/sum (value arc trace)
                                  (val trace))]
-              (.add queue (->Trace (f arc) weight trace))
+              (.insert queue weight (->Trace (f arc) weight trace))
               queue))
           queue
           node-arcs))
@@ -214,7 +212,7 @@
   "returns a lazy sequence of traces by sequentially mutating the
   queue (step!(ing) into it) and concatenating the latest poll with
   the rest of them"
-  [graph value arcs f ^Queue queue settled]
+  [graph value arcs f ^Heap queue settled]
   (let [trace (poll-unsettled! queue settled)]; (step! graph settled value arcs queue)
     (if (nil? trace) (list)
       (let [next-queue   (relax-nodes! value f (arcs (get graph (key trace))) trace queue)
