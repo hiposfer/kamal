@@ -182,10 +182,17 @@
   "Returns a new MUTABLE priority queue and adds all the sources id to
   the beginning of the queue."
   ^Heap [init-set]
-  (let [queue  ^Heap (new FibonacciHeap)]; 10 init size]
-    (run! (fn [id] (.insert queue 0 (->Trace id 0 nil))) init-set)
+  (let [queue  ^Heap (new FibonacciHeap)]
+    (run! (fn [id] (.insert queue 0 (->Trace id 0 nil)))
+          init-set)
     queue))
 
+;; This is a hack taken from the Efficient Route Planning Course in Freiburg
+;; Instead of decreasing the priority of an element in (relax-nodes!) we
+;; check if the next element was already settled and ignore it if so.
+;; This is not very efficient but it shouldnt impact the performance
+;; since real world road networks a 1/3 node/arc ratio.
+;; https://ad-wiki.informatik.uni-freiburg.de/teaching/EfficientRoutePlanningSS2012
 (defn- poll-unsettled!
   "moves the queue's head to an unsettled node id and returns the element
   containing it"
@@ -197,16 +204,16 @@
         (.getValue trace)))))
 
 (defn- relax-nodes!
-  "polls the next unsettled trace from the queue and adds all its neighbours
-  to it"
-  [value f node-arcs trace ^Heap queue]
+  "adds all node-arcs to the queue"
+  [^ITransientSet settled value f node-arcs trace ^Heap queue]
   (reduce (fn [_ arc]
-            (let [weight (rp/sum (value arc trace)
-                                 (val trace))]
-              (.insert queue weight (->Trace (f arc) weight trace))
-              queue))
-          queue
-          node-arcs))
+            (when-not (.contains settled (f arc))
+              (let [weight (rp/sum (value arc trace)
+                                   (val trace))]
+                  (.insert queue weight (->Trace (f arc) weight trace)))))
+          nil
+          node-arcs)
+  queue)
 
 (defn- produce!
   "returns a lazy sequence of traces by sequentially mutating the
@@ -215,15 +222,16 @@
   [graph value arcs f ^Heap queue settled]
   (let [trace (poll-unsettled! queue settled)]; (step! graph settled value arcs queue)
     (if (nil? trace) (list)
-      (let [next-queue   (relax-nodes! value f (arcs (get graph (key trace))) trace queue)
+      (let [next-queue   (relax-nodes! settled value f (arcs (graph (key trace)))
+                                       trace queue)
             next-settled (conj! settled (key trace))]
         (cons trace
               (lazy-seq (produce! graph value arcs f next-queue next-settled)))))))
 
 
 ; inspired by http://insideclojure.org/2015/01/18/reducible-generators/
-; A Collection type which can reduce itself faster than first/next traversal over its lazy
-; representation. For convenience a lazy implementation is also provided.
+; A Collection type which can reduce itself faster than first/next traversal over
+; its lazy representation. For convenience a lazy implementation is also provided.
 ;
 ; The Dijkstra algorithm implemented here works as follows:
 ; 1 - take a set of start node, assign them a weight of zero and add them as
@@ -271,7 +279,8 @@
           (let [rr (rf ret trace)]
             (if (reduced? rr) @rr
               (recur rr
-                     (relax-nodes! value f (arcs (get graph (key trace))) trace queue)
+                     (relax-nodes! settled value f (arcs (graph (key trace)))
+                                   trace queue)
                      (conj! settled (key trace)))))))))
   ;; ------
   IReduce

@@ -7,7 +7,7 @@
             [clojure.tools.namespace.repl :as repl]))
             ;[cheshire.core :as cheshire]))
 
-(def system nil)
+(defonce system nil)
 
 (defn init!
   "Constructs the current development system."
