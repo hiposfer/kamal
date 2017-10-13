@@ -5,7 +5,10 @@
             [hiposfer.kamal.graph.protocols :as rp]
             [clojure.spec.alpha :as s]
             [hiposfer.kamal.graph.core :as graph]
-            [clojure.data.int-map :as imap]))
+            [clojure.data.int-map :as imap]
+            [clojure.data.avl :as avl]
+            [clojure.set :as set]
+            [hiposfer.kamal.libs.math :as math]))
 
 (defn- grapher
   "returns a graph based on the provided node ids. Random latitude and longitudes
@@ -54,8 +57,10 @@
                                                                             (map rp/src))
                                                                       (graph/edges graph))}])
                      way-ids)]
-    {:graph graph
-     :ways  (into {} ways)}))
+    {:graph      graph
+     :ways       (into {} ways)
+     :neighbours (into (avl/sorted-map-by math/lexicographic-coordinate)
+                       (set/map-invert graph))}))
 
 ;; example usage
 ;(complete (gen/generate (graph 10)))
