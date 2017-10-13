@@ -20,19 +20,20 @@
                          (instance? IPersistentMap coll))) ;; assoc, dissoc, contains, get
 
 (defn nodes
-  "returns the node objects (no id) of graph. The order of the elements is not guarantee"
+  "returns the node objects (no id) of graph. The order of the elements is not
+   guaranteed"
   [graph]
   (vals graph))
 
 (defn successors
   "returns a lazy sequence of outgoing arcs. The order of the elements is not
-  guarantee"
+  guaranteed"
   [graph]
   (sequence (map rp/successors) (vals graph)))
 
 (defn predecessors
   "returns a lazy sequence of incoming arcs. The order of the elements is not
-  guarantee"
+  guaranteed"
   [graph]
   (sequence (map rp/predecessors) (vals graph)))
 
