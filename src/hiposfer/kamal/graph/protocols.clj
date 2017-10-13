@@ -80,6 +80,3 @@
 (defprotocol Binder
   (inbound  [node arc-or-edge] "bind the given incoming Link to this Node")
   (outbound [node arc-or-edge] "bind the given outgoing Link to this Node"))
-
-(defprotocol Queryable "The ability to find out about complex relationships in a graph"
-  (query [graph setup]))
