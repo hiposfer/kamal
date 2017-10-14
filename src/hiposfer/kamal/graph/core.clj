@@ -243,12 +243,12 @@
   the rest of them"
   [graph value arcs f ^Heap queue settled]
   (if (.isEmpty queue) (list)
-    (let [trace (poll-unsettled! queue settled)]
-      (let [next-queue   (relax-nodes! settled value f (arcs (graph (key trace)))
-                                       trace queue)
-            next-settled (conj! settled (key trace))]
+    (let [trace      (poll-unsettled! queue settled)
+          next-queue (relax-nodes! settled value f (arcs (graph (key trace)))
+                                   trace queue)
+          next-settled (conj! settled (key trace))]
         (cons trace
-              (lazy-seq (produce! graph value arcs f next-queue next-settled)))))))
+              (lazy-seq (produce! graph value arcs f next-queue next-settled))))))
 
 
 ; inspired by http://insideclojure.org/2015/01/18/reducible-generators/
