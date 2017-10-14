@@ -226,9 +226,14 @@
         (recur queue settled)
         (.getValue entry)))))
 
-;; TODO: this implementation does NOT use decreaseKey, even though it is possible
-;; this could probably result in a performance improvement. An example of such an
-;; implementation is here: http://www.keithschwarz.com/interesting/code/?dir=dijkstra
+;; TODO: this implementation does NOT use decreaseKey. Performance improvement?
+;; The problem with decreaseKey is that it forces the user to keep a map of {id Heap.Entry<Trace>}
+;; and Heap.Entry is generally an implementation specific (mutable) class. This makes
+;; the approach very unreliable in a functional approach as we expose Trace to the
+;; outside. A way to prevent this would be for the Heap/Queue implementation to rely
+;; solely on a Comparator instead of on its own Entry implementation.
+;; An example of such an mutable dijkstra implementation is here
+;; http://www.keithschwarz.com/interesting/code/?dir=dijkstra
 (defn- relax-nodes!
   "adds all node-arcs to the queue"
   [^ITransientSet settled value f node-arcs trace ^Heap queue]
