@@ -199,11 +199,10 @@
   Object
   (toString [_] (str "[" id " " value "]")))
 
-; travis-ci seems to complaint about not finding a matching constructor if the
-; init size is not there. Funnily the ctor with a single comparator is not defined
-; in the java docs .... hmmm :/
+
+;; ------------------ DIJKSTRA CORE -------------------
 (defn- init-queue
-  "Returns a new MUTABLE priority queue and adds all the sources id to
+  "Returns a new MUTABLE fibonacci heap (priority queue) and adds all the sources id to
   the beginning of the queue."
   ^Heap [init-set]
   (let [queue  ^Heap (new FibonacciHeap)]
@@ -220,7 +219,7 @@
 (defn- poll-unsettled!
   "moves the queue's head to an unsettled node id and returns the trace
   containing it"
-  [^Heap queue ^ITransientSet settled]
+  [^Heap queue ^ITransientSet settled] ;; BUG: https://dev.clojure.org/jira/browse/DIMAP-14
   (if (.isEmpty queue) nil
     (let [entry (.extractMinimum queue)]
       (if (.contains settled (key (.getValue entry)))
