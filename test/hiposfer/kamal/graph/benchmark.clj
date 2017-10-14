@@ -31,6 +31,7 @@
       :os :runtime :verbose)))
 
 (def networker (delay (osm/osm->network "resources/osm/saarland.osm.bz2")))
+;(take 10 (:graph @networker)) ;; force read
 
 (test/deftest ^:benchmark dijkstra-saarland-graph
   (let [graph        (:graph @networker) ;; force read
