@@ -229,13 +229,14 @@
 (defn- relax-nodes!
   "adds all node-arcs to the queue"
   [^ITransientSet settled value f node-arcs trace ^Heap queue]
-  (do (run! (fn [arc]
-              (when-not (.contains settled (f arc))
-                (let [weight (rp/sum (value arc trace)
-                                     (val trace))]
-                    (.insert queue weight (->Trace (f arc) weight trace)))))
-            node-arcs)
-      queue))
+  (let [arc (first node-arcs)]
+    (if (nil? arc) queue
+      (if (.contains settled (f (first node-arcs)))
+        (recur settled value f (rest node-arcs) trace queue)
+        (let [weight (rp/sum (value arc trace)
+                             (val trace))]
+          (.insert queue weight (->Trace (f arc) weight trace))
+          (recur settled value f (rest node-arcs) trace queue))))))
 
 (defn- produce!
   "returns a lazy sequence of traces by sequentially mutating the
