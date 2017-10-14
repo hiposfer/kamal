@@ -218,14 +218,14 @@
 ;; since real world road networks a 1/3 node/arc ratio.
 ;; https://ad-wiki.informatik.uni-freiburg.de/teaching/EfficientRoutePlanningSS2012
 (defn- poll-unsettled!
-  "moves the queue's head to an unsettled node id and returns the element
+  "moves the queue's head to an unsettled node id and returns the trace
   containing it"
   [^Heap queue ^ITransientSet settled]
   (if (.isEmpty queue) nil
-    (let [trace (.extractMinimum queue)]
-      (if (.contains settled (key (.getValue trace)))
+    (let [entry (.extractMinimum queue)]
+      (if (.contains settled (key (.getValue entry)))
         (recur queue settled)
-        (.getValue trace)))))
+        (.getValue entry)))))
 
 (defn- relax-nodes!
   "adds all node-arcs to the queue"
