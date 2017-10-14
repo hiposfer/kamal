@@ -17,12 +17,38 @@
 
 (defn graph? [coll] (and (satisfies? rp/Coherent coll) ;; connect
                          (satisfies? rp/Incoherent coll) ;; disconnect
-                         (instance? IPersistentMap coll) ;; assoc, dissoc, contains, get
-                         (satisfies? rp/Queryable coll))) ;; query
+                         (instance? IPersistentMap coll))) ;; assoc, dissoc, contains, get
+
+(defn nodes
+  "returns the node objects (no id) of graph. The order of the elements is not
+   guaranteed"
+  [graph]
+  (vals graph))
+
+(defn successors
+  "returns a lazy sequence of outgoing arcs. The order of the elements is not
+  guaranteed"
+  [graph]
+  (sequence (map rp/successors) (vals graph)))
+
+(defn predecessors
+  "returns a lazy sequence of incoming arcs. The order of the elements is not
+  guaranteed"
+  [graph]
+  (sequence (map rp/predecessors) (vals graph)))
+
+(defn edges
+  "returns a lazy sequence of bidirectional arcs (those that conform to edge?)
+  Duplicates are removed from the sequence"
+  [graph]
+  (sequence (comp (mapcat #(concat (rp/successors %) (rp/predecessors %)))
+                  (filter edge?)
+                  (distinct))
+            (vals graph)))
 
 ;; -------------------------------
 ; graph is an {id node}
-; Node is a {:lon :lat :arcs {dst-id arc}}
+; Node is a {:lon :lat :arcs {node-id arc}}
 ; Arc is a {:src :dst :way-id}
 
 ;; TODO: do I need the :mirror? flag?
@@ -87,9 +113,7 @@
     (let [src (rp/src arc-or-edge)
           dst (rp/dst arc-or-edge)]
       (-> (update graph src rp/disconnect src dst)
-          (update       dst rp/disconnect dst src))))
-  rp/Queryable
-  (query [graph query] (throw (ex-info "this method has not been implemented yet!" query))))
+          (update       dst rp/disconnect dst src)))))
 
 ;; a Point is a simple longitude, latitude pair used to
 ;; represent the geometry of a way

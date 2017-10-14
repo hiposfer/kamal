@@ -71,3 +71,12 @@
              (* (Math/sin φ1) (Math/cos φ2) (Math/cos Δλ)))]
     (rem (+ (Math/toDegrees (Math/atan2 y x)) 360)
          360)));
+
+(defn lexicographic-coordinate
+  "comparator function to order nodes in a graph
+  WARNING: this assumes that two points cannot occupy the same
+  space. e.g. no 3D points since two point with different height
+  but equal lat, lon would collide"
+  [x y]
+  (compare [(rp/lat x) (rp/lon x)]
+           [(rp/lat y) (rp/lon y)]))
