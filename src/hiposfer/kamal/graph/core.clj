@@ -191,10 +191,11 @@
   (setValue [_ _] (throw (ex-info "Unsupported Operation" {} "cannot change an immutable value")))
   ; we rely on the key and val implementing their own equals
   (equals [this that]
-    (let [t1 (rp/path this)
-          t2 (rp/path that)]
-      (and (apply = (map key t1) (map key t2))
-           (apply = (map val t1) (map val t2)))))
+    (cond
+      (identical? this that) true
+      (not= (key this) (key that)) false
+      (not= (val this) (val that)) false
+      :else (map = (rp/path this) (rp/path that))))
   (hashCode [_] (hash [id value prior]))
   Object
   (toString [_] (str "[" id " " value "]")))
