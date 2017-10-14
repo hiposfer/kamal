@@ -1,7 +1,7 @@
 (ns hiposfer.kamal.graph.core
   (:require [hiposfer.kamal.graph.protocols :as rp]
             [clojure.data.int-map :as imap])
-  (:import (java.util Map$Entry Queue PriorityQueue)
+  (:import (java.util Map$Entry)
            (clojure.lang IPersistentMap Seqable IReduceInit IReduce Sequential ITransientSet IPersistentVector)
            (clojure.data.int_map PersistentIntMap)
            (org.teneighty.heap FibonacciHeap Heap)))
