@@ -226,6 +226,9 @@
         (recur queue settled)
         (.getValue entry)))))
 
+;; TODO: this implementation does NOT use decreaseKey, even though it is possible
+;; this could probably result in a performance improvement. An example of such an
+;; implementation is here: http://www.keithschwarz.com/interesting/code/?dir=dijkstra
 (defn- relax-nodes!
   "adds all node-arcs to the queue"
   [^ITransientSet settled value f node-arcs trace ^Heap queue]
