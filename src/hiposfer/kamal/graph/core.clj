@@ -220,11 +220,10 @@
   "moves the queue's head to an unsettled node id and returns the trace
   containing it"
   [^Heap queue ^ITransientSet settled] ;; BUG: https://dev.clojure.org/jira/browse/DIMAP-14
-  (if (.isEmpty queue) nil
-    (let [entry (.extractMinimum queue)]
-      (if (.contains settled (key (.getValue entry)))
-        (recur queue settled)
-        (.getValue entry)))))
+  (let [entry (.extractMinimum queue)]
+    (if (.contains settled (key (.getValue entry)))
+      (recur queue settled)
+      (.getValue entry))))
 
 (defn- relax-nodes!
   "adds all node-arcs to the queue"
@@ -243,8 +242,8 @@
   queue (step!(ing) into it) and concatenating the latest poll with
   the rest of them"
   [graph value arcs f ^Heap queue settled]
-  (let [trace (poll-unsettled! queue settled)]; (step! graph settled value arcs queue)
-    (if (nil? trace) (list)
+  (if (.isEmpty queue) (list)
+    (let [trace (poll-unsettled! queue settled)]
       (let [next-queue   (relax-nodes! settled value f (arcs (graph (key trace)))
                                        trace queue)
             next-settled (conj! settled (key trace))]
@@ -297,14 +296,14 @@
     (loop [ret     init
            queue   (init-queue ids)
            settled (transient (imap/int-set))]
-      (let [trace (poll-unsettled! queue settled)]
-        (if (nil? trace) ret ;; empty queue
-          (let [rr (rf ret trace)]
+      (if (.isEmpty queue) ret
+        (let [trace (poll-unsettled! queue settled)
+              rr (rf ret trace)]
             (if (reduced? rr) @rr
               (recur rr
                      (relax-nodes! settled value f (arcs (graph (key trace)))
                                    trace queue)
-                     (conj! settled (key trace)))))))))
+                     (conj! settled (key trace))))))))
   ;; ------
   IReduce
   (reduce [this rf] (.reduce ^IReduceInit this rf (rf)))
