@@ -73,7 +73,7 @@
    (brute-nearest network point math/euclidean-pow2)))
 
 ;; only the connected nodes
-(test/deftest ^:benchmark dijkstra-saarland-biggest-component
+(test/deftest ^:benchmark nearest-neighbour-search
   (let [neighbours   (:neighbours @networker)
         graph        (:graph @networker)
         src          (val (last graph))]

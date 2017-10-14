@@ -1,21 +1,20 @@
 
 Testing hiposfer.kamal.graph.benchmark
 
-
 saarland graph: nearest neighbour search with random src/dst
 AVL tree with: 90397 nodes
 extra space required: 2.892704  MB
 amd64 Linux 4.4.0-96-generic 4 cpu(s)
 OpenJDK 64-Bit Server VM 25.131-b11
-Runtime arguments: -Dfile.encoding=UTF-8 -Xmx1g -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/home/carocad/Proyectos/kamal/target/classes -Dkamal.version=0.1.1-SNAPSHOT -Dclojure.debug=false
-Evaluation count : 784002 in 6 samples of 130667 calls.
-      Execution time sample mean : 770,893889 ns
-             Execution time mean : 771,041391 ns
-Execution time sample std-deviation : 16,818662 ns
-    Execution time std-deviation : 16,761435 ns
-   Execution time lower quantile : 760,855970 ns ( 2,5%)
-   Execution time upper quantile : 799,955163 ns (97,5%)
-                   Overhead used : 1,474685 ns
+Runtime arguments: -Dfile.encoding=UTF-8 -Xmx1g -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/home/carocad/Proyectos/kamal/target/classes -Dkamal.version=0.1.1 -Dclojure.debug=false
+Evaluation count : 700896 in 6 samples of 116816 calls.
+      Execution time sample mean : 875,442715 ns
+             Execution time mean : 875,442715 ns
+Execution time sample std-deviation : 18,411207 ns
+    Execution time std-deviation : 18,480400 ns
+   Execution time lower quantile : 863,701702 ns ( 2,5%)
+   Execution time upper quantile : 907,217236 ns (97,5%)
+                   Overhead used : 1,475887 ns
 
 Found 1 outliers in 6 samples (16,6667 %)
 	low-severe	 1 (16,6667 %)
@@ -24,66 +23,66 @@ Found 1 outliers in 6 samples (16,6667 %)
 BRUTE force with: 90397 nodes
 amd64 Linux 4.4.0-96-generic 4 cpu(s)
 OpenJDK 64-Bit Server VM 25.131-b11
-Runtime arguments: -Dfile.encoding=UTF-8 -Xmx1g -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/home/carocad/Proyectos/kamal/target/classes -Dkamal.version=0.1.1-SNAPSHOT -Dclojure.debug=false
-Evaluation count : 30 in 6 samples of 5 calls.
-      Execution time sample mean : 25,549918 ms
-             Execution time mean : 25,553462 ms
-Execution time sample std-deviation : 1,026173 ms
-    Execution time std-deviation : 1,155324 ms
-   Execution time lower quantile : 24,889640 ms ( 2,5%)
-   Execution time upper quantile : 26,965905 ms (97,5%)
-                   Overhead used : 1,474685 ns
+Runtime arguments: -Dfile.encoding=UTF-8 -Xmx1g -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/home/carocad/Proyectos/kamal/target/classes -Dkamal.version=0.1.1 -Dclojure.debug=false
+Evaluation count : 24 in 6 samples of 4 calls.
+      Execution time sample mean : 26,341438 ms
+             Execution time mean : 26,342367 ms
+Execution time sample std-deviation : 242,211828 µs
+    Execution time std-deviation : 242,182980 µs
+   Execution time lower quantile : 26,226491 ms ( 2,5%)
+   Execution time upper quantile : 26,762835 ms (97,5%)
+                   Overhead used : 1,475887 ns
+
+Found 1 outliers in 6 samples (16,6667 %)
+	low-severe	 1 (16,6667 %)
+ Variance from outliers : 13,8889 % Variance is moderately inflated by outliers
 
 
 DIJKSTRA forward with: 90397 nodes and 230142 edges
 saarland graph:
 amd64 Linux 4.4.0-96-generic 4 cpu(s)
 OpenJDK 64-Bit Server VM 25.131-b11
-Runtime arguments: -Dfile.encoding=UTF-8 -Xmx1g -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/home/carocad/Proyectos/kamal/target/classes -Dkamal.version=0.1.1-SNAPSHOT -Dclojure.debug=false
+Runtime arguments: -Dfile.encoding=UTF-8 -Xmx1g -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/home/carocad/Proyectos/kamal/target/classes -Dkamal.version=0.1.1 -Dclojure.debug=false
 Evaluation count : 6 in 6 samples of 1 calls.
-      Execution time sample mean : 122,094381 ms
-             Execution time mean : 122,099221 ms
-Execution time sample std-deviation : 349,542866 µs
-    Execution time std-deviation : 350,246939 µs
-   Execution time lower quantile : 121,879643 ms ( 2,5%)
-   Execution time upper quantile : 122,684732 ms (97,5%)
-                   Overhead used : 1,474685 ns
-
-Found 1 outliers in 6 samples (16,6667 %)
-	low-severe	 1 (16,6667 %)
- Variance from outliers : 13,8889 % Variance is moderately inflated by outliers
+      Execution time sample mean : 191,107911 ms
+             Execution time mean : 191,083962 ms
+Execution time sample std-deviation : 341,433194 µs
+    Execution time std-deviation : 358,133003 µs
+   Execution time lower quantile : 190,659380 ms ( 2,5%)
+   Execution time upper quantile : 191,408875 ms (97,5%)
+                   Overhead used : 1,475887 ns
 --------
 using only strongly connected components of the original graph
 amd64 Linux 4.4.0-96-generic 4 cpu(s)
 OpenJDK 64-Bit Server VM 25.131-b11
-Runtime arguments: -Dfile.encoding=UTF-8 -Xmx1g -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/home/carocad/Proyectos/kamal/target/classes -Dkamal.version=0.1.1-SNAPSHOT -Dclojure.debug=false
+Runtime arguments: -Dfile.encoding=UTF-8 -Xmx1g -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/home/carocad/Proyectos/kamal/target/classes -Dkamal.version=0.1.1 -Dclojure.debug=false
 Evaluation count : 6 in 6 samples of 1 calls.
-      Execution time sample mean : 123,363626 ms
-             Execution time mean : 123,369635 ms
-Execution time sample std-deviation : 243,865816 µs
-    Execution time std-deviation : 249,729987 µs
-   Execution time lower quantile : 123,102058 ms ( 2,5%)
-   Execution time upper quantile : 123,766125 ms (97,5%)
-                   Overhead used : 1,474685 ns
+      Execution time sample mean : 193,370479 ms
+             Execution time mean : 193,384089 ms
+Execution time sample std-deviation : 1,666534 ms
+    Execution time std-deviation : 1,666534 ms
+   Execution time lower quantile : 192,375172 ms ( 2,5%)
+   Execution time upper quantile : 196,243765 ms (97,5%)
+                   Overhead used : 1,475887 ns
 
 Found 1 outliers in 6 samples (16,6667 %)
 	low-severe	 1 (16,6667 %)
  Variance from outliers : 13,8889 % Variance is moderately inflated by outliers
 
 
-DIJKSTRA forward with: 1028 nodes and 6168 edges
-**random graph
+DIJKSTRA forward with: 1025 nodes and 6140 edges
+**random graph:
 amd64 Linux 4.4.0-96-generic 4 cpu(s)
 OpenJDK 64-Bit Server VM 25.131-b11
-Runtime arguments: -Dfile.encoding=UTF-8 -Xmx1g -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/home/carocad/Proyectos/kamal/target/classes -Dkamal.version=0.1.1-SNAPSHOT -Dclojure.debug=false
-Evaluation count : 120 in 6 samples of 20 calls.
-      Execution time sample mean : 5,207154 ms
-             Execution time mean : 5,207122 ms
-Execution time sample std-deviation : 5,809170 µs
-    Execution time std-deviation : 6,417987 µs
-   Execution time lower quantile : 5,200082 ms ( 2,5%)
-   Execution time upper quantile : 5,215436 ms (97,5%)
-                   Overhead used : 1,474685 ns
+Runtime arguments: -Dfile.encoding=UTF-8 -Xmx1g -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/home/carocad/Proyectos/kamal/target/classes -Dkamal.version=0.1.1 -Dclojure.debug=false
+Evaluation count : 96 in 6 samples of 16 calls.
+      Execution time sample mean : 6,316852 ms
+             Execution time mean : 6,316852 ms
+Execution time sample std-deviation : 11,511659 µs
+    Execution time std-deviation : 12,230580 µs
+   Execution time lower quantile : 6,305873 ms ( 2,5%)
+   Execution time upper quantile : 6,332373 ms (97,5%)
+                   Overhead used : 1,475887 ns
 
 Ran 3 tests containing 0 assertions.
 0 failures, 0 errors.
