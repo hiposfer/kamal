@@ -292,7 +292,7 @@
 ; - graph: a {id node} mapping
 ; - ids: a #{ids}
 ; - value: a function of current-arc, current-trace -> Valuable implementation
-; - arcs: a function of graph, id -> node. Used to get either the incoming or outgoing arcs of a node
+; - arcs: a function of node -> [arc]. Used to get either the incoming or outgoing arcs of a node
 ; - f: a function of Arc -> id. Used to get the id of the src or dst of an Arc
 (deftype Dijkstra [graph ids value arcs f]
   Seqable
@@ -319,3 +319,8 @@
   (reduce [this rf] (.reduce ^IReduceInit this rf (rf)))
   ;; declaring as Sequential will cause the seq to be used for nth, etc
   Sequential)
+
+;; discussion ---------------
+;; A possible way to solve the HACK and TODO above is to create an
+;; "unsettled nodes" set which contains the heap entries. Whenever an
+;; entry is settled, we remove it from the set.
