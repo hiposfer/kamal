@@ -202,8 +202,8 @@
 
 ;; ------------------ DIJKSTRA CORE -------------------
 (defn- init-queue
-  "Returns a new MUTABLE fibonacci heap (priority queue) and adds all the sources id to
-  the beginning of the queue."
+  "Returns a new MUTABLE fibonacci heap (priority queue) and adds all the
+   sources id to the beginning of the queue."
   ^Heap [init-set]
   (let [queue  ^Heap (new FibonacciHeap)]
     (run! (fn [id] (.insert queue 0 (->Trace id 0 nil)))
@@ -218,12 +218,13 @@
 ;; https://ad-wiki.informatik.uni-freiburg.de/teaching/EfficientRoutePlanningSS2012
 (defn- poll-unsettled!
   "moves the queue's head to an unsettled node id and returns the trace
-  containing it"
+  containing it or nil if none was found"
   [^Heap queue ^ITransientSet settled] ;; BUG: https://dev.clojure.org/jira/browse/DIMAP-14
-  (let [entry (.extractMinimum queue)]
-    (if (.contains settled (key (.getValue entry)))
-      (recur queue settled)
-      (.getValue entry))))
+  (if (.isEmpty queue) nil
+    (let [entry (.extractMinimum queue)]
+      (if (.contains settled (key (.getValue entry)))
+        (recur queue settled)
+        (.getValue entry)))))
 
 (defn- relax-nodes!
   "adds all node-arcs to the queue"
@@ -242,13 +243,13 @@
   queue (step!(ing) into it) and concatenating the latest poll with
   the rest of them"
   [graph value arcs f ^Heap queue settled]
-  (if (.isEmpty queue) (list)
-    (let [trace      (poll-unsettled! queue settled)
-          next-queue (relax-nodes! settled value f (arcs (graph (key trace)))
-                                   trace queue)
-          next-settled (conj! settled (key trace))]
+  (let [trace      (poll-unsettled! queue settled)]
+    (if (nil? trace) (list)
+      (let [next-queue (relax-nodes! settled value f (arcs (graph (key trace)))
+                                 trace queue)
+            next-settled (conj! settled (key trace))]
         (cons trace
-              (lazy-seq (produce! graph value arcs f next-queue next-settled))))))
+              (lazy-seq (produce! graph value arcs f next-queue next-settled)))))))
 
 
 ; inspired by http://insideclojure.org/2015/01/18/reducible-generators/
@@ -296,14 +297,14 @@
     (loop [ret     init
            queue   (init-queue ids)
            settled (transient (imap/int-set))]
-      (if (.isEmpty queue) ret
-        (let [trace (poll-unsettled! queue settled)
-              rr (rf ret trace)]
+      (let [trace (poll-unsettled! queue settled)]
+        (if (nil? trace) ret
+          (let [rr    (rf ret trace)]
             (if (reduced? rr) @rr
               (recur rr
                      (relax-nodes! settled value f (arcs (graph (key trace)))
                                    trace queue)
-                     (conj! settled (key trace))))))))
+                     (conj! settled (key trace)))))))))
   ;; ------
   IReduce
   (reduce [this rf] (.reduce ^IReduceInit this rf (rf)))
