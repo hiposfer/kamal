@@ -1,6 +1,7 @@
 # Leiningen
 pom.xml
 pom.xml.asc
+-*.jar
 *.class
 lib/
 target/

@@ -17,7 +17,6 @@
                  [org.clojure/data.avl "0.0.17"]
                  [org.teneighty/java-heaps "1.0.0"]
                  [environ "1.1.0"]] ;; read environment variables from several sources
-  :java-source-paths ["src/"]
   :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
                                   [expound "0.1.1"]
                                   [io.aviso/pretty "0.1.34"]
