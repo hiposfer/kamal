@@ -25,7 +25,8 @@
       (let [coll (alg/dijkstra graph
                    :start-from #{src}
                    :value-by (partial direction/duration graph))]
-        (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
+        (reduce (fn [_ v] (when (= dst (key (first v)))
+                            (reduced v)))
                 nil
                 coll))
       :os :runtime :verbose)))
@@ -45,7 +46,8 @@
       (let [coll (alg/dijkstra graph
                    :start-from #{src}
                    :value-by (partial direction/duration graph))]
-        (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
+        (reduce (fn [_ v] (when (= dst (key (first v)))
+                            (reduced v)))
                 nil
                 coll))
       :os :runtime :verbose)
@@ -55,7 +57,8 @@
       (let [coll (alg/dijkstra Cgraph
                    :start-from #{src}
                    :value-by (partial direction/duration Cgraph))]
-        (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
+        (reduce (fn [_ v] (when (= dst (key (first v)))
+                            (reduced v)))
                 nil
                 coll))
       :os :runtime :verbose)))
@@ -93,3 +96,5 @@
     (println "BRUTE force with:" (count graph) "nodes")
     (c/quick-bench (brute-nearest @networker src)
       :os :runtime :verbose)))
+
+;(clojure.test/run-tests)
