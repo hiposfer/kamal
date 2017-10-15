@@ -112,8 +112,9 @@
   (disconnect [graph arc-or-edge] ;; we assume that both src and dst nodes exists
     (let [src (rp/src arc-or-edge)
           dst (rp/dst arc-or-edge)]
-      (-> (update graph src rp/disconnect arc-or-edge)
-          (update       dst rp/disconnect arc-or-edge)))))
+      (cond-> graph
+        (contains? graph src) (update src rp/disconnect arc-or-edge)
+        (contains? graph dst) (update dst rp/disconnect arc-or-edge)))))
 
 ;; a Point is a simple longitude, latitude pair used to
 ;; represent the geometry of a way
