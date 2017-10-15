@@ -171,9 +171,9 @@
         traversal (alg/dijkstra (:graph network)
                                 :value-by #(duration graph %1 %2)
                                 :start-from #{(val start)})
-        trace     (reduce (fn [_ trace] (when (= (key trace) (val dst)) (reduced trace)))
-                          nil
-                          traversal)]
+        trace     (reduce (fn [_ trace] (when (= (key (first trace)) (val dst))
+                                          (reduced trace)))
+                          nil traversal)]
     (if (nil? trace)
       {:code "NoRoute"}
       {:code "Ok"

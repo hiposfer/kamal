@@ -2,7 +2,7 @@
   (:require [hiposfer.kamal.graph.protocols :as rp]
             [clojure.data.int-map :as imap]) ;; do not remove
   (:import (java.util HashMap Map AbstractMap$SimpleImmutableEntry)
-           (clojure.lang IPersistentMap Seqable IReduceInit IReduce Sequential IPersistentVector)
+           (clojure.lang IPersistentMap Seqable IReduceInit IReduce Sequential IPersistentVector APersistentMap)
            (org.teneighty.heap FibonacciHeap Heap Heap$Entry)
            (clojure.data.int_map PersistentIntMap)))
 
@@ -30,22 +30,18 @@
   "returns a lazy sequence of outgoing arcs. The order of the elements is not
   guaranteed"
   [graph]
-  (sequence (map rp/successors) (vals graph)))
+  (sequence (mapcat rp/successors) (vals graph)))
 
 (defn predecessors
   "returns a lazy sequence of incoming arcs. The order of the elements is not
   guaranteed"
   [graph]
-  (sequence (map rp/predecessors) (vals graph)))
+  (sequence (mapcat rp/predecessors) (vals graph)))
 
 (defn edges
-  "returns a lazy sequence of bidirectional arcs (those that conform to edge?)
-  Duplicates are removed from the sequence"
+  "returns a lazy sequence of bidirectional arcs (those that conform to edge?)"
   [graph]
-  (sequence (comp (mapcat #(concat (rp/successors %) (rp/predecessors %)))
-                  (filter edge?)
-                  (distinct))
-            (vals graph)))
+  (sequence (mapcat rp/edges) (vals graph)))
 
 ;; -------------------------------
 ; graph is an {id node}
@@ -87,6 +83,9 @@
                                                (map rp/mirror))
                                          (vals (:incoming this)))
                                (vals (:outgoing this))))
+  (edges [this] (sequence (filter edge?)
+                          (concat (vals (:incoming this))
+                                  (vals (:outgoing this)))))
   rp/GeoCoordinate
   (lat [_] lat)
   (lon [_] lon)
@@ -97,8 +96,8 @@
     (assoc-in this [:outgoing (rp/dst arc-or-edge)] arc-or-edge))
   rp/Incoherent
   (disconnect [this arc-or-edge]
-    (-> (update this :outgoing dissoc (rp/src arc-or-edge))
-        (update      :incoming dissoc (rp/dst arc-or-edge)))))
+    (-> (update this :outgoing dissoc (rp/dst arc-or-edge))
+        (update      :incoming dissoc (rp/src arc-or-edge)))))
 
 ;; we use a persistent Int Map as graph representation since it is fast
 ;; and memory efficient
@@ -113,8 +112,8 @@
   (disconnect [graph arc-or-edge] ;; we assume that both src and dst nodes exists
     (let [src (rp/src arc-or-edge)
           dst (rp/dst arc-or-edge)]
-      (-> (update graph src rp/disconnect src dst)
-          (update       dst rp/disconnect dst src)))))
+      (-> (update graph src rp/disconnect arc-or-edge)
+          (update       dst rp/disconnect arc-or-edge)))))
 
 ;; a Point is a simple longitude, latitude pair used to
 ;; represent the geometry of a way
@@ -132,7 +131,7 @@
 ;; this is specially useful for generative testing: there we use generated
 ;; nodes and arcs. Here we prefer distinguishing between arcs and edges
 ;; explicitly as performance is not an issue
-(extend-type IPersistentMap
+(extend-type APersistentMap
   rp/Context
   (predecessors [this] (concat (sequence (comp (filter edge?)
                                                (map rp/mirror))
@@ -142,6 +141,9 @@
                                                (map rp/mirror))
                                          (vals (:incoming this)))
                                (vals (:outgoing this))))
+  (edges [this] (sequence (filter edge?)
+                          (concat (:incoming this)
+                                  (:outgoing this))))
   rp/GeoCoordinate
   (lat [this] (:lat this))
   (lon [this] (:lon this))
@@ -152,8 +154,8 @@
     (assoc-in this [:outgoing (rp/dst arc-or-edge)] arc-or-edge))
   rp/Incoherent
   (disconnect [this arc-or-edge]
-    (-> (update this :outgoing dissoc (rp/src arc-or-edge))
-        (update      :incoming dissoc (rp/dst arc-or-edge))))
+    (-> (update this :outgoing dissoc (rp/dst arc-or-edge))
+        (update      :incoming dissoc (rp/src arc-or-edge))))
   ;; arc representation
   rp/Link
   (src [this] (:src this))
@@ -217,15 +219,15 @@
   queue (step!(ing) into it) and concatenating the latest poll with
   the rest of them"
   [graph value arcs f ^Heap queue ^Map settled ^Map unsettled]
-  (let [entry  (.extractMinimum queue)
-        id     (key (.getValue entry))]
-    (.put settled id entry)
-    (.remove unsettled id)
-    (if (.isEmpty queue) (list)
-      (do (relax! settled unsettled value f (arcs (graph id))
-                  entry queue)
-          (cons (path settled id)
-                (lazy-seq (produce! graph value arcs f queue settled unsettled)))))))
+  (if (.isEmpty queue) (list)
+    (let [entry  (.extractMinimum queue)
+          id     (key (.getValue entry))]
+      (.put settled id entry)
+      (.remove unsettled id)
+      (relax! settled unsettled value f (arcs (graph id))
+              entry queue)
+      (cons (path settled id)
+            (lazy-seq (produce! graph value arcs f queue settled unsettled))))))
 
 ; inspired by http://insideclojure.org/2015/01/18/reducible-generators/
 ; A Collection type which can reduce itself faster than first/next traversal over
