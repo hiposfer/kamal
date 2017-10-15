@@ -24,8 +24,9 @@
 ;  (graph   [this] "the rest of the graph"))
 
 (defprotocol Context ;; in FGL this also includes the Node id and its labels
-  (predecessors [this] "returns a sequence of incoming arcs of this node under the current view")
-  (successors   [this] "returns a sequence of outgoing arcs of this node under the current view"))
+  (predecessors [this] "returns a sequence of incoming arcs of this node")
+  (edges        [this] "returns a sequence of bidirectional arcs of this node")
+  (successors   [this] "returns a sequence of outgoing arcs of this node"))
 ; NOTES:
 ; I intentionally left the `label` function out since Clojure already provides a way
 ; to retrieve information from an Object; the `get` function. If you want to have that

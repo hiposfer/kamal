@@ -1,7 +1,6 @@
 (ns hiposfer.kamal.graph.tests
   (:require [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
-            ;[clojure.test.check :as tc]
             [clojure.test.check.generators :as gen]
             [clojure.test :refer [is deftest]]
             [hiposfer.kamal.graph.algorithms :as alg]
