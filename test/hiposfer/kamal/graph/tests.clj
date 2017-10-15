@@ -37,7 +37,8 @@
         performer (alg/dijkstra rosetta
                     :value-by (fn [arc _] (:length arc))
                     :start-from #{1})
-        traversal (reduce (fn [_ v] (when (= dst (key (first v))) (reduced v)))
+        traversal (reduce (fn [_ v] (when (= dst (key (first v)))
+                                      (reduced v)))
                       nil
                       performer)]
     (is (not (empty? traversal))
@@ -70,7 +71,8 @@
           coll (alg/dijkstra graph :start-from #{src}
                                    :value-by (partial direction/duration graph))
           results (for [_ (range 10)]
-                    (reduce (fn [_ v] (when (= dst (key (first v))) (reduced v)))
+                    (reduce (fn [_ v] (when (= dst (key (first v)))
+                                        (reduced v)))
                             nil coll))]
       (or (every? nil? results)
           (and (apply = (map (comp key first) results))
@@ -87,7 +89,8 @@
           coll (alg/dijkstra graph
                              :start-from #{src}
                              :value-by (partial direction/duration graph))
-          result (reduce (fn [_ v] (when (= dst (key (first v))) (reduced v)))
+          result (reduce (fn [_ v] (when (= dst (key (first v)))
+                                     (reduced v)))
                          nil
                          coll)]
       (or (nil? result)
@@ -106,7 +109,8 @@
           coll (alg/dijkstra graph
                              :start-from #{src}
                              :value-by (partial direction/duration graph))
-          result (reduce (fn [_ v] (when (= src (key (first v))) (reduced v)))
+          result (reduce (fn [_ v] (when (= src (key (first v)))
+                                     (reduced v)))
                          nil
                          coll)]
       (and (not (empty? result))

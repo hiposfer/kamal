@@ -1,9 +1,10 @@
 (ns hiposfer.kamal.graph.core
-  (:require [hiposfer.kamal.graph.protocols :as rp])
+  (:require [hiposfer.kamal.graph.protocols :as rp]
+            [clojure.data.int-map :as imap]) ;; do not remove
   (:import (java.util HashMap Map AbstractMap$SimpleImmutableEntry)
            (clojure.lang IPersistentMap Seqable IReduceInit IReduce Sequential IPersistentVector)
-           (clojure.data.int_map PersistentIntMap)
-           (org.teneighty.heap FibonacciHeap Heap Heap$Entry)))
+           (org.teneighty.heap FibonacciHeap Heap Heap$Entry)
+           (clojure.data.int_map PersistentIntMap)))
 
 ;; ----- utility functions
 (defn node? [coll] (and (satisfies? rp/Context coll)
