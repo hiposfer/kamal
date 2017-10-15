@@ -12,7 +12,7 @@
 ;; https://rosettacode.org/wiki/Dijkstra%27s_algorithm
 (def rosetta {1 {:outgoing {2 {:dst 2 :length 7}
                             3 {:dst 3 :length 9}
-                            5 {:dst 6 :length 14}}}
+                            6 {:dst 6 :length 14}}}
               2 {:outgoing {3 {:dst 3 :length 10}
                             4 {:dst 4 :length 15}}
                  :incoming {1 {:src 1 :length 7}}}
@@ -35,22 +35,23 @@
 (deftest shortest-path
   (let [dst       5
         performer (alg/dijkstra rosetta
-                    :value-by (fn length [arc _] (:length arc))
+                    :value-by (fn [arc _] (:length arc))
                     :start-from #{1})
-        traversal (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
+        traversal (reduce (fn [_ v] (when (= dst (key (first v))) (reduced v)))
                       nil
                       performer)]
-    (is (not (nil? traversal))
+    (is (not (empty? traversal))
         "shortest path not found")
-    (is (= '(5 4 3 1) (map key (rp/path traversal)))
+    (is (= '(5 4 3 1) (map key traversal))
         "shortest path doesnt traverse expected nodes")))
 
 (deftest all-paths
   (let [performer (alg/dijkstra rosetta
                                 :value-by (fn length [arc _] (:length arc))
                                 :start-from #{1})
-        traversal (into {} (map (juxt key (comp rp/cost val)))
-                          performer)]
+        traversal (into {} (comp (map first)
+                                 (map (juxt key (comp rp/cost val))))
+                           performer)]
     (is (not (nil? traversal))
         "shortest path not found")
     (is (= {1 0, 2 7, 3 9, 4 20, 5 26, 6 11}
@@ -68,12 +69,12 @@
           dst  (rand-nth (keys graph))
           coll (alg/dijkstra graph :start-from #{src}
                                    :value-by (partial direction/duration graph))
-          results (for [i (range 10)]
-                    (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
+          results (for [_ (range 10)]
+                    (reduce (fn [_ v] (when (= dst (key (first v))) (reduced v)))
                             nil coll))]
       (or (every? nil? results)
-          (and (apply = (map key results))
-               (apply = (map (comp rp/cost val) results)))))))
+          (and (apply = (map (comp key first) results))
+               (apply = (map (comp rp/cost val first) results)))))))
 
 ; -------------------------------------------------------------------
 ; The Dijkstra algorithm cost is monotonic (increasing)
@@ -86,12 +87,12 @@
           coll (alg/dijkstra graph
                              :start-from #{src}
                              :value-by (partial direction/duration graph))
-          result (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
+          result (reduce (fn [_ v] (when (= dst (key (first v))) (reduced v)))
                          nil
                          coll)]
       (or (nil? result)
           (apply >= (concat (map (comp rp/cost val)
-                                 (rp/path result))
+                                 result)
                             [0]))))))
 
 ; -------------------------------------------------------------------
@@ -105,12 +106,11 @@
           coll (alg/dijkstra graph
                              :start-from #{src}
                              :value-by (partial direction/duration graph))
-          result (reduce (fn [_ v] (when (= src (key v)) (reduced v)))
+          result (reduce (fn [_ v] (when (= src (key (first v))) (reduced v)))
                          nil
                          coll)]
-      (and (not (nil? result))
-           (= 1 (count (rp/path result)))))))
+      (and (not (empty? result))
+           (= 1 (count result))))))
 
 ;(clojure.test/run-tests)
-
 ;(tc/quick-check 100 deterministic)

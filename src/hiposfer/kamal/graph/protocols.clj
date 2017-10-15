@@ -42,10 +42,6 @@
 ; from the Id without losing information
 
 ;; ------ special protocols for Dijkstra graph traversal
-(defprotocol Traceable "Protocol for elements that can produce a sequence
-  of other elements of the same type which were traversed before arriving to this one"
-  (path  [this] "sequence of Traceable elements taken to get to this one (in reverse order)"))
-
 (defprotocol Valuable "A simple representation of a generic routing worth function result"
   (cost [this]     "a number indicating how difficult it is to get to a specific node")
   (sum [this that] "adds two Valuable implementations. This way a Valuable implementation
