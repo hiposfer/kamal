@@ -36,7 +36,6 @@
                           :start-from #{(ffirst graph)}
                           :value-by breath-first))
             new-graph (reduce route/detach graph connected)]
-        (println [(count connected) (count graph) (count new-graph)])
         (cons connected (components new-graph))))))
 
 ;; note for specs: the biggest component of a biggest component should
