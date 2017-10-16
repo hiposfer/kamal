@@ -47,7 +47,7 @@
   "removes a node and all its connections from the graph"
   [graph id]
   (let [graph2 (reduce rp/disconnect graph (rp/successors (graph id)))
-        graph2 (reduce rp/disconnect graph (rp/predecessors (graph2 id)))]
+        graph2 (reduce rp/disconnect graph2 (rp/predecessors (graph2 id)))]
     (dissoc graph2 id)))
 
 ;; -------------------------------
