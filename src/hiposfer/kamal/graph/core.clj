@@ -43,6 +43,13 @@
   [graph]
   (sequence (mapcat rp/edges) (vals graph)))
 
+(defn detach
+  "removes a node and all its connections from the graph"
+  [graph id]
+  (let [graph2 (reduce rp/disconnect graph (rp/successors (graph id)))
+        graph2 (reduce rp/disconnect graph (rp/predecessors (graph2 id)))]
+    (dissoc graph2 id)))
+
 ;; -------------------------------
 ; graph is an {id node}
 ; Node is a {:lon :lat :arcs {node-id arc}}
@@ -97,7 +104,9 @@
   rp/Incoherent
   (disconnect [this arc-or-edge]
     (-> (update this :outgoing dissoc (rp/dst arc-or-edge))
-        (update      :incoming dissoc (rp/src arc-or-edge)))))
+        (update      :outgoing dissoc (rp/src arc-or-edge))
+        (update      :incoming dissoc (rp/src arc-or-edge))
+        (update      :incoming dissoc (rp/dst arc-or-edge)))))
 
 ;; we use a persistent Int Map as graph representation since it is fast
 ;; and memory efficient
