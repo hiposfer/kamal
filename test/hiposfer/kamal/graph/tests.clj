@@ -6,7 +6,9 @@
             [hiposfer.kamal.graph.algorithms :as alg]
             [hiposfer.kamal.graph.protocols :as rp]
             [hiposfer.kamal.graph.generators :as g]
-            [hiposfer.kamal.directions :as direction]))
+            [hiposfer.kamal.directions :as direction]
+            [clojure.set :as set]
+            [hiposfer.kamal.graph.core :as route]))
 
 ;; https://rosettacode.org/wiki/Dijkstra%27s_algorithm
 (def rosetta {1 {:outgoing {2 {:dst 2 :length 7}
@@ -114,6 +116,28 @@
                          coll)]
       (and (not (empty? result))
            (= 1 (count result))))))
+
+; -------------------------------------------------------------------
+; The biggest strongly connected component of a graph must be at most
+; as big as the original graph
+(defspec components
+  100; tries
+  (prop/for-all [graph (gen/such-that not-empty (g/graph 10) 1000)]
+    (let [graph2 (alg/biggest-component graph)]
+      (<= (count graph2) (count graph)))))
+
+; -------------------------------------------------------------------
+; The removal of a node from a Graph should also eliminate all of its
+; links
+(defspec detachable
+  100; tries
+  (prop/for-all [graph (gen/such-that not-empty (g/graph 10) 1000)]
+    (let [graph2 (route/detach graph (ffirst graph))
+          ids    (into #{} (mapcat (juxt rp/src rp/dst)
+                                   (route/edges graph)))
+          ids2   (into #{} (mapcat (juxt rp/src rp/dst)
+                                   (route/edges graph2)))]
+      (not-empty (set/difference ids ids2)))))
 
 ;(clojure.test/run-tests)
 ;(tc/quick-check 100 deterministic)
