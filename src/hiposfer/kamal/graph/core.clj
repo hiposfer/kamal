@@ -76,7 +76,7 @@
   (way [_] way))
 
 ;; A NodeInfo is an element that can be included in a graph
-;; for routing purposes
+  ;; for routing purposes
 ;; NOTE: for (memory) convenience we represent the edges as a directed outgoing arc
 ;;       and reverse it only if necessary (see predecesors)
 ;; This implementation of NodeInfo only accepts one Edge/Arc per src/dst node
@@ -87,6 +87,7 @@
                                          (vals (:outgoing this)))
                                (vals (:incoming this))))
   (successors   [this] (concat (sequence (comp (filter edge?)
+
                                                (map rp/mirror))
                                          (vals (:incoming this)))
                                (vals (:outgoing this))))
@@ -113,10 +114,8 @@
 (extend-type PersistentIntMap
   rp/Coherent
   (connect [graph arc-or-edge] ;; we assume that both src and dst nodes exists
-    (let [graph2 (update graph (rp/src arc-or-edge) rp/outbound arc-or-edge)]
-      (if (edge? arc-or-edge) ;; arc otherwise
-        (update graph2 (rp/dst arc-or-edge) rp/inbound arc-or-edge)
-        (update graph2 (rp/dst arc-or-edge) rp/inbound (rp/mirror arc-or-edge)))))
+    (-> (update graph (rp/src arc-or-edge) rp/outbound arc-or-edge)
+        (update       (rp/dst arc-or-edge) rp/inbound  arc-or-edge)))
   rp/Incoherent
   (disconnect [graph arc-or-edge] ;; we assume that both src and dst nodes exists
     (let [src (rp/src arc-or-edge)
@@ -139,8 +138,7 @@
   (lon [this] (first this)))
 
 ;; this is specially useful for generative testing: there we use generated
-;; nodes and arcs. Here we prefer distinguishing between arcs and edges
-;; explicitly as performance is not an issue
+;; nodes and arcs
 (extend-type APersistentMap
   rp/Context
   (predecessors [this] (concat (sequence (comp (filter edge?)
