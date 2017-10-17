@@ -105,9 +105,7 @@
   rp/Incoherent
   (disconnect [this arc-or-edge]
     (-> (update this :outgoing dissoc (rp/dst arc-or-edge))
-        (update      :outgoing dissoc (rp/src arc-or-edge))
-        (update      :incoming dissoc (rp/src arc-or-edge))
-        (update      :incoming dissoc (rp/dst arc-or-edge)))))
+        (update      :incoming dissoc (rp/src arc-or-edge)))))
 
 ;; we use a persistent Int Map as graph representation since it is fast
 ;; and memory efficient
