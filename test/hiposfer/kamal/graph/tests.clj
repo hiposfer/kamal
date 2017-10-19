@@ -134,21 +134,18 @@
 
 ; -------------------------------------------------------------------
 ; The removal of a node from a Graph should also eliminate all of its
-; links
-(defspec detachable
-  300; tries
-  (prop/for-all [graph (gen/such-that not-empty (g/graph 1) 1000)]
-    (let [id     (ffirst graph)
-          graph2 (route/detach graph id)
-          ids    (into #{} (mapcat (juxt rp/src rp/dst)
-                                   (route/edges graph)))
-          ids2   (into #{} (mapcat (juxt rp/src rp/dst)
-                                   (route/edges graph2)))]
-      (if (empty? (concat (rp/successors (graph id))
-                          (rp/predecessors (graph id))))
-         (is (not-empty (set/difference ids ids2))
-             "no more links with id found")
-         (is (empty? (set/difference ids ids2))
-             (str "links with id " id " found"))))))
+; links. NOTE: The dijkstra below only stops after exploring the complete
+; graph. So if there is any open link, it will throw an exception.
+; this use to throw an exception so we leave it here for testing purposes :)
+(defspec routable-components
+  100; tries
+  (prop/for-all [graph (gen/such-that not-empty (g/graph 10) 1000)]
+    (let [graph2 (alg/biggest-component graph)
+          src    (key (first graph2))
+          coll   (alg/dijkstra graph2
+                   :start-from #{src}
+                   :value-by (partial direction/duration graph2))]
+      (is (seq? (reduce (fn [r v] v) nil coll))
+          "biggest components should not contain links to nowhere"))))
 
 ;(clojure.test/run-tests)
