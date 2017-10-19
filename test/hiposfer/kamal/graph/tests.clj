@@ -95,10 +95,10 @@
                                      (reduced v)))
                          nil
                          coll)]
-      (or (nil? result)
-          (apply >= (concat (map (comp rp/cost val)
-                                 result)
-                            [0]))))))
+      (is (or (nil? result)
+              (apply >= (concat (map (comp rp/cost val) result)
+                                [0])))
+          "returned path is not monotonic"))))
 
 ; -------------------------------------------------------------------
 ; If the distance of two nodes is 0 and no edge has a 0 cost,
@@ -113,10 +113,11 @@
                              :value-by (partial direction/duration graph))
           result (reduce (fn [_ v] (when (= src (key (first v)))
                                      (reduced v)))
-                         nil
-                         coll)]
-      (and (not (empty? result))
-           (= 1 (count result))))))
+                         nil coll)]
+      (is (not-empty result)
+          "no path from node to himself found")
+      (is (= 1 (count result))
+          "more than one node has to be traverse to reach itself"))))
 
 ; -------------------------------------------------------------------
 ; The biggest strongly connected component of a graph must be at most
@@ -125,7 +126,11 @@
   100; tries
   (prop/for-all [graph (gen/such-that not-empty (g/graph 10) 1000)]
     (let [graph2 (alg/biggest-component graph)]
-      (<= (count graph2) (count graph)))))
+      (is (route/graph? graph2)
+          "biggest component is not a graph")
+      (is (<= (count graph2) (count graph))
+          "biggest component is bigger than original graph"))))
+
 
 ; -------------------------------------------------------------------
 ; The removal of a node from a Graph should also eliminate all of its
@@ -133,89 +138,17 @@
 (defspec detachable
   300; tries
   (prop/for-all [graph (gen/such-that not-empty (g/graph 1) 1000)]
-    (let [graph2 (route/detach graph (ffirst graph))
+    (let [id     (ffirst graph)
+          graph2 (route/detach graph id)
           ids    (into #{} (mapcat (juxt rp/src rp/dst)
                                    (route/edges graph)))
           ids2   (into #{} (mapcat (juxt rp/src rp/dst)
                                    (route/edges graph2)))]
-      (not-empty (set/difference ids ids2)))))
+      (if (empty? (concat (rp/successors (graph id))
+                          (rp/predecessors (graph id))))
+         (is (not-empty (set/difference ids ids2))
+             "no more links with id found")
+         (is (empty? (set/difference ids ids2))
+             (str "links with id " id " found"))))))
 
 ;(clojure.test/run-tests)
-
-(def detachable2
-  (prop/for-all [graph (gen/such-that not-empty (g/graph 1) 1000)]
-    (let [graph2 (route/detach graph (ffirst graph))
-          ids    (into #{} (mapcat (juxt rp/src rp/dst)
-                                   (route/edges graph)))
-          ids2   (into #{} (mapcat (juxt rp/src rp/dst)
-                                   (route/edges graph2)))]
-      (not-empty (set/difference ids ids2)))))
-
-(tc/quick-check 500 detachable2)
-
-(def g
-  {0 #hiposfer.kamal.graph.core.NodeInfo{:lon -0.006399357691407204,
-                                         :lat 5.125,
-                                         :outgoing nil,
-                                         :incoming nil},
-   1 #hiposfer.kamal.graph.core.NodeInfo{:lon 1.200036633759737,
-                                         :lat -31.0,
-                                         :outgoing {2 #hiposfer.kamal.graph.core.Edge{:src 1,
-                                                                                      :dst 2,
-                                                                                      :way 3},
-                                                    1 #hiposfer.kamal.graph.core.Edge{:src 1,
-                                                                                      :dst 1,
-                                                                                      :way 11}},
-                                         :incoming {3 #hiposfer.kamal.graph.core.Edge{:src 3,
-                                                                                      :dst 1,
-                                                                                      :way 11},
-                                                    2 #hiposfer.kamal.graph.core.Edge{:src 2,
-                                                                                      :dst 1,
-                                                                                      :way 0},
-                                                    1 #hiposfer.kamal.graph.core.Edge{:src 1,
-                                                                                      :dst 1,
-                                                                                      :way 11}}},
-   2 #hiposfer.kamal.graph.core.NodeInfo{:lon -11.0,
-                                         :lat -0.5859527587890625,
-                                         :outgoing {1 #hiposfer.kamal.graph.core.Edge{:src 2,
-                                                                                      :dst 1,
-                                                                                      :way 0},
-                                                    3 #hiposfer.kamal.graph.core.Edge{:src 2,
-                                                                                      :dst 3,
-                                                                                      :way 11},
-                                                    2 #hiposfer.kamal.graph.core.Edge{:src 2,
-                                                                                      :dst 2,
-                                                                                      :way 3}},
-                                         :incoming {3 #hiposfer.kamal.graph.core.Edge{:src 3,
-                                                                                      :dst 2,
-                                                                                      :way 5},
-                                                    1 #hiposfer.kamal.graph.core.Edge{:src 1,
-                                                                                      :dst 2,
-                                                                                      :way 3},
-                                                    2 #hiposfer.kamal.graph.core.Edge{:src 2,
-                                                                                      :dst 2,
-                                                                                      :way 3}}},
-   3 #hiposfer.kamal.graph.core.NodeInfo{:lon -0.1044921875,
-                                         :lat -0.051645700936205685,
-                                         :outgoing {1 #hiposfer.kamal.graph.core.Edge{:src 3,
-                                                                                      :dst 1,
-                                                                                      :way 11},
-                                                    2 #hiposfer.kamal.graph.core.Edge{:src 3,
-                                                                                      :dst 2,
-                                                                                      :way 5},
-                                                    3 #hiposfer.kamal.graph.core.Edge{:src 3,
-                                                                                      :dst 3,
-                                                                                      :way 11}},
-                                         :incoming {3 #hiposfer.kamal.graph.core.Edge{:src 3,
-                                                                                      :dst 3,
-                                                                                      :way 11},
-                                                    2 #hiposfer.kamal.graph.core.Edge{:src 2,
-                                                                                      :dst 3,
-                                                                                      :way 11}}}})
-
-#_(let [graph2 (route/detach g (ffirst g))]
-      ids    (into #{} (mapcat (juxt rp/src rp/dst)
-                               (route/edges g)))
-      ids2   (into #{} (mapcat (juxt rp/src rp/dst)
-                               (route/edges graph2)))
-    (not-empty (set/difference ids ids2)))
