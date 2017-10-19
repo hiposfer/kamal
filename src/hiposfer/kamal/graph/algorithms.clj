@@ -1,7 +1,8 @@
 (ns hiposfer.kamal.graph.algorithms
   (:require [hiposfer.kamal.graph.protocols :as rp]
             [hiposfer.kamal.graph.core :as route]
-            [clojure.data.int-map :as imap]))
+            [clojure.data.int-map :as imap]
+            [clojure.set :as set]))
 
 (defn dijkstra
   "returns a sequence of map-like entries which also implement the Traceable
@@ -44,6 +45,9 @@
   "returns a subset of the original graph containing only the elements
   of the biggest strongly connected components"
   [undirected-graph]
-  (let [subsets    (components undirected-graph)
-        ids        (into (imap/int-set) (apply max-key count subsets))]
-    (into (imap/int-map) (filter #(contains? ids (key %))) undirected-graph)))
+  (let [subsets   (components undirected-graph)
+        connected (into (imap/int-set) (apply max-key count subsets))
+        ids       (into #{} (keys undirected-graph))]
+    (reduce route/detach
+            undirected-graph
+            (set/difference ids connected))))
