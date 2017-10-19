@@ -276,6 +276,9 @@
           unsettled (new HashMap)]; {id {weight {id prev}}}
       (produce! graph value arcs f queue settled unsettled)))
   ;; ------
+  ;; this implementation uses mutable internal data structures but exposes only
+  ;; immutable data structures.
+  ;; Inspired by: http://www.keithschwarz.com/interesting/code/?dir=dijkstra
   IReduceInit
   (reduce [_ rf init]
     (loop [ret       init ;; Heap.Entry -> {weight {id prev}}
