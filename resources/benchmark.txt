@@ -7,54 +7,42 @@ saarland graph:
 amd64 Linux 4.4.0-97-generic 4 cpu(s)
 OpenJDK 64-Bit Server VM 25.131-b11
 Runtime arguments: -Dfile.encoding=UTF-8 -Xmx1g -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/home/carocad/Proyectos/kamal/target/classes -Dkamal.version=0.1.4 -Dclojure.debug=false
-Evaluation count : 6 in 6 samples of 1 calls.
-      Execution time sample mean : 125,696580 ms
-             Execution time mean : 125,691775 ms
-Execution time sample std-deviation : 194,375036 µs
-    Execution time std-deviation : 225,558888 µs
-   Execution time lower quantile : 125,411832 ms ( 2,5%)
-   Execution time upper quantile : 125,967711 ms (97,5%)
-                   Overhead used : 1,769579 ns
-
-Found 1 outliers in 6 samples (16,6667 %)
-	low-severe	 1 (16,6667 %)
- Variance from outliers : 13,8889 % Variance is moderately inflated by outliers
+Evaluation count : 30 in 6 samples of 5 calls.
+      Execution time sample mean : 24,416466 ms
+             Execution time mean : 24,414921 ms
+Execution time sample std-deviation : 31,862477 µs
+    Execution time std-deviation : 34,459289 µs
+   Execution time lower quantile : 24,373348 ms ( 2,5%)
+   Execution time upper quantile : 24,456548 ms (97,5%)
+                   Overhead used : 1,769436 ns
 --------
 using only strongly connected components of the original graph
 amd64 Linux 4.4.0-97-generic 4 cpu(s)
 OpenJDK 64-Bit Server VM 25.131-b11
 Runtime arguments: -Dfile.encoding=UTF-8 -Xmx1g -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/home/carocad/Proyectos/kamal/target/classes -Dkamal.version=0.1.4 -Dclojure.debug=false
-Evaluation count : 6 in 6 samples of 1 calls.
-      Execution time sample mean : 125,715192 ms
-             Execution time mean : 125,705645 ms
-Execution time sample std-deviation : 172,955605 µs
-    Execution time std-deviation : 174,161398 µs
-   Execution time lower quantile : 125,393893 ms ( 2,5%)
-   Execution time upper quantile : 125,861175 ms (97,5%)
-                   Overhead used : 1,769579 ns
-
-Found 1 outliers in 6 samples (16,6667 %)
-	low-severe	 1 (16,6667 %)
- Variance from outliers : 13,8889 % Variance is moderately inflated by outliers
+Evaluation count : 30 in 6 samples of 5 calls.
+      Execution time sample mean : 24,882623 ms
+             Execution time mean : 24,882623 ms
+Execution time sample std-deviation : 112,341325 µs
+    Execution time std-deviation : 116,617743 µs
+   Execution time lower quantile : 24,785311 ms ( 2,5%)
+   Execution time upper quantile : 25,028541 ms (97,5%)
+                   Overhead used : 1,769436 ns
 
 
-DIJKSTRA forward with: 1014 nodes and 6076 edges
+DIJKSTRA forward with: 1025 nodes and 6142 edges
 **random graph
 amd64 Linux 4.4.0-97-generic 4 cpu(s)
 OpenJDK 64-Bit Server VM 25.131-b11
 Runtime arguments: -Dfile.encoding=UTF-8 -Xmx1g -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/home/carocad/Proyectos/kamal/target/classes -Dkamal.version=0.1.4 -Dclojure.debug=false
-Evaluation count : 234 in 6 samples of 39 calls.
-      Execution time sample mean : 2,640233 ms
-             Execution time mean : 2,640193 ms
-Execution time sample std-deviation : 34,912962 µs
-    Execution time std-deviation : 34,912962 µs
-   Execution time lower quantile : 2,621797 ms ( 2,5%)
-   Execution time upper quantile : 2,700928 ms (97,5%)
-                   Overhead used : 1,769579 ns
-
-Found 1 outliers in 6 samples (16,6667 %)
-	low-severe	 1 (16,6667 %)
- Variance from outliers : 13,8889 % Variance is moderately inflated by outliers
+Evaluation count : 216 in 6 samples of 36 calls.
+      Execution time sample mean : 2,810506 ms
+             Execution time mean : 2,810513 ms
+Execution time sample std-deviation : 2,631637 µs
+    Execution time std-deviation : 2,894598 µs
+   Execution time lower quantile : 2,806422 ms ( 2,5%)
+   Execution time upper quantile : 2,813496 ms (97,5%)
+                   Overhead used : 1,769436 ns
 
 
 saarland graph: nearest neighbour search with random src/dst
@@ -63,31 +51,27 @@ extra space required: 2.892704  MB
 amd64 Linux 4.4.0-97-generic 4 cpu(s)
 OpenJDK 64-Bit Server VM 25.131-b11
 Runtime arguments: -Dfile.encoding=UTF-8 -Xmx1g -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/home/carocad/Proyectos/kamal/target/classes -Dkamal.version=0.1.4 -Dclojure.debug=false
-Evaluation count : 790386 in 6 samples of 131731 calls.
-      Execution time sample mean : 758,075419 ns
-             Execution time mean : 757,970226 ns
-Execution time sample std-deviation : 1,767578 ns
-    Execution time std-deviation : 1,873290 ns
-   Execution time lower quantile : 755,473548 ns ( 2,5%)
-   Execution time upper quantile : 759,963295 ns (97,5%)
-                   Overhead used : 1,769579 ns
+Evaluation count : 769788 in 6 samples of 128298 calls.
+      Execution time sample mean : 780,418923 ns
+             Execution time mean : 780,483741 ns
+Execution time sample std-deviation : 2,063445 ns
+    Execution time std-deviation : 2,233465 ns
+   Execution time lower quantile : 778,054342 ns ( 2,5%)
+   Execution time upper quantile : 783,095755 ns (97,5%)
+                   Overhead used : 1,769436 ns
 --------
 BRUTE force with: 90397 nodes
 amd64 Linux 4.4.0-97-generic 4 cpu(s)
 OpenJDK 64-Bit Server VM 25.131-b11
 Runtime arguments: -Dfile.encoding=UTF-8 -Xmx1g -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/home/carocad/Proyectos/kamal/target/classes -Dkamal.version=0.1.4 -Dclojure.debug=false
 Evaluation count : 24 in 6 samples of 4 calls.
-      Execution time sample mean : 28,267025 ms
-             Execution time mean : 28,267025 ms
-Execution time sample std-deviation : 581,034545 µs
-    Execution time std-deviation : 583,198304 µs
-   Execution time lower quantile : 27,989306 ms ( 2,5%)
-   Execution time upper quantile : 29,277798 ms (97,5%)
-                   Overhead used : 1,769579 ns
-
-Found 1 outliers in 6 samples (16,6667 %)
-	low-severe	 1 (16,6667 %)
- Variance from outliers : 13,8889 % Variance is moderately inflated by outliers
+      Execution time sample mean : 27,522122 ms
+             Execution time mean : 27,521976 ms
+Execution time sample std-deviation : 24,797969 µs
+    Execution time std-deviation : 25,342111 µs
+   Execution time lower quantile : 27,498624 ms ( 2,5%)
+   Execution time upper quantile : 27,547253 ms (97,5%)
+                   Overhead used : 1,769436 ns
 
 Ran 3 tests containing 0 assertions.
 0 failures, 0 errors.
