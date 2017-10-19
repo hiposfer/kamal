@@ -184,8 +184,8 @@
 (defmacro trace [k v] `(new AbstractMap$SimpleImmutableEntry ~k ~v))
 
 (defn- init!
-  "Returns a new MUTABLE fibonacci heap (priority queue) and adds all the
-   sources id to the beginning of the queue."
+  "returns a new MUTABLE fibonacci heap (priority queue) and adds all the
+   sources id to the beginning of the queue and to the settled map."
   ^Heap [init-set ^Map settled]
   (let [queue  ^Heap (new FibonacciHeap)]
     (run! (fn [id] (->> (trace id nil)
@@ -195,12 +195,16 @@
     queue))
 
 (defn- path
+  "returns a lazy sequence of immutable map entries starting at from and
+  going back until no previous entry is found"
   [^Map settled from]
   (let [entry ^Heap$Entry (.get settled from)
         prev-id           (val (.getValue entry))]
     (cons (trace from (.getKey entry))
           (lazy-seq (when prev-id (path settled prev-id))))))
 
+;; TODO: this can probably be simplified much more with transducers
+;; but it will do for the moment
 (defn- relax!
   "adds all node-arcs to the queue"
   [^Map settled ^Map unsettled value f node-arcs ^Heap$Entry entry ^Heap queue]
@@ -222,8 +226,8 @@
 
 (defn- produce!
   "returns a lazy sequence of traces by sequentially mutating the
-  queue (step!(ing) into it) and concatenating the latest poll with
-  the rest of them"
+   queue and always returning the path from the latest min priority
+   node"
   [graph value arcs f ^Heap queue ^Map settled ^Map unsettled]
   (if (.isEmpty queue) (list)
     (let [entry  (.extractMinimum queue)
@@ -276,6 +280,9 @@
           unsettled (new HashMap)]; {id {weight {id prev}}}
       (produce! graph value arcs f queue settled unsettled)))
   ;; ------
+  ;; this implementation uses mutable internal data structures but exposes only
+  ;; immutable data structures.
+  ;; Inspired by: http://www.keithschwarz.com/interesting/code/?dir=dijkstra
   IReduceInit
   (reduce [_ rf init]
     (loop [ret       init ;; Heap.Entry -> {weight {id prev}}
