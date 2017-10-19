@@ -52,7 +52,7 @@
                                       (map ->coordinates))
                                 conj
                                 []
-                                (rp/path trace))]
+                                trace)]
      {:type "LineString" ;; trace path is in reverse order so we need to order it
       :coordinates (rseq coordinates)})))
 
@@ -62,14 +62,14 @@
   "split the trace into a sequence of traces using the way id as separator"
   [{:keys [graph ways]} trace]
   (let [way-ids (sequence (map (fn [dst src] (wayver graph (key src) (key dst))))
-                          (rp/path trace)
-                          (rest (rp/path trace)))
+                          trace
+                          (rest trace))
         ;; last: little hack to get the way of the first point
         traces  (sequence (comp (map vector)
                                 (partition-by (fn [[_ wid]] (:name (ways wid))))
                                 (map #(map first %)) ;; get the path traces
                                 (map first)) ;; get only the first trace
-                          (rp/path trace)
+                          trace
                           (concat way-ids [(last way-ids)]))
         streets (sequence (comp (partition-by #(:name (ways %)))
                                 (map first)) ;; the first way id suffices
@@ -83,7 +83,7 @@
   "returns a step manuever"
   [{:keys [graph ways]} [way-id-to trace-to :as destination] [_ trace  :as origin]]
   (let [location     (->coordinates (graph (key trace)))
-        pre-bearing  (math/bearing (->coordinates (graph (key (second (rp/path trace)))))
+        pre-bearing  (math/bearing (->coordinates (graph (key (second trace))))
                                    (->coordinates (graph (key trace))))
         post-bearing (math/bearing (->coordinates (graph (key trace)))
                                    (->coordinates (graph (key trace-to))))
@@ -121,7 +121,7 @@
 
   WARNING: we dont support multiple waypoints yet !!"
   [network steps trace]
-  (let [edge-case   (= 1 (count (rp/path trace))) ;; happens when origin = destination
+  (let [edge-case   (= 1 (count trace)) ;; happens when origin = destination
         linestring  (geometry network trace)
         ;; prevent computation when edge case
         ways&traces (lazy-seq (partition-by-street-name network trace))]
@@ -171,9 +171,9 @@
         traversal (alg/dijkstra (:graph network)
                                 :value-by #(duration graph %1 %2)
                                 :start-from #{(val start)})
-        trace     (reduce (fn [_ trace] (when (= (key trace) (val dst)) (reduced trace)))
-                          nil
-                          traversal)]
+        trace     (reduce (fn [_ trace] (when (= (key (first trace)) (val dst))
+                                          (reduced trace)))
+                          nil traversal)]
     (if (nil? trace)
       {:code "NoRoute"}
       {:code "Ok"

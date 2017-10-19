@@ -1,10 +1,10 @@
 (ns hiposfer.kamal.graph.core
   (:require [hiposfer.kamal.graph.protocols :as rp]
-            [clojure.data.int-map :as imap])
-  (:import (java.util Map$Entry)
-           (clojure.lang IPersistentMap Seqable IReduceInit IReduce Sequential ITransientSet IPersistentVector)
-           (clojure.data.int_map PersistentIntMap)
-           (org.teneighty.heap FibonacciHeap Heap)))
+            [clojure.data.int-map :as imap]) ;; do not remove
+  (:import (java.util HashMap Map AbstractMap$SimpleImmutableEntry)
+           (clojure.lang IPersistentMap Seqable IReduceInit IReduce Sequential IPersistentVector APersistentMap)
+           (org.teneighty.heap FibonacciHeap Heap Heap$Entry)
+           (clojure.data.int_map PersistentIntMap)))
 
 ;; ----- utility functions
 (defn node? [coll] (and (satisfies? rp/Context coll)
@@ -30,22 +30,25 @@
   "returns a lazy sequence of outgoing arcs. The order of the elements is not
   guaranteed"
   [graph]
-  (sequence (map rp/successors) (vals graph)))
+  (sequence (mapcat rp/successors) (vals graph)))
 
 (defn predecessors
   "returns a lazy sequence of incoming arcs. The order of the elements is not
   guaranteed"
   [graph]
-  (sequence (map rp/predecessors) (vals graph)))
+  (sequence (mapcat rp/predecessors) (vals graph)))
 
 (defn edges
-  "returns a lazy sequence of bidirectional arcs (those that conform to edge?)
-  Duplicates are removed from the sequence"
+  "returns a lazy sequence of bidirectional arcs (those that conform to edge?)"
   [graph]
-  (sequence (comp (mapcat #(concat (rp/successors %) (rp/predecessors %)))
-                  (filter edge?)
-                  (distinct))
-            (vals graph)))
+  (sequence (mapcat rp/edges) (vals graph)))
+
+(defn detach
+  "removes a node and all its connections from the graph"
+  [graph id]
+  (let [graph2 (reduce rp/disconnect graph (rp/successors (graph id)))
+        graph3 (reduce rp/disconnect graph2 (rp/predecessors (graph2 id)))]
+    (dissoc graph3 id)))
 
 ;; -------------------------------
 ; graph is an {id node}
@@ -73,7 +76,7 @@
   (way [_] way))
 
 ;; A NodeInfo is an element that can be included in a graph
-;; for routing purposes
+  ;; for routing purposes
 ;; NOTE: for (memory) convenience we represent the edges as a directed outgoing arc
 ;;       and reverse it only if necessary (see predecesors)
 ;; This implementation of NodeInfo only accepts one Edge/Arc per src/dst node
@@ -84,9 +87,13 @@
                                          (vals (:outgoing this)))
                                (vals (:incoming this))))
   (successors   [this] (concat (sequence (comp (filter edge?)
+
                                                (map rp/mirror))
                                          (vals (:incoming this)))
                                (vals (:outgoing this))))
+  (edges [this] (sequence (filter edge?)
+                          (concat (vals (:incoming this))
+                                  (vals (:outgoing this)))))
   rp/GeoCoordinate
   (lat [_] lat)
   (lon [_] lon)
@@ -97,24 +104,23 @@
     (assoc-in this [:outgoing (rp/dst arc-or-edge)] arc-or-edge))
   rp/Incoherent
   (disconnect [this arc-or-edge]
-    (-> (update this :outgoing dissoc (rp/src arc-or-edge))
-        (update      :incoming dissoc (rp/dst arc-or-edge)))))
+    (-> (update this :outgoing dissoc (rp/dst arc-or-edge))
+        (update      :incoming dissoc (rp/src arc-or-edge)))))
 
 ;; we use a persistent Int Map as graph representation since it is fast
 ;; and memory efficient
 (extend-type PersistentIntMap
   rp/Coherent
   (connect [graph arc-or-edge] ;; we assume that both src and dst nodes exists
-    (let [graph2 (update graph (rp/src arc-or-edge) rp/outbound arc-or-edge)]
-      (if (edge? arc-or-edge) ;; arc otherwise
-        (update graph2 (rp/dst arc-or-edge) rp/inbound arc-or-edge)
-        (update graph2 (rp/dst arc-or-edge) rp/inbound (rp/mirror arc-or-edge)))))
+    (-> (update graph (rp/src arc-or-edge) rp/outbound arc-or-edge)
+        (update       (rp/dst arc-or-edge) rp/inbound  arc-or-edge)))
   rp/Incoherent
   (disconnect [graph arc-or-edge] ;; we assume that both src and dst nodes exists
     (let [src (rp/src arc-or-edge)
           dst (rp/dst arc-or-edge)]
-      (-> (update graph src rp/disconnect src dst)
-          (update       dst rp/disconnect dst src)))))
+      (cond-> graph
+        (contains? graph src) (update src rp/disconnect arc-or-edge)
+        (contains? graph dst) (update dst rp/disconnect arc-or-edge)))))
 
 ;; a Point is a simple longitude, latitude pair used to
 ;; represent the geometry of a way
@@ -130,9 +136,8 @@
   (lon [this] (first this)))
 
 ;; this is specially useful for generative testing: there we use generated
-;; nodes and arcs. Here we prefer distinguishing between arcs and edges
-;; explicitly as performance is not an issue
-(extend-type IPersistentMap
+;; nodes and arcs
+(extend-type APersistentMap
   rp/Context
   (predecessors [this] (concat (sequence (comp (filter edge?)
                                                (map rp/mirror))
@@ -142,6 +147,9 @@
                                                (map rp/mirror))
                                          (vals (:incoming this)))
                                (vals (:outgoing this))))
+  (edges [this] (sequence (filter edge?)
+                          (concat (:incoming this)
+                                  (:outgoing this))))
   rp/GeoCoordinate
   (lat [this] (:lat this))
   (lon [this] (:lon this))
@@ -152,8 +160,8 @@
     (assoc-in this [:outgoing (rp/dst arc-or-edge)] arc-or-edge))
   rp/Incoherent
   (disconnect [this arc-or-edge]
-    (-> (update this :outgoing dissoc (rp/src arc-or-edge))
-        (update      :incoming dissoc (rp/dst arc-or-edge))))
+    (-> (update this :outgoing dissoc (rp/dst arc-or-edge))
+        (update      :incoming dissoc (rp/src arc-or-edge))))
   ;; arc representation
   rp/Link
   (src [this] (:src this))
@@ -171,95 +179,61 @@
   (cost [this] this)
   (sum  [this that] (+ this that)))
 
-; a Trace is MapEntry-like object used to map a node id to a cost without
-; using a complex data structure like a hash-map. It is recursive since
-; it contains a reference to its previous trace. Thus only the
-; current instance is necessary to determine the complete path traversed up
-; until it.
-(deftype Trace [^long id value prior]
-  rp/Traceable
-  (path [this]
-    (if (nil? prior) (list this)
-      (cons this (lazy-seq (rp/path prior)))))
-  ; Interface used by Clojure for the `key` and `val` functions. Those
-  ; functions are expected to work for any key-value structure. We
-  ; implement it here for convenience since a Trace maps a node id
-  ; to its cost.
-  Map$Entry ; https://docs.oracle.com/javase/7/docs/api/java/util/Map.Entry.html
-  (getKey [_] id)
-  (getValue [_] value)
-  (setValue [_ _] (throw (ex-info "Unsupported Operation" {} "cannot change an immutable value")))
-  ; we rely on the key and val implementing their own equals
-  (equals [this that]
-    (cond
-      (identical? this that) true
-      (not= (key this) (key that)) false
-      (not= (val this) (val that)) false
-      :else (map = (rp/path this) (rp/path that))))
-  (hashCode [_] (hash [id value prior]))
-  Object
-  (toString [_] (str "[" id " " value "]")))
-
-
 ;; ------------------ DIJKSTRA CORE -------------------
-(defn- init-queue
+
+(defmacro trace [k v] `(new AbstractMap$SimpleImmutableEntry ~k ~v))
+
+(defn- init!
   "Returns a new MUTABLE fibonacci heap (priority queue) and adds all the
    sources id to the beginning of the queue."
-  ^Heap [init-set]
+  ^Heap [init-set ^Map settled]
   (let [queue  ^Heap (new FibonacciHeap)]
-    (run! (fn [id] (.insert queue 0 (->Trace id 0 nil)))
+    (run! (fn [id] (->> (trace id nil)
+                        (.insert queue 0)
+                        (.put settled id)))
           init-set)
     queue))
 
-;; This is a hack taken from the Efficient Route Planning Course in Freiburg
-;; Instead of decreasing the priority of an element in (relax-nodes!) we
-;; check if the next element was already settled and ignore it if so.
-;; This is not very efficient but it shouldnt impact the performance
-;; since real world road networks a 1/3 node/arc ratio.
-;; https://ad-wiki.informatik.uni-freiburg.de/teaching/EfficientRoutePlanningSS2012
-(defn- poll-unsettled!
-  "moves the queue's head to an unsettled node id and returns the trace
-  containing it or nil if none was found"
-  [^Heap queue ^ITransientSet settled] ;; BUG: https://dev.clojure.org/jira/browse/DIMAP-14
-  (if (.isEmpty queue) nil
-    (let [entry (.extractMinimum queue)]
-      (if (.contains settled (key (.getValue entry)))
-        (recur queue settled)
-        (.getValue entry)))))
+(defn- path
+  [^Map settled from]
+  (let [entry ^Heap$Entry (.get settled from)
+        prev-id           (val (.getValue entry))]
+    (cons (trace from (.getKey entry))
+          (lazy-seq (when prev-id (path settled prev-id))))))
 
-;; TODO: this implementation does NOT use decreaseKey. Performance improvement?
-;; The problem with decreaseKey is that it forces the user to keep a map of {id Heap.Entry<Trace>}
-;; and Heap.Entry is generally an implementation specific (mutable) class. This makes
-;; the approach very unreliable in a functional approach as we expose Trace to the
-;; outside. A way to prevent this would be for the Heap/Queue implementation to rely
-;; solely on a Comparator instead of on its own Entry implementation.
-;; An example of such an mutable dijkstra implementation is here
-;; http://www.keithschwarz.com/interesting/code/?dir=dijkstra
-(defn- relax-nodes!
+(defn- relax!
   "adds all node-arcs to the queue"
-  [^ITransientSet settled value f node-arcs trace ^Heap queue]
-  (let [arc (first node-arcs)]
-    (if (nil? arc) queue
-      (if (.contains settled (f (first node-arcs)))
-        (recur settled value f (rest node-arcs) trace queue)
-        (let [weight (rp/sum (value arc trace)
-                             (val trace))]
-          (.insert queue weight (->Trace (f arc) weight trace))
-          (recur settled value f (rest node-arcs) trace queue))))))
+  [^Map settled ^Map unsettled value f node-arcs ^Heap$Entry entry ^Heap queue]
+  (if (empty? node-arcs) nil
+    (if (.containsKey settled (f (first node-arcs))) nil
+      (let [arc     (first node-arcs)
+            prev-id (key (.getValue entry))
+            weight  (rp/sum (value arc (path settled prev-id))
+                            (.getKey entry))
+            id      (f arc)
+            trace2  (trace id prev-id)
+            old-entry ^Heap$Entry (.get unsettled id)]
+        (if (nil? old-entry)
+          (.put unsettled id (.insert queue weight trace2))
+          (if (< weight (.getKey old-entry))
+            (do (.setValue old-entry trace2)
+                (.decreaseKey queue old-entry weight))))
+        (recur settled unsettled value f (rest node-arcs) entry queue)))))
 
 (defn- produce!
   "returns a lazy sequence of traces by sequentially mutating the
   queue (step!(ing) into it) and concatenating the latest poll with
   the rest of them"
-  [graph value arcs f ^Heap queue settled]
-  (let [trace      (poll-unsettled! queue settled)]
-    (if (nil? trace) (list)
-      (let [next-queue (relax-nodes! settled value f (arcs (graph (key trace)))
-                                 trace queue)
-            next-settled (conj! settled (key trace))]
-        (cons trace
-              (lazy-seq (produce! graph value arcs f next-queue next-settled)))))))
-
+  [graph value arcs f ^Heap queue ^Map settled ^Map unsettled]
+  (if (.isEmpty queue) (list)
+    (let [entry  (.extractMinimum queue)
+          id     (key (.getValue entry))]
+      (.put settled id entry)
+      (.remove unsettled id)
+      (relax! settled unsettled value f (arcs (graph id))
+              entry queue)
+      (cons (path settled id)
+            (lazy-seq (produce! graph value arcs f queue settled unsettled))))))
 
 ; inspired by http://insideclojure.org/2015/01/18/reducible-generators/
 ; A Collection type which can reduce itself faster than first/next traversal over
@@ -297,30 +271,29 @@
 (deftype Dijkstra [graph ids value arcs f]
   Seqable
   (seq [_]
-    (let [queue   (init-queue ids)
-          settled (transient (imap/int-set))]
-      (produce! graph value arcs f queue settled)))
+    (let [settled   (new HashMap) ;{id {weight {id prev}}}
+          queue     (init! ids settled) ;[{weight {id prev}}]
+          unsettled (new HashMap)]; {id {weight {id prev}}}
+      (produce! graph value arcs f queue settled unsettled)))
   ;; ------
   IReduceInit
   (reduce [_ rf init]
-    (loop [ret     init
-           queue   (init-queue ids)
-           settled (transient (imap/int-set))]
-      (let [trace (poll-unsettled! queue settled)]
-        (if (nil? trace) ret
-          (let [rr    (rf ret trace)]
-            (if (reduced? rr) @rr
-              (recur rr
-                     (relax-nodes! settled value f (arcs (graph (key trace)))
-                                   trace queue)
-                     (conj! settled (key trace)))))))))
+    (loop [ret       init ;; Heap.Entry -> {weight {id prev}}
+           settled   (new HashMap); {id Heap.Entry}
+           queue     (init! ids settled); [Heap.Entry]
+           unsettled (new HashMap)]; {id Heap.Entry}
+      (if (.isEmpty queue) ret
+        (let [entry  (.extractMinimum queue)
+              id     (key (.getValue entry))
+              _      (.put settled id entry)
+              _      (.remove unsettled id)
+              rr     (rf ret (path settled id))]
+          (if (reduced? rr) @rr
+            (do (relax! settled unsettled value f (arcs (graph id))
+                        entry queue)
+                (recur rr settled queue unsettled)))))))
   ;; ------
   IReduce
   (reduce [this rf] (.reduce ^IReduceInit this rf (rf)))
   ;; declaring as Sequential will cause the seq to be used for nth, etc
   Sequential)
-
-;; discussion ---------------
-;; A possible way to solve the HACK and TODO above is to create an
-;; "unsettled nodes" set which contains the heap entries. Whenever an
-;; entry is settled, we remove it from the set.

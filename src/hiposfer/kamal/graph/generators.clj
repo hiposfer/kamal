@@ -19,7 +19,7 @@
         lon-gen   (partial gen/generate (s/gen ::geojson/lon))
         arcer    #(graph/->Edge (pick) (pick) (rand-int (* 3 (count ids))))
         ;; create 3 times as many edges as node IDs
-        edges     (repeatedly (* 3 (count ids)) arcer)
+        edges     (distinct (repeatedly (* 3 (count ids)) arcer))
         ;; first create nodes to store the edges
         nodes     (into (imap/int-map) (map #(vector % (graph/->NodeInfo (lat-gen)
                                                                          (lon-gen)
