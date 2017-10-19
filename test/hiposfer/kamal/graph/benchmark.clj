@@ -37,9 +37,10 @@
 
 (test/deftest ^:benchmark dijkstra-saarland-graph
   (let [graph        (:graph @networker) ;; force read
-        src          (key (first graph))
-        dst          (key (last graph))
-        Cgraph       (alg/biggest-component (:graph @networker))]
+        Cgraph       (alg/biggest-component (:graph @networker))
+        ;; the src and dst might have been removed from the original graph
+        src          (key (first Cgraph))
+        dst          (key (last Cgraph))]
     (println "\n\nDIJKSTRA forward with:" (count graph) "nodes and"
              (reduce + (map (comp count rp/successors) (vals graph))) "edges")
     (println "saarland graph:")
