@@ -52,15 +52,15 @@
 ;; ------ protocols for Edge & Arcs
 (defprotocol Link "A connection between two nodes. Directed or undirected"
   (src [this] "the start node id of a Link")
-  (dst [this] "the destination node id of a Link")
-  (mirror [this] "returns a Link in the opposite direction than the original"))
-  ;(mirror? [this]))
+  (dst [this] "the destination node id of a Link"))
 
 (defprotocol Passage
   (way [this] "return the way id that a Link is associated with"))
 
-;; TODO: does this need to be a flag protocol? should it rather be a method?
-(defprotocol UndirectedLink "A flagging protocol to distinguish Arcs from Edges")
+(defprotocol UndirectedLink
+  (mirror [this] "returns a Link in the opposite direction than the original"))
+  ;(mirror? [this]))
+
 
 ;; ------- protocols for Nodes
 (defprotocol GeoCoordinate
