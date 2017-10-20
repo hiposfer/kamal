@@ -60,17 +60,17 @@
   rp/Link
   (src [_] src)
   (dst [_] dst)
-  (mirror [_] (map->Edge {:src dst :dst src :way way})) ;:mirror? true}))
-  ;(mirror? [this] (:mirror? this))
   rp/Passage
   (way [_] way)
-  rp/UndirectedLink)
+  rp/UndirectedLink
+  (mirror [_] (map->Edge {:src dst :dst src :way way}))) ;:mirror? true}))
+  ;(mirror? [this] (:mirror? this))
+
 
 (defrecord Arc [^long src ^long dst ^long way]
   rp/Link
   (src [_] src)
   (dst [_] dst)
-  (mirror [_] (map->Arc {:src dst :dst src :way way})); :mirror? true}))
   ;(mirror? [this] (:mirror? this))
   rp/Passage
   (way [_] way))
@@ -203,41 +203,38 @@
     (cons (trace from (.getKey entry))
           (lazy-seq (when prev-id (path settled prev-id))))))
 
-;; TODO: this can probably be simplified much more with transducers
-;; but it will do for the moment
 (defn- relax!
-  "adds all node-arcs to the queue"
-  [^Map settled ^Map unsettled value f node-arcs ^Heap$Entry entry ^Heap queue]
+  "calculate the weight of traversing arc and updates it if already in
+  the queue or adds it otherwise"
+  [value f ^Map settled ^Map unsettled ^Heap$Entry entry ^Heap queue trail node-arcs]
   (if (empty? node-arcs) nil
     (if (.containsKey settled (f (first node-arcs))) nil
       (let [arc     (first node-arcs)
             prev-id (key (.getValue entry))
-            weight  (rp/sum (value arc (path settled prev-id))
+            weight  (rp/sum (value arc trail)
                             (.getKey entry))
             id      (f arc)
             trace2  (trace id prev-id)
             old-entry ^Heap$Entry (.get unsettled id)]
         (if (nil? old-entry)
           (.put unsettled id (.insert queue weight trace2))
-          (if (< weight (.getKey old-entry))
-            (do (.setValue old-entry trace2)
-                (.decreaseKey queue old-entry weight))))
-        (recur settled unsettled value f (rest node-arcs) entry queue)))))
+          (when (< weight (.getKey old-entry))
+            (.setValue old-entry trace2)
+            (.decreaseKey queue old-entry weight)))
+        (recur value f settled unsettled entry queue trail (rest node-arcs))))))
 
 (defn- produce!
   "returns a lazy sequence of traces by sequentially mutating the
    queue and always returning the path from the latest min priority
    node"
   [graph value arcs f ^Heap queue ^Map settled ^Map unsettled]
-  (if (.isEmpty queue) (list)
-    (let [entry  (.extractMinimum queue)
-          id     (key (.getValue entry))]
-      (.put settled id entry)
-      (.remove unsettled id)
-      (relax! settled unsettled value f (arcs (graph id))
-              entry queue)
-      (cons (path settled id)
-            (lazy-seq (produce! graph value arcs f queue settled unsettled))))))
+  (let [entry  (.extractMinimum queue)
+        id     (key (.getValue entry))
+        _      (.put settled id entry)
+        _      (.remove unsettled id)
+        trail  (path settled id)]
+    (relax! value f settled unsettled entry queue trail (arcs (graph id)))
+    trail))
 
 ; inspired by http://insideclojure.org/2015/01/18/reducible-generators/
 ; A Collection type which can reduce itself faster than first/next traversal over
@@ -277,28 +274,28 @@
   (seq [_]
     (let [settled   (new HashMap) ;{id {weight {id prev}}}
           queue     (init! ids settled) ;[{weight {id prev}}]
-          unsettled (new HashMap)]; {id {weight {id prev}}}
-      (produce! graph value arcs f queue settled unsettled)))
+          unsettled (new HashMap); {id {weight {id prev}}}
+          trailer!  (fn trailer! []
+                      (if (.isEmpty queue) (list)
+                        (cons (produce! graph value arcs f queue settled unsettled)
+                              (lazy-seq (trailer!)))))]
+      (trailer!)))
   ;; ------
   ;; this implementation uses mutable internal data structures but exposes only
   ;; immutable data structures.
   ;; Inspired by: http://www.keithschwarz.com/interesting/code/?dir=dijkstra
   IReduceInit
   (reduce [_ rf init]
-    (loop [ret       init ;; Heap.Entry -> {weight {id prev}}
-           settled   (new HashMap); {id Heap.Entry}
-           queue     (init! ids settled); [Heap.Entry]
-           unsettled (new HashMap)]; {id Heap.Entry}
-      (if (.isEmpty queue) ret
-        (let [entry  (.extractMinimum queue)
-              id     (key (.getValue entry))
-              _      (.put settled id entry)
-              _      (.remove unsettled id)
-              rr     (rf ret (path settled id))]
+    ;; Heap.Entry -> {weight {id prev}}
+    (let [settled   (new HashMap); {id Heap.Entry}
+          queue     (init! ids settled); [Heap.Entry]
+          unsettled (new HashMap)]; {id Heap.Entry}
+      (loop [ret init
+             trail (produce! graph value arcs f queue settled unsettled)]
+        (let [rr (rf ret trail)]
           (if (reduced? rr) @rr
-            (do (relax! settled unsettled value f (arcs (graph id))
-                        entry queue)
-                (recur rr settled queue unsettled)))))))
+            (if (.isEmpty queue) ret
+              (recur rr (produce! graph value arcs f queue settled unsettled))))))))
   ;; ------
   IReduce
   (reduce [this rf] (.reduce ^IReduceInit this rf (rf)))
