@@ -1,7 +1,8 @@
 (ns hiposfer.kamal.graph.algorithms
   (:require [hiposfer.kamal.graph.protocols :as rp]
             [hiposfer.kamal.graph.core :as route]
-            [clojure.data.int-map :as imap]))
+            [clojure.data.int-map :as imap]
+            [clojure.set :as set]))
 
 (defn dijkstra
   "returns a sequence of map-like entries which also implement the Traceable
@@ -23,27 +24,30 @@
                              ::backward rp/src)]
     (route/->Dijkstra graph start-from value-by arcs f)))
 
-(defn breath-first
-  "returns a constant simple value of 1"
-  [_ _] 1)
+(def breath-first (constantly 1))
 
 (defn components
   "returns a lazy sequence of sets of nodes' ids of each strongly connected
    component of an undirected graph"
-  [undirected]
+  [graph]
   (lazy-seq
-    (when (not-empty undirected)
-      (let [connected (sequence (map key) (dijkstra undirected
-                                            :start-from #{(ffirst undirected)}
-                                            :value-by breath-first))]
-        (cons connected (components (apply dissoc undirected connected)))))))
+    (when (not-empty graph)
+      (let [connected (sequence (comp (map first) (map key))
+                        (dijkstra graph
+                          :start-from #{(ffirst graph)}
+                          :value-by breath-first))
+            new-graph (reduce route/detach graph connected)]
+        (cons connected (components new-graph))))))
 
 ;; note for specs: the biggest component of a biggest component should
 ;; be the passed graph (= graph (bc graph)) => true for all
 (defn biggest-component
   "returns a subset of the original graph containing only the elements
   of the biggest strongly connected components"
-  [graph]
-  (let [subsets    (components graph)
-        ids        (into (imap/int-set) (apply max-key count subsets))]
-    (into (imap/int-map) (filter #(contains? ids (key %))) graph)))
+  [undirected-graph]
+  (let [subsets   (components undirected-graph)
+        connected (into (imap/int-set) (apply max-key count subsets))
+        ids       (into #{} (keys undirected-graph))]
+    (reduce route/detach
+            undirected-graph
+            (set/difference ids connected))))

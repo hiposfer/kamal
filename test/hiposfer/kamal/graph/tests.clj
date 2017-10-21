@@ -1,18 +1,20 @@
 (ns hiposfer.kamal.graph.tests
   (:require [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
-            ;[clojure.test.check :as tc]
             [clojure.test.check.generators :as gen]
             [clojure.test :refer [is deftest]]
             [hiposfer.kamal.graph.algorithms :as alg]
             [hiposfer.kamal.graph.protocols :as rp]
             [hiposfer.kamal.graph.generators :as g]
-            [hiposfer.kamal.directions :as direction]))
+            [hiposfer.kamal.directions :as direction]
+            [clojure.set :as set]
+            [hiposfer.kamal.graph.core :as route]
+            [clojure.test.check :as tc]))
 
 ;; https://rosettacode.org/wiki/Dijkstra%27s_algorithm
 (def rosetta {1 {:outgoing {2 {:dst 2 :length 7}
                             3 {:dst 3 :length 9}
-                            5 {:dst 6 :length 14}}}
+                            6 {:dst 6 :length 14}}}
               2 {:outgoing {3 {:dst 3 :length 10}
                             4 {:dst 4 :length 15}}
                  :incoming {1 {:src 1 :length 7}}}
@@ -35,22 +37,24 @@
 (deftest shortest-path
   (let [dst       5
         performer (alg/dijkstra rosetta
-                    :value-by (fn length [arc _] (:length arc))
+                    :value-by (fn [arc _] (:length arc))
                     :start-from #{1})
-        traversal (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
+        traversal (reduce (fn [_ v] (when (= dst (key (first v)))
+                                      (reduced v)))
                       nil
                       performer)]
-    (is (not (nil? traversal))
+    (is (not (empty? traversal))
         "shortest path not found")
-    (is (= '(5 4 3 1) (map key (rp/path traversal)))
+    (is (= '(5 4 3 1) (map key traversal))
         "shortest path doesnt traverse expected nodes")))
 
 (deftest all-paths
   (let [performer (alg/dijkstra rosetta
                                 :value-by (fn length [arc _] (:length arc))
                                 :start-from #{1})
-        traversal (into {} (map (juxt key (comp rp/cost val)))
-                          performer)]
+        traversal (into {} (comp (map first)
+                                 (map (juxt key (comp rp/cost val))))
+                           performer)]
     (is (not (nil? traversal))
         "shortest path not found")
     (is (= {1 0, 2 7, 3 9, 4 20, 5 26, 6 11}
@@ -68,12 +72,13 @@
           dst  (rand-nth (keys graph))
           coll (alg/dijkstra graph :start-from #{src}
                                    :value-by (partial direction/duration graph))
-          results (for [i (range 10)]
-                    (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
+          results (for [_ (range 10)]
+                    (reduce (fn [_ v] (when (= dst (key (first v)))
+                                        (reduced v)))
                             nil coll))]
       (or (every? nil? results)
-          (and (apply = (map key results))
-               (apply = (map (comp rp/cost val) results)))))))
+          (and (apply = (map (comp key first) results))
+               (apply = (map (comp rp/cost val first) results)))))))
 
 ; -------------------------------------------------------------------
 ; The Dijkstra algorithm cost is monotonic (increasing)
@@ -86,13 +91,14 @@
           coll (alg/dijkstra graph
                              :start-from #{src}
                              :value-by (partial direction/duration graph))
-          result (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
+          result (reduce (fn [_ v] (when (= dst (key (first v)))
+                                     (reduced v)))
                          nil
                          coll)]
-      (or (nil? result)
-          (apply >= (concat (map (comp rp/cost val)
-                                 (rp/path result))
-                            [0]))))))
+      (is (or (nil? result)
+              (apply >= (concat (map (comp rp/cost val) result)
+                                [0])))
+          "returned path is not monotonic"))))
 
 ; -------------------------------------------------------------------
 ; If the distance of two nodes is 0 and no edge has a 0 cost,
@@ -105,12 +111,41 @@
           coll (alg/dijkstra graph
                              :start-from #{src}
                              :value-by (partial direction/duration graph))
-          result (reduce (fn [_ v] (when (= src (key v)) (reduced v)))
-                         nil
-                         coll)]
-      (and (not (nil? result))
-           (= 1 (count (rp/path result)))))))
+          result (reduce (fn [_ v] (when (= src (key (first v)))
+                                     (reduced v)))
+                         nil coll)]
+      (is (not-empty result)
+          "no path from node to himself found")
+      (is (= 1 (count result))
+          "more than one node has to be traverse to reach itself"))))
+
+; -------------------------------------------------------------------
+; The biggest strongly connected component of a graph must be at most
+; as big as the original graph
+(defspec components
+  100; tries
+  (prop/for-all [graph (gen/such-that not-empty (g/graph 10) 1000)]
+    (let [graph2 (alg/biggest-component graph)]
+      (is (route/graph? graph2)
+          "biggest component is not a graph")
+      (is (<= (count graph2) (count graph))
+          "biggest component is bigger than original graph"))))
+
+
+; -------------------------------------------------------------------
+; The removal of a node from a Graph should also eliminate all of its
+; links. NOTE: The dijkstra below only stops after exploring the complete
+; graph. So if there is any open link, it will throw an exception.
+; this use to throw an exception so we leave it here for testing purposes :)
+(defspec routable-components
+  100; tries
+  (prop/for-all [graph (gen/such-that not-empty (g/graph 10) 1000)]
+    (let [graph2 (alg/biggest-component graph)
+          src    (key (first graph2))
+          coll   (alg/dijkstra graph2
+                   :start-from #{src}
+                   :value-by (partial direction/duration graph2))]
+      (is (seq? (reduce (fn [r v] v) nil coll))
+          "biggest components should not contain links to nowhere"))))
 
 ;(clojure.test/run-tests)
-
-;(tc/quick-check 100 deterministic)

@@ -24,8 +24,9 @@
 ;  (graph   [this] "the rest of the graph"))
 
 (defprotocol Context ;; in FGL this also includes the Node id and its labels
-  (predecessors [this] "returns a sequence of incoming arcs of this node under the current view")
-  (successors   [this] "returns a sequence of outgoing arcs of this node under the current view"))
+  (predecessors [this] "returns a sequence of incoming arcs of this node")
+  (edges        [this] "returns a sequence of bidirectional arcs of this node")
+  (successors   [this] "returns a sequence of outgoing arcs of this node"))
 ; NOTES:
 ; I intentionally left the `label` function out since Clojure already provides a way
 ; to retrieve information from an Object; the `get` function. If you want to have that
@@ -42,10 +43,6 @@
 ; from the Id without losing information
 
 ;; ------ special protocols for Dijkstra graph traversal
-(defprotocol Traceable "Protocol for elements that can produce a sequence
-  of other elements of the same type which were traversed before arriving to this one"
-  (path  [this] "sequence of Traceable elements taken to get to this one (in reverse order)"))
-
 (defprotocol Valuable "A simple representation of a generic routing worth function result"
   (cost [this]     "a number indicating how difficult it is to get to a specific node")
   (sum [this that] "adds two Valuable implementations. This way a Valuable implementation
@@ -55,15 +52,15 @@
 ;; ------ protocols for Edge & Arcs
 (defprotocol Link "A connection between two nodes. Directed or undirected"
   (src [this] "the start node id of a Link")
-  (dst [this] "the destination node id of a Link")
-  (mirror [this] "returns a Link in the opposite direction than the original"))
-  ;(mirror? [this]))
+  (dst [this] "the destination node id of a Link"))
 
 (defprotocol Passage
   (way [this] "return the way id that a Link is associated with"))
 
-;; TODO: does this need to be a flag protocol? should it rather be a method?
-(defprotocol UndirectedLink "A flagging protocol to distinguish Arcs from Edges")
+(defprotocol UndirectedLink
+  (mirror [this] "returns a Link in the opposite direction than the original"))
+  ;(mirror? [this]))
+
 
 ;; ------- protocols for Nodes
 (defprotocol GeoCoordinate

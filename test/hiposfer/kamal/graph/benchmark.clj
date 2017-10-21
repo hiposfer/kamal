@@ -25,18 +25,22 @@
       (let [coll (alg/dijkstra graph
                    :start-from #{src}
                    :value-by (partial direction/duration graph))]
-        (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
+        (reduce (fn [_ v] (when (= dst (key (first v)))
+                            (reduced v)))
                 nil
                 coll))
       :os :runtime :verbose)))
 
 (def networker (delay (osm/osm->network "resources/osm/saarland.osm.bz2")))
+;(take 10 (:graph @networker)) ;; force read
+;(take 10 (alg/biggest-component (:graph @networker)))
 
 (test/deftest ^:benchmark dijkstra-saarland-graph
   (let [graph        (:graph @networker) ;; force read
-        src          (key (first graph))
-        dst          (key (last graph))
-        Cgraph       (alg/biggest-component (:graph @networker))]
+        Cgraph       (alg/biggest-component (:graph @networker))
+        ;; the src and dst might have been removed from the original graph
+        src          (key (first Cgraph))
+        dst          (key (last Cgraph))]
     (println "\n\nDIJKSTRA forward with:" (count graph) "nodes and"
              (reduce + (map (comp count rp/successors) (vals graph))) "edges")
     (println "saarland graph:")
@@ -44,7 +48,8 @@
       (let [coll (alg/dijkstra graph
                    :start-from #{src}
                    :value-by (partial direction/duration graph))]
-        (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
+        (reduce (fn [_ v] (when (= dst (key (first v)))
+                            (reduced v)))
                 nil
                 coll))
       :os :runtime :verbose)
@@ -54,7 +59,8 @@
       (let [coll (alg/dijkstra Cgraph
                    :start-from #{src}
                    :value-by (partial direction/duration Cgraph))]
-        (reduce (fn [_ v] (when (= dst (key v)) (reduced v)))
+        (reduce (fn [_ v] (when (= dst (key (first v)))
+                            (reduced v)))
                 nil
                 coll))
       :os :runtime :verbose)))
@@ -92,3 +98,5 @@
     (println "BRUTE force with:" (count graph) "nodes")
     (c/quick-bench (brute-nearest @networker src)
       :os :runtime :verbose)))
+
+;(clojure.test/run-tests)
