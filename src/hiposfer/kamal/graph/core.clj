@@ -1,24 +1,22 @@
 (ns hiposfer.kamal.graph.core
-  (:require [hiposfer.kamal.graph.protocols :as rp]
-            [clojure.data.int-map :as imap]) ;; do not remove
+  (:require [hiposfer.kamal.graph.protocols :as rp])
   (:import (java.util HashMap Map AbstractMap$SimpleImmutableEntry)
-           (clojure.lang IPersistentMap Seqable IReduceInit IReduce Sequential IPersistentVector APersistentMap)
-           (org.teneighty.heap FibonacciHeap Heap Heap$Entry)
-           (clojure.data.int_map PersistentIntMap)))
+           (clojure.lang Seqable IReduceInit IReduce Sequential IPersistentVector APersistentMap)
+           (org.teneighty.heap FibonacciHeap Heap Heap$Entry)))
 
 ;; ----- utility functions
 (defn node? [coll] (and (satisfies? rp/Context coll)
                         (satisfies? rp/Binder coll)
                         (satisfies? rp/Incoherent coll)))
 
+;; NOTE: for convenience we represent the edges as a directed outgoing arc
+;;       and reverse it only if necessary (see predecesors)
 (defn edge? [coll] (and (satisfies? rp/Link coll)
                         (satisfies? rp/UndirectedLink coll)))
 
 (defn arc? [coll] (satisfies? rp/Link coll))
 
-(defn graph? [coll] (and (satisfies? rp/Coherent coll) ;; connect
-                         (satisfies? rp/Incoherent coll) ;; disconnect
-                         (instance? IPersistentMap coll))) ;; assoc, dissoc, contains, get
+(def graph? "returns true if x implements IPersistentMap" map?)
 
 (defn nodes
   "returns the node objects (no id) of graph. The order of the elements is not
@@ -43,16 +41,40 @@
   [graph]
   (sequence (mapcat rp/edges) (vals graph)))
 
+(defn connect
+  "connect the nodes src and dst of link"
+  [graph link] ;; we assume that both src and dst nodes exists
+  (-> (update graph (rp/src link) rp/outbound link)
+      (update       (rp/dst link) rp/inbound  link)))
+
+(defn disconnect
+  "remove the link between src and dst of link"
+  [graph link]
+  (let [src (rp/src link)
+        dst (rp/dst link)]
+    (cond-> graph
+      (contains? graph src) (update src rp/disconnect link)
+      (contains? graph dst) (update dst rp/disconnect link))))
+
+(defn attach
+  "assoc id to node and connect all of its links to the graph. All nodes
+  id used by the links MUST exist"
+  [graph id node]
+  (let [graph2 (assoc graph id node)
+        graph3 (reduce connect graph2 (rp/edges node))
+        graph4 (reduce connect graph3 (remove edge? (rp/successors node)))]
+    (reduce connect graph4 (remove edge? (rp/predecessors node)))))
+
 (defn detach
   "removes a node and all its connections from the graph"
   [graph id]
-  (let [graph2 (reduce rp/disconnect graph (rp/successors (graph id)))
-        graph3 (reduce rp/disconnect graph2 (rp/predecessors (graph2 id)))]
+  (let [graph2 (reduce disconnect graph (rp/successors (graph id)))
+        graph3 (reduce disconnect graph2 (rp/predecessors (graph2 id)))]
     (dissoc graph3 id)))
 
 ;; -------------------------------
 ; graph is an {id node}
-; Node is a {:lon :lat :arcs {node-id arc}}
+; NodeInfo is a {:lon :lat :links {node-id arc}}
 ; Arc is a {:src :dst :way-id}
 
 ;; TODO: do I need the :mirror? flag?
@@ -75,11 +97,7 @@
   rp/Passage
   (way [_] way))
 
-;; A NodeInfo is an element that can be included in a graph
-  ;; for routing purposes
-;; NOTE: for (memory) convenience we represent the edges as a directed outgoing arc
-;;       and reverse it only if necessary (see predecesors)
-;; This implementation of NodeInfo only accepts one Edge/Arc per src/dst node
+;; This implementation of NodeInfo only accepts one Link per src/dst node
 (defrecord NodeInfo [^double lon ^double lat outgoing incoming]
   rp/Context
   (predecessors [this] (concat (sequence (comp (filter edge?)
@@ -106,21 +124,6 @@
   (disconnect [this arc-or-edge]
     (-> (update this :outgoing dissoc (rp/dst arc-or-edge))
         (update      :incoming dissoc (rp/src arc-or-edge)))))
-
-;; we use a persistent Int Map as graph representation since it is fast
-;; and memory efficient
-(extend-type PersistentIntMap
-  rp/Coherent
-  (connect [graph arc-or-edge] ;; we assume that both src and dst nodes exists
-    (-> (update graph (rp/src arc-or-edge) rp/outbound arc-or-edge)
-        (update       (rp/dst arc-or-edge) rp/inbound  arc-or-edge)))
-  rp/Incoherent
-  (disconnect [graph arc-or-edge] ;; we assume that both src and dst nodes exists
-    (let [src (rp/src arc-or-edge)
-          dst (rp/dst arc-or-edge)]
-      (cond-> graph
-        (contains? graph src) (update src rp/disconnect arc-or-edge)
-        (contains? graph dst) (update dst rp/disconnect arc-or-edge)))))
 
 ;; a Point is a simple longitude, latitude pair used to
 ;; represent the geometry of a way
