@@ -31,7 +31,7 @@
                 coll))
       :os :runtime :verbose)))
 
-(def networker (delay (osm/osm->network "resources/osm/saarland.osm.bz2")))
+(def networker (delay (osm/osm->network "resources/osm/saarland.min.osm.bz2")))
 ;(take 10 (:graph @networker)) ;; force read
 ;(take 10 (alg/biggest-component (:graph @networker)))
 
