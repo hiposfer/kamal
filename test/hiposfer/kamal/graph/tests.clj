@@ -7,9 +7,7 @@
             [hiposfer.kamal.graph.protocols :as rp]
             [hiposfer.kamal.graph.generators :as g]
             [hiposfer.kamal.directions :as direction]
-            [clojure.set :as set]
-            [hiposfer.kamal.graph.core :as route]
-            [clojure.test.check :as tc]))
+            [hiposfer.kamal.graph.core :as route]))
 
 ;; https://rosettacode.org/wiki/Dijkstra%27s_algorithm
 (def rosetta {1 {:outgoing {2 {:dst 2 :length 7}
