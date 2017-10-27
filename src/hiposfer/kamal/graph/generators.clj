@@ -25,7 +25,7 @@
                                                                          (lon-gen)
                                                                          nil nil)))
                         ids)]
-    (reduce rp/connect nodes edges)))     ;; now connect the nodes
+    (reduce graph/connect nodes edges)))     ;; now connect the nodes
 
 (defn graph
   "returns a graph generator with node's id between 0 and 3*size.

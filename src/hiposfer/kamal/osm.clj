@@ -2,12 +2,12 @@
   (:require [clojure.data.xml :as xml]
             [clojure.data.int-map :as imap]
             [hiposfer.kamal.graph.core :as route]
-            [hiposfer.kamal.graph.protocols :as rp]
             [clojure.walk :as walk]
             [clojure.java.io :as io]
             [clojure.data.avl :as avl]
             [clojure.set :as set]
-            [hiposfer.kamal.libs.math :as math])
+            [hiposfer.kamal.libs.math :as math]
+            [hiposfer.kamal.graph.core :as graph])
   (:import (org.apache.commons.compress.compressors.bzip2 BZip2CompressorInputStream)))
 
 (defn- bz2-reader
@@ -127,7 +127,7 @@
   [nodes simple-ways]
   (let [arcs (mapcat (fn [[way-id nodes]] (map route/->Edge nodes (rest nodes) (repeat way-id)))
                      simple-ways)]
-    (reduce rp/connect nodes arcs)))
+    (reduce graph/connect nodes arcs)))
 
 ;; xml-parse: (element tag attrs & content)
 (defn- osm->ways
