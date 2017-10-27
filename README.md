@@ -55,7 +55,7 @@ OSM files. Dealing with unnecessary information in OSM files is left to the
 developer. If you dont want to create your own pre-processing script, we recommend
 you to use `Òverpass-Turbo`. [Here](http://overpass-turbo.eu/s/sDW) is an example
 query that we use to get only `pedestrian` relevant paths. You can customize it
-however you want; nce you are done, you can simply `Export` the query and run
+however you want; once you are done, you can simply `Export` the query and run
 it on start.
 
 ## License
