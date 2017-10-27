@@ -30,13 +30,8 @@
                 (concat (for [x (combinations (dec n) tail)] (cons head x))
                         (combinations n tail))))))
 
-(defn update-vals
-  "takes an associative structure, a vector of keys and a function and returns
-  the structure with the values of keys updated by applying f to them. Note that
-  reduce-kv is supported on vectors, where the keys will be the ordinals.
-  example (update-vals [:a 2 :b 3] str)"
-  ([coll f]
-   (if (vector? coll) ;; or map?
-    (update-vals coll (range (count coll)) f)
-    (update-vals coll (keys coll) f)))
-  ([coll keys f] (reduce (fn [m k] (update m k f)) coll keys)))
+(defn map-vals
+  "map over values ONLY"
+  ([f coll] (map (fn [[k v]] [k (f v)])
+                 coll))
+  ([f] (map (fn [[k v]] [k (f v)]))))

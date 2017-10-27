@@ -7,6 +7,7 @@
             [clojure.data.avl :as avl]
             [clojure.set :as set]
             [hiposfer.kamal.libs.math :as math]
+            [hiposfer.kamal.libs.tool :as tool]
             [hiposfer.kamal.graph.core :as graph])
   (:import (org.apache.commons.compress.compressors.bzip2 BZip2CompressorInputStream)))
 
@@ -18,30 +19,19 @@
       (BZip2CompressorInputStream.)
       (io/reader)))
 
-;; routing profile taken from
-;; http://wiki.openstreetmap.org/wiki/OSM_tags_for_routing/Telenav
-(def pedestrian
-  {:highways #{"trunk"     "trunk_link"     "primary"     "primary_link"
-               "secondary" "secondary_link" "residential"
-               "residential_link"           "service"     "tertiary"
-               "tertiary_link"              "road"       "track"        "unclassified"
-               "undefined" "unknown"        "living_street"             "private"
-               "footway"   "pedestrian"     "steps"}
-               ;;route=ferry TODO: how should I use this?
-   ;;TODO: include routing attributes for penalties
-   ;; bridge=yes      Also true/1/viaduct
-   ;; tunnel=yes      Also true/1
-   ;; surface=paved   No Speed Penalty. Also cobblestone/asphalt/concrete
-   ;; surface=unpaved Speed Penalty. Also dirt/grass/mud/earth/sand
-   ;; surface=*       Speed Penalty (all other values)
-   ;; access=private
-   :attrs #{"name"}}) ;:name_1 :ref}})
-
+;;TODO: include routing attributes for penalties
+;; bridge=yes      Also true/1/viaduct
+;; tunnel=yes      Also true/1
+;; surface=paved   No Speed Penalty. Also cobblestone/asphalt/concrete
+;; surface=unpaved Speed Penalty. Also dirt/grass/mud/earth/sand
+;; surface=*       Speed Penalty (all other values)
+;; access=private
 
 ;; name=*   Street Name (Official). Also official_name / int_name / name:en / nat_name
 ;; name_1=* Street Name (Alternate). Also reg_name / loc_name / old_name
 ;; ref=*    Route network and number, but information from parent Route Relations has priority,
 ;;          see below. Also int_ref=* / nat_ref=* / reg_ref=* / loc_ref=* / old_ref=*
+(def way-attrs #{"name"}) ;:name_1 :ref}})
 
 ;; <node id="298884269" lat="54.0901746" lon="12.2482632" user="SvenHRO"
 ;;      uid="46882" visible="true" version="1" changeset="676636"
@@ -62,9 +52,7 @@
 ;   <tag k="highway" v="unclassified"/>
 ;   <tag k="name" v="Pastower Straße"/>
 ;  </way>
-(defn- highway-tag? [element] (when (= "highway" (:k (:attrs element))) element))
-
-(defn- highway->ways
+(defn- ->ways-entry
   "parse a OSM xml-way into a [way-id {attrs}] representing the same way"
   [element] ;; returns '(arc1 arc2 ...)
   (let [attrs (into {} (comp (filter #(= :tag (:tag %)))
@@ -79,22 +67,21 @@
      (assoc attrs ::nodes nodes)]))
 
 (defn- valid-way?
-  "returns nil if the passed way does not conform to the necessary conditions"
+  "returns nil if the passed way does not allow pedestrian access"
   [[_ attrs :as way]]
-  (when (and (contains? (:highways pedestrian) (get attrs "highway"))
-             (or (not= "no" (get attrs "access"))
-                 (= (get attrs "foot") "yes")))
+  (when (or (not= "no" (get attrs "access"))
+            (= (get attrs "foot") "yes"))
     way))
 
 (defn- postprocess
-  "return a [id way] pair with all unnecessary attributes removed with the
+  "return a {id way} pair with all unnecessary attributes removed with the
    exception of ::nodes. Reverse nodes if necessary"
   [[id attrs]]
   (let [new-attrs (walk/keywordize-keys
-                    (select-keys attrs (conj (:attrs pedestrian) ::nodes)))]
+                    (select-keys attrs (conj way-attrs ::nodes)))]
     (if (= "-1" (get attrs "oneway"))
-      [id (update new-attrs ::nodes rseq)]
-      [id new-attrs])))
+      {id (update new-attrs ::nodes rseq)}
+      {id new-attrs})))
 
 (defn- strip-points
   "returns a sequence of node ids that join the intersections
@@ -120,39 +107,14 @@
     (map (fn [[id attr]] [id (strip-points intersections (::nodes attr))])
          ways)))
 
-
-(defn- connect
-  "takes a hashmap of nodes and a hashmap of {way [nodes]} and create
-  arcs between each node to form a graph"
-  [nodes simple-ways]
-  (let [arcs (mapcat (fn [[way-id nodes]] (map route/->Edge nodes (rest nodes) (repeat way-id)))
-                     simple-ways)]
-    (reduce graph/connect nodes arcs)))
-
-;; xml-parse: (element tag attrs & content)
-(defn- osm->ways
-  "takes an OSM-file and returns an int-map of ways representing the road
-   network"
-  [osm]
-  (let [ways  (into (imap/int-map)
-                    (comp (filter #(= :way (:tag %)))
-                          (filter #(some highway-tag? (:content %)))
-                          (map highway->ways)
-                          (filter valid-way?)
-                          (map postprocess))
-                    osm)]
-    ways))
-
-(defn- osm->nodes
-  "takes an OSM-file and a set of node ids and returns a
-   vector of point instances"
-  [osm ids]
-  (let [nodes (into (imap/int-map)
-                    (comp (filter #(= :node (:tag %)))
-                          (filter #(contains? ids (Long/parseLong (:id (:attrs %)))))
-                          (map ->point-entry))
-                    osm)]
-    nodes))
+(defn- osm->entries
+  [xml-entry]
+  (case (:tag xml-entry)
+    :node (->point-entry xml-entry)
+    :way  (let [way (->ways-entry xml-entry)]
+            (when (valid-way? way)
+              (postprocess way)))
+    nil))
 
 ;; There are generally speaking two ways to process an OSM file for routing
 ; - read all points and ways and transform them in memory
@@ -161,38 +123,43 @@
 ;; The first option is faster since reading from disk is always very slow
 ;; The second option uses less memory but takes at least twice as long (assuming reading takes the most time)
 
+;; We use the first option since it provides faster server start time. We assume
+;; that preprocessing the files was already performed and that only the useful
+;; data is part of the OSM file. See README
+
 (defn osm->network
-  "read an OSM file twice: once for ways and another for nodes and transforms
-  it into a network of {:graph :ways :points}, such that the graph represent
-  only the connected nodes, the points represent the shape of the connection
-  and the ways are the metadata associated with the connections"
-  [filename]
-  (let [ways          (with-open [file-rdr (bz2-reader filename)]
-                        (osm->ways (:content (xml/parse file-rdr))))
-        ;; post procesing ways
-        point-ids     (into (imap/int-set) (mapcat ::nodes) (vals ways))
+  "read an OSM file and transforms it into a network of {:graph :ways :points},
+   such that the graph represent only the connected nodes, the points represent
+   the shape of the connection and the ways are the metadata associated with
+   the connections"
+  [filename] ;; read all elements into memory
+  (let [nodes&ways    (with-open [file-rdr (bz2-reader filename)]
+                        (into [] (comp (map osm->entries)
+                                       (remove nil?))
+                                 (:content (xml/parse file-rdr))))
+        ;; separate ways from nodes
+        ways          (into (imap/int-map) (filter map?) nodes&ways)
+        points&nodes  (into (imap/int-map) (filter vector?) nodes&ways)
         ;; post-processing nodes
-        points&nodes  (with-open [file-rdr (bz2-reader filename)]
-                        (osm->nodes (:content (xml/parse file-rdr)) point-ids))
         simple-ways   (simplify ways)
         node-ids      (into (imap/int-set) (mapcat second) simple-ways)
-        points        (into (imap/int-map)
-                            (remove #(contains? node-ids (key %)))
-                            points&nodes)
-        nodes         (into (imap/int-map)
-                            (comp (filter #(contains? node-ids (key %)))
-                                  (map (fn [[k v]] [k (route/->NodeInfo (:lon v) (:lat v) nil nil)])))
-                            points&nodes)
-        graph         (connect nodes simple-ways)
+        points        (apply dissoc points&nodes node-ids)
+        nodes         (apply dissoc points&nodes (keys points))
+        nodes         (into nodes (tool/map-vals route/map->NodeInfo)
+                                  nodes)
+        edges         (mapcat (fn [[way-id nodes]]
+                                (map route/->Edge nodes (rest nodes) (repeat way-id)))
+                              simple-ways)
+        graph         (reduce graph/connect nodes edges)
         neighbours    (into (avl/sorted-map-by math/lexicographic-coordinate)
                             (set/map-invert graph))]
-    {:ways   ways :graph graph
+    {:ways   ways   :graph graph
      :points points :neighbours neighbours}))
 
 (def walking-speed  2.5);; m/s
 
 ;(System/gc)
-;(def network (time (osm->network "resources/osm/saarland.osm.bz2")))
+;(def network (time (osm->network "resources/osm/saarland.min.osm.bz2")))
 ;(take 10 (:graph network))
 ;(take 10 (:ways network))
 ;(def network nil)
