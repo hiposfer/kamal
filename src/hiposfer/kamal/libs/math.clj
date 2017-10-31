@@ -1,6 +1,5 @@
 (ns hiposfer.kamal.libs.math
-  (:require [hiposfer.kamal.graph.protocols :as rp])
-  (:import (ch.hsr.geohash GeoHash)))
+  (:require [hiposfer.kamal.graph.protocols :as rp]))
 
 ;; Note in these scripts, I generally use
 ;; - latitude, longitude in degrees
@@ -73,12 +72,13 @@
     (rem (+ (Math/toDegrees (Math/atan2 y x)) 360)
          360)));
 
-;;TODO how much precision do I need for the geohash?
+;; TODO: consider using geohashes
+;; http://www.bigfastblog.com/geohash-intro
 (defn lexicographic-coordinate
   "comparator function to order nodes in a graph
   WARNING: this assumes that two points cannot occupy the same
   space. e.g. no 3D points since two point with different height
   but equal lat, lon would collide"
   [x y]
-  (compare (GeoHash/withBitPrecision (rp/lat x) (rp/lon x) 32)
-           (GeoHash/withBitPrecision (rp/lat y) (rp/lon y) 32)))
+  (compare [(rp/lat x) (rp/lon x)]
+           [(rp/lat y) (rp/lon y)]))
