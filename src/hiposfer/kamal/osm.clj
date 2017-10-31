@@ -8,7 +8,8 @@
             [clojure.set :as set]
             [hiposfer.kamal.libs.math :as math]
             [hiposfer.kamal.libs.tool :as tool]
-            [hiposfer.kamal.graph.core :as graph])
+            [hiposfer.kamal.graph.core :as graph]
+            [hiposfer.kamal.graph.algorithms :as alg])
   (:import (org.apache.commons.compress.compressors.bzip2 BZip2CompressorInputStream)))
 
 (defn- bz2-reader
@@ -90,13 +91,15 @@
 
 (defn- simplify
   "returns a [way-id [connected-node-ids]], i.e. only the nodes that represent
-  the connected nodes in a graph structure"
+  the connected nodes in a graph structure.
+
+  Uses the ::nodes of each way and counts which nodes appear more than once"
   [ways]
-  (let [point-count   (into (imap/int-map) (frequencies (mapcat ::nodes (vals ways))))
-        intersections (into (imap/int-set)
-                            (comp (filter (fn [[_ v]] (>= v 2)))
-                                  (map first))
-                            point-count)]
+  (let [point-count   (frequencies (mapcat ::nodes (vals ways)))
+        intersections (apply dissoc point-count
+                            (sequence (comp (remove (fn [[_ v]] (>= v 2)))
+                                            (map first))
+                                      point-count))]
     (map (fn [[id attr]] [id (strip-points intersections (::nodes attr))])
          ways)))
 
@@ -133,19 +136,19 @@
         points&nodes  (into (imap/int-map) (filter vector?) nodes&ways)
         ;; post-processing nodes
         simple-ways   (simplify ways)
-        node-ids      (into (imap/int-set) (mapcat second) simple-ways)
-        points        (apply dissoc points&nodes node-ids)
-        nodes         (apply dissoc points&nodes (keys points))
-        nodes         (into nodes (tool/map-vals route/map->NodeInfo)
-                                  nodes)
         edges         (mapcat (fn [[way-id nodes]]
                                 (map route/->Edge nodes (rest nodes) (repeat way-id)))
                               simple-ways)
-        graph         (reduce graph/connect nodes edges)
+        points        (apply dissoc points&nodes (mapcat second simple-ways))
+        nodes         (apply dissoc points&nodes (keys points))
+        nodes         (into nodes (tool/map-vals route/map->NodeInfo)
+                                  nodes)
+        graph         (alg/biggest-component (reduce graph/connect nodes edges))
         neighbours    (into (avl/sorted-map-by math/lexicographic-coordinate)
                             (set/map-invert graph))]
     {:ways   ways   :graph graph
-     :points points :neighbours neighbours}))
+     ;:points points ;; TODO reactivate them for better geometry precision.
+     :neighbours neighbours}))
 
 (def walking-speed  2.5);; m/s
 
