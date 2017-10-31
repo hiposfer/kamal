@@ -7,7 +7,8 @@
             [hiposfer.kamal.graph.protocols :as rp]
             [hiposfer.kamal.graph.generators :as g]
             [hiposfer.kamal.directions :as direction]
-            [hiposfer.kamal.graph.core :as route]))
+            [hiposfer.kamal.graph.core :as route]
+            [hiposfer.kamal.libs.tool :as tool]))
 
 ;; https://rosettacode.org/wiki/Dijkstra%27s_algorithm
 (def rosetta {1 {:outgoing {2 {:dst 2 :length 7}
@@ -34,22 +35,19 @@
 
 (deftest shortest-path
   (let [dst       5
-        performer (alg/dijkstra rosetta
-                    :value-by (fn [arc _] (:length arc))
-                    :start-from #{1})
-        traversal (reduce (fn [_ v] (when (= dst (key (first v)))
-                                      (reduced v)))
-                      nil
-                      performer)]
+        performer (alg/dijkstra (fn [arc _] (:length arc))
+                                #{1}
+                                rosetta)
+        traversal (alg/shortest-path dst performer)]
     (is (not (empty? traversal))
         "shortest path not found")
     (is (= '(5 4 3 1) (map key traversal))
         "shortest path doesnt traverse expected nodes")))
 
 (deftest all-paths
-  (let [performer (alg/dijkstra rosetta
-                                :value-by (fn length [arc _] (:length arc))
-                                :start-from #{1})
+  (let [performer (alg/dijkstra (fn length [arc _] (:length arc))
+                                #{1}
+                                rosetta)
         traversal (into {} (comp (map first)
                                  (map (juxt key (comp rp/cost val))))
                            performer)]
@@ -68,12 +66,11 @@
   (prop/for-all [graph (gen/such-that not-empty (g/graph 10) 1000)]
     (let [src  (rand-nth (keys graph))
           dst  (rand-nth (keys graph))
-          coll (alg/dijkstra graph :start-from #{src}
-                                   :value-by (partial direction/duration graph))
+          coll (alg/dijkstra (partial direction/duration graph)
+                             #{src}
+                             graph)
           results (for [_ (range 10)]
-                    (reduce (fn [_ v] (when (= dst (key (first v)))
-                                        (reduced v)))
-                            nil coll))]
+                    (alg/shortest-path dst coll))]
       (or (every? nil? results)
           (and (apply = (map (comp key first) results))
                (apply = (map (comp rp/cost val first) results)))))))
@@ -84,15 +81,12 @@
 (defspec monotonic
   100; tries
   (prop/for-all [graph (gen/such-that not-empty (g/graph 10) 1000)]
-    (let [src  (rand-nth (keys graph))
-          dst  (rand-nth (keys graph))
-          coll (alg/dijkstra graph
-                             :start-from #{src}
-                             :value-by (partial direction/duration graph))
-          result (reduce (fn [_ v] (when (= dst (key (first v)))
-                                     (reduced v)))
-                         nil
-                         coll)]
+    (let [src    (rand-nth (keys graph))
+          dst    (rand-nth (keys graph))
+          coll   (alg/dijkstra (partial direction/duration graph)
+                               #{src}
+                               graph)
+          result (alg/shortest-path dst coll)]
       (is (or (nil? result)
               (apply >= (concat (map (comp rp/cost val) result)
                                 [0])))
@@ -106,12 +100,10 @@
   100; tries
   (prop/for-all [graph (gen/such-that not-empty (g/graph 10) 1000)]
     (let [src  (rand-nth (keys graph))
-          coll (alg/dijkstra graph
-                             :start-from #{src}
-                             :value-by (partial direction/duration graph))
-          result (reduce (fn [_ v] (when (= src (key (first v)))
-                                     (reduced v)))
-                         nil coll)]
+          coll (alg/dijkstra (partial direction/duration graph)
+                             #{src}
+                             graph)
+          result (alg/shortest-path src coll)]
       (is (not-empty result)
           "no path from node to himself found")
       (is (= 1 (count result))
@@ -140,9 +132,9 @@
   (prop/for-all [graph (gen/such-that not-empty (g/graph 10) 1000)]
     (let [graph2 (alg/biggest-component graph)
           src    (key (first graph2))
-          coll   (alg/dijkstra graph2
-                   :start-from #{src}
-                   :value-by (partial direction/duration graph2))]
+          coll   (alg/dijkstra (partial direction/duration graph2)
+                               #{src}
+                               graph2)]
       (is (seq? (reduce (fn [r v] v) nil coll))
           "biggest components should not contain links to nowhere"))))
 
