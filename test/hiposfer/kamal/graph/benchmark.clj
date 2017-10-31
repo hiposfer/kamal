@@ -22,13 +22,8 @@
              (reduce + (map (comp count rp/successors) (vals graph))) "edges")
     (println "**random graph")
     (c/quick-bench
-      (let [coll (alg/dijkstra graph
-                   :start-from #{src}
-                   :value-by (partial direction/duration graph))]
-        (reduce (fn [_ v] (when (= dst (key (first v)))
-                            (reduced v)))
-                nil
-                coll))
+      (let [coll (alg/dijkstra (partial direction/duration graph) #{src} graph)]
+        (alg/shortest-path dst coll))
       :os :runtime :verbose)))
 
 (def networker (delay (osm/osm->network "resources/osm/saarland.min.osm.bz2")))
@@ -45,24 +40,14 @@
              (reduce + (map (comp count rp/successors) (vals graph))) "edges")
     (println "saarland graph:")
     (c/quick-bench
-      (let [coll (alg/dijkstra graph
-                   :start-from #{src}
-                   :value-by (partial direction/duration graph))]
-        (reduce (fn [_ v] (when (= dst (key (first v)))
-                            (reduced v)))
-                nil
-                coll))
+      (let [coll (alg/dijkstra (partial direction/duration graph) #{src} graph)]
+        (alg/shortest-path dst coll))
       :os :runtime :verbose)
     (println "--------")
     (println "using only strongly connected components of the original graph")
     (c/quick-bench
-      (let [coll (alg/dijkstra Cgraph
-                   :start-from #{src}
-                   :value-by (partial direction/duration Cgraph))]
-        (reduce (fn [_ v] (when (= dst (key (first v)))
-                            (reduced v)))
-                nil
-                coll))
+      (let [coll (alg/dijkstra (partial direction/duration Cgraph) #{src} Cgraph)]
+        (alg/shortest-path dst coll))
       :os :runtime :verbose)))
 
 (defn- brute-nearest

@@ -13,7 +13,8 @@
   "Constructs the current development system."
   []
   (alter-var-root #'system
-    (constantly (routing/system (routing/config {:dev false})))))
+    (constantly (routing/system (routing/config {:dev false
+                                                 :join? false})))))
 
 (defn start!
   "Starts the current development system."

@@ -3,7 +3,8 @@
             [hiposfer.kamal.graph.algorithms :as alg]
             [hiposfer.kamal.graph.protocols :as rp]
             [hiposfer.kamal.libs.math :as math]
-            [clojure.data.avl :as avl]))
+            [clojure.data.avl :as avl]
+            [hiposfer.kamal.libs.tool :as tool]))
             ;[hiposfer.kamal.dev :as dev]))
             ;[cheshire.core :as cheshire]))
 
@@ -168,12 +169,10 @@
   (let [{:keys [coordinates steps radiuses alternatives language]} params
         start     (avl/nearest neighbours <= (first coordinates))
         dst       (avl/nearest neighbours <= (last coordinates))
-        traversal (alg/dijkstra (:graph network)
-                                :value-by #(duration graph %1 %2)
-                                :start-from #{(val start)})
-        trace     (reduce (fn [_ trace] (when (= (key (first trace)) (val dst))
-                                          (reduced trace)))
-                          nil traversal)]
+        traversal (alg/dijkstra #(duration graph %1 %2)
+                                #{(val start)}
+                                (:graph network))
+        trace     (alg/shortest-path (val dst) traversal)]
     (if (nil? trace)
       {:code "NoRoute"}
       {:code "Ok"
