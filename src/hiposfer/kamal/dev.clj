@@ -12,7 +12,7 @@
   "Constructs the current development system."
   []
   (alter-var-root #'system
-    (constantly (core/system (core/config {:dev false
+    (constantly (core/system (core/config {:dev true
                                            :join? false})))))
 
 (defn start!

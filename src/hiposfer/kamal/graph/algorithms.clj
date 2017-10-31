@@ -62,7 +62,7 @@
   [undirected-graph]
   (let [subsets   (components undirected-graph)
         connected (into (imap/int-set) (apply max-key count subsets))
-        ids       (into #{} (keys undirected-graph))]
+        ids       (into (imap/int-set) (keys undirected-graph))]
     (reduce route/detach
             undirected-graph
             (set/difference ids connected))))

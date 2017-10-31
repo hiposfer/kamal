@@ -16,7 +16,6 @@
                  [org.apache.commons/commons-compress "1.4"] ;;bz2 files read
                  [org.clojure/data.avl "0.0.17"]
                  [org.teneighty/java-heaps "1.0.0"]
-                 [ch.hsr/geohash "1.3.0"]
                  [environ "1.1.0"]] ;; read environment variables from several sources
   :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
                                   [expound "0.1.1"]
