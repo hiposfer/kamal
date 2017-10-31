@@ -2,8 +2,7 @@
   "Tools for interactive development with the REPL. This file should
   not be included in a production build of the application."
   (:require [com.stuartsierra.component :as component]
-            [environ.core :refer [env]]
-            [hiposfer.kamal.core :as routing]
+            [hiposfer.kamal.core :as core]
             [clojure.tools.namespace.repl :as repl]))
             ;[cheshire.core :as cheshire]))
 
@@ -13,8 +12,8 @@
   "Constructs the current development system."
   []
   (alter-var-root #'system
-    (constantly (routing/system (routing/config {:dev false
-                                                 :join? false})))))
+    (constantly (core/system (core/config {:dev false
+                                           :join? false})))))
 
 (defn start!
   "Starts the current development system."
