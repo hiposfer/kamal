@@ -66,13 +66,6 @@
     [(Long/parseLong (:id (:attrs element)))
      (assoc attrs ::nodes nodes)]))
 
-(defn- valid-way?
-  "returns nil if the passed way does not allow pedestrian access"
-  [[_ attrs :as way]]
-  (when (or (not= "no" (get attrs "access"))
-            (= (get attrs "foot") "yes"))
-    way))
-
 (defn- postprocess
   "return a {id way} pair with all unnecessary attributes removed with the
    exception of ::nodes. Reverse nodes if necessary"
@@ -111,9 +104,7 @@
   [xml-entry]
   (case (:tag xml-entry)
     :node (->point-entry xml-entry)
-    :way  (let [way (->ways-entry xml-entry)]
-            (when (valid-way? way)
-              (postprocess way)))
+    :way  (postprocess (->ways-entry xml-entry))
     nil))
 
 ;; There are generally speaking two ways to process an OSM file for routing

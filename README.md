@@ -53,10 +53,10 @@ setting `:dev` to `false`.
 `kamal` is very routing oriented, thus no filtering is performed when reading
 OSM files. Dealing with unnecessary information in OSM files is left to the
 developer. If you dont want to create your own pre-processing script, we recommend
-you to use `Òverpass-Turbo`. [Here](http://overpass-turbo.eu/s/sDW) is an example
+you to use `Òverpass-Api`. [Here](http://overpass-turbo.eu/s/sHu) is an example
 query that we use to get only `pedestrian` relevant paths. You can customize it
-however you want; once you are done, you can simply `Export` the query and run
-it on start.
+however you want; once you are done, click `Export` and get the `raw data directly from Overpass API` link;
+ with it you can execute the query on a terminal or script.
 
 ## License
 `kamal` is distributed under LGPL v3
