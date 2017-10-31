@@ -6,9 +6,9 @@
             [hiposfer.kamal.graph.algorithms :as alg]
             [hiposfer.kamal.osm :as osm]
             [hiposfer.kamal.directions :as direction]
-            [hiposfer.kamal.graph.protocols :as rp]
             [hiposfer.kamal.libs.math :as math]
-            [clojure.data.avl :as avl]))
+            [clojure.data.avl :as avl]
+            [hiposfer.kamal.graph.core :as graph]))
 
 ;; This is just to show the difference between a randomly generated graph
 ;; and a real-world graph. The randomly generated graph does not have a structure
@@ -19,7 +19,7 @@
         src          (key (first graph))
         dst          (key (last graph))]
     (println "\n\nDIJKSTRA forward with:" (count graph) "nodes and"
-             (reduce + (map (comp count rp/successors) (vals graph))) "edges")
+             (count (graph/edges graph)) "edges")
     (println "**random graph")
     (c/quick-bench
       (let [coll (alg/dijkstra (partial direction/duration graph) #{src} graph)]
@@ -37,7 +37,7 @@
         src          (key (first Cgraph))
         dst          (key (last Cgraph))]
     (println "\n\nDIJKSTRA forward with:" (count graph) "nodes and"
-             (reduce + (map (comp count rp/successors) (vals graph))) "edges")
+             (count (graph/edges graph)) "edges")
     (println "saarland graph:")
     (c/quick-bench
       (let [coll (alg/dijkstra (partial direction/duration graph) #{src} graph)]
@@ -45,6 +45,8 @@
       :os :runtime :verbose)
     (println "--------")
     (println "using only strongly connected components of the original graph")
+    (println "with:" (count Cgraph) "nodes and"
+             (count (graph/edges Cgraph)) "edges")
     (c/quick-bench
       (let [coll (alg/dijkstra (partial direction/duration Cgraph) #{src} Cgraph)]
         (alg/shortest-path dst coll))

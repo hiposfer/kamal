@@ -36,6 +36,8 @@
   [graph]
   (sequence (mapcat rp/predecessors) (vals graph)))
 
+;; TODO: the edges protocol should not exist. It should be possible to
+;; achieve the same behavior with sucessors + edge? + mirror?
 (defn edges
   "returns a lazy sequence of bidirectional arcs (those that conform to edge?)"
   [graph]
