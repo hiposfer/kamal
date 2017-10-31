@@ -3,9 +3,7 @@
             [hiposfer.kamal.graph.algorithms :as alg]
             [hiposfer.kamal.graph.protocols :as rp]
             [hiposfer.kamal.libs.math :as math]
-            [clojure.data.avl :as avl]
-            [hiposfer.kamal.libs.tool :as tool]))
-            ;[hiposfer.kamal.dev :as dev]))
+            [clojure.data.avl :as avl]))
             ;[cheshire.core :as cheshire]))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
@@ -182,28 +180,14 @@
                    {:name (str (:name (ways (some rp/way (rp/successors (key dst))))))
                     :location (->coordinates (key dst))}]})))
 
-;(defonce network (time (update (time (osm/osm->network "resources/osm/saarland.osm"))
-;                               :graph
-;                               alg/biggest-component)))
-;
-;network
+;(def origin      (->coordinates (val (rand-nth (seq (:graph @(:network (:grid hiposfer.kamal.dev/system))))))))
+;(def destination (->coordinates (val (rand-nth (seq (:graph @(:network (:grid hiposfer.kamal.dev/system))))))))
 
-;(def origin [7.0016269 49.2373449])
-;(def destination [7.0240812 49.6021303])
-
-;(def origin      ((juxt rp/lon rp/lat) (val (rand-nth (seq (:graph network))))))
-;(def destination ((juxt rp/lon rp/lat) (val (rand-nth (seq (:graph network))))))
-;
-;(def result (direction network
-;                       :coordinates [origin destination]
-;                       :steps true))
-;
-;result
-;(:steps (first (:legs (first (:routes result)))))
+;(direction @(:network (:grid hiposfer.kamal.dev/system))
+;  :coordinates [origin destination]
+;  :steps true)
 ;
 ;(spit "resources/linestring.json"
 ;  (cheshire/generate-string (:geometry (first (:routes result)))))
 
-;(brute-nearest @(:network (:grid dev/system))
-;               {:lon 7.0288485, :lat 49.1064844}
-;               {:lon 6.957843, :lat 49.298881}})))
+;(keys (:grid dev/system))
