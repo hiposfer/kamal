@@ -4,6 +4,8 @@
             [hiposfer.kamal.graph.protocols :as rp]
             [hiposfer.kamal.libs.math :as math]
             [clojure.data.avl :as avl]))
+            ;[clojure.set :as set]
+            ;[cheshire.core :as cheshire]))
             ;[cheshire.core :as cheshire]))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
@@ -58,34 +60,35 @@
 ;; WARNING: we assume that we only traverse outgoing arcs
 ;; and that there is only one arc connecting src & dst
 (defn- partition-by-street-name
-  "split the trace into a sequence of traces using the way id as separator"
+  "split the trace into a sequence of traces using the street name as separator"
   [{:keys [graph ways]} trace]
-  (let [way-ids (sequence (map (fn [dst src] (wayver graph (key src) (key dst))))
-                          trace
-                          (rest trace))
+  (let [way-ids (map (fn [dst src] (wayver graph (key src) (key dst)))
+                     trace
+                     (rest trace))
         ;; last: little hack to get the way of the first point
         traces  (sequence (comp (map vector)
-                                (partition-by (fn [[_ wid]] (:name (ways wid))))
-                                (map #(map first %)) ;; get the path traces
-                                (map first)) ;; get only the first trace
+                                (partition-by (fn [[_ id]] (:name (ways id))))
+                                (map #(map first %))) ;; get the path traces
                           trace
                           (concat way-ids [(last way-ids)]))
         streets (sequence (comp (partition-by #(:name (ways %)))
                                 (map first)) ;; the first way id suffices
                           way-ids)]
         ;_ (println traces)]
-    (sequence (map vector) streets traces)))
+    (map vector streets traces)))
 
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
 (defn- maneuver
   "returns a step manuever"
-  [{:keys [graph ways]} [way-id-to trace-to :as destination] [_ trace  :as origin]]
-  (let [location     (->coordinates (graph (key trace)))
+  [{:keys [graph ways]}
+   [way-id-to trace-to :as destination]
+   [_ trace  :as origin]]
+  (let [location     (->coordinates (graph (key (first trace))))
         pre-bearing  (math/bearing (->coordinates (graph (key (second trace))))
-                                   (->coordinates (graph (key trace))))
-        post-bearing (math/bearing (->coordinates (graph (key trace)))
-                                   (->coordinates (graph (key trace-to))))
+                                   (->coordinates (graph (key (first trace)))))
+        post-bearing (math/bearing (->coordinates (graph (key (first trace))))
+                                   (->coordinates (graph (key (first trace-to)))))
         angle        (mod (+ 360 (- post-bearing pre-bearing)) 360)
         modifier     (val (last (subseq bearing-turns <= angle)))
         way-name     (:name (ways way-id-to))
@@ -102,11 +105,13 @@
 ;https://www.mapbox.com/api-documentation/#routestep-object
 (defn- step
   "includes one StepManeuver object and travel to the following RouteStep"
-  [{:keys [ways] :as network} [way-id-to trace-to :as destination] [_ trace :as origin]]
-  (let [linestring (geometry network trace-to (key trace))]
+  [{:keys [ways] :as network}
+   [way-id-to trace-to :as destination]
+   [_ trace :as origin]]
+  (let [linestring (geometry network trace-to (key (first trace)))]
     {:distance (math/arc-length (:coordinates linestring))
-     :duration (- (rp/cost (val trace-to))
-                  (rp/cost (val trace)))
+     :duration (- (rp/cost (val (first trace-to)))
+                  (rp/cost (val (first trace))))
      :geometry linestring
      :name     (str (:name (ways way-id-to)))
      :mode     "walking" ;;TODO this should not be hardcoded
@@ -125,7 +130,7 @@
         ;; prevent computation when edge case
         ways&traces (lazy-seq (partition-by-street-name network trace))]
     {:distance     (math/arc-length (:coordinates linestring))
-     :duration     (rp/cost (val trace))
+     :duration     (rp/cost (val (first trace)))
      ;; TODO: add depart and arrival steps
      :steps        (if (or (not steps) edge-case) []
                      (reverse (map step (repeat network)
@@ -166,27 +171,53 @@
   [{:keys [graph ways neighbours] :as network} & params]
   (let [{:keys [coordinates steps radiuses alternatives language]} params
         start     (avl/nearest neighbours <= (first coordinates))
-        dst       (avl/nearest neighbours <= (last coordinates))
-        traversal (alg/dijkstra #(duration graph %1 %2)
-                                #{(val start)}
-                                (:graph network))
-        trace     (alg/shortest-path (val dst) traversal)]
-    (if (nil? trace)
-      {:code "NoRoute"}
-      {:code "Ok"
-       :routes [(route network steps trace)]
-       :waypoints [{:name (str (:name (ways (some rp/way (rp/successors (key start))))))
-                    :location (->coordinates (key start))}
-                   {:name (str (:name (ways (some rp/way (rp/successors (key dst))))))
-                    :location (->coordinates (key dst))}]})))
+        dst       (avl/nearest neighbours <= (last coordinates))]
+    (if (or (nil? start) (nil? dst)) {:code "NoSegment"}
+      (let [traversal (alg/dijkstra #(duration graph %1 %2)
+                                  #{(val start)}
+                                  (:graph network))
+            trace     (alg/shortest-path (val dst) traversal)]
+        (if (nil? trace) {:code "NoRoute"}
+          {:code "Ok"
+           :routes [(route network steps trace)]
+           :waypoints [{:name (str (:name (ways (some rp/way (rp/successors (key start))))))
+                        :location (->coordinates (key start))}
+                       {:name (str (:name (ways (some rp/way (rp/successors (key dst))))))
+                        :location (->coordinates (key dst))}]})))))
 
-;(def origin      (->coordinates (val (rand-nth (seq (:graph @(:network (:grid hiposfer.kamal.dev/system))))))))
-;(def destination (->coordinates (val (rand-nth (seq (:graph @(:network (:grid hiposfer.kamal.dev/system))))))))
 
-;(direction @(:network (:grid hiposfer.kamal.dev/system))
-;  :coordinates [origin destination]
-;  :steps true)
+;(def conn (alg/biggest-component (:graph @(:network (:grid hiposfer.kamal.dev/system)))))
+;(def origin      (->coordinates (val (rand-nth (seq conn)))))
+;(def destination (->coordinates (val (rand-nth (seq conn)))))
 ;
+;origin
+;(math/haversine origin
+;  (key (avl/nearest (into (avl/sorted-map-by math/lexicographic-coordinate)
+;                          (set/map-invert conn))
+;                    >=
+;                    origin)))
+;;
+;(direction {:graph      conn
+;            :ways       (:graph @(:network (:grid hiposfer.kamal.dev/system)))
+;            :neighbours (into (avl/sorted-map-by math/lexicographic-coordinate)
+;                              (set/map-invert conn))}
+;           :coordinates [origin destination]
+;           :steps true)
+
+;(def result (direction {:graph      conn
+;                        :ways       (:graph @(:network (:grid hiposfer.kamal.dev/system)))
+;                        :neighbours (into (avl/sorted-map-by math/lexicographic-coordinate)
+;                                          (set/map-invert conn))}
+;                       :coordinates [origin destination]
+;                       :steps true))
+;
+;(time (count (alg/biggest-component (:graph @(:network (:grid hiposfer.kamal.dev/system))))))
+;
+;(time (count (:graph @(:network (:grid hiposfer.kamal.dev/system)))))
+;
+;(take 10 (:ways @(:network (:grid hiposfer.kamal.dev/system))))
+;
+;result
 ;(spit "resources/linestring.json"
 ;  (cheshire/generate-string (:geometry (first (:routes result)))))
 
