@@ -43,10 +43,9 @@
   ([graph]
    (sequence (mapcat edges) (repeat graph) (keys graph)))
   ([graph node-id]
-   (sequence (comp (map rp/successors)
-                   (filter edge?)
+   (sequence (comp (filter edge?)
                    (map #(if (rp/mirror? %) (rp/mirror %) %)))
-             (graph node-id))))
+             (rp/successors (graph node-id)))))
 
 (defn connect
   "connect the nodes src and dst of link"
