@@ -1,8 +1,7 @@
 (ns hiposfer.kamal.graph.algorithms
   (:require [hiposfer.kamal.graph.protocols :as rp]
             [hiposfer.kamal.graph.core :as route]
-            [clojure.data.int-map :as imap]
-            [clojure.set :as set]))
+            [clojure.data.int-map :as imap]))
 
 
 (def movement
@@ -20,9 +19,9 @@
    - start-from is a set of node ids to start searching from
    - direction is one of ::forward or ::backward and determines whether
      to use the outgoing or incoming arcs of each node"
-  ([value-by start-from graph]
-   (dijkstra value-by start-from ::forward graph))
-  ([value-by start-from direction graph]
+  ([graph value-by start-from]
+   (dijkstra graph ::forward value-by start-from))
+  ([graph direction value-by start-from]
    (let [[f arcs] (movement direction)]
      (route/->Dijkstra graph start-from value-by arcs f))))
 
@@ -31,28 +30,28 @@
   manner as Dijkstra algorithm but with a constant cost.
 
   See Breath-first algorithm"
-  ([start-from graph]
-   (breath-first start-from ::forward graph))
-  ([start-from direction graph]
-   (dijkstra (constantly 1) start-from direction graph)))
+  ([graph node-id]
+   (breath-first graph ::forward node-id))
+  ([graph direction node-id]
+   (dijkstra graph direction (constantly 1) #{node-id})))
 
 (defn shortest-path
   "returns the path taken to reach dst using the provided graph traversal"
   [dst-id graph-traversal]
   (let [pred? (comp #{dst-id} key first)
-        rf    #(when (pred? %2) (reduced %2))]
+        rf    (fn [_ value] (when (pred? value) (reduced value)))]
     (reduce rf nil graph-traversal)))
 
-(defn components
+(defn- components
   "returns a lazy sequence of sets of nodes' ids of each strongly connected
    component of an undirected graph"
-  [graph]
-  (lazy-seq
-    (when (not-empty graph)
-      (let [connected (sequence (comp (map first) (map key))
-                        (breath-first #{(ffirst graph)} graph))
-            new-graph (reduce route/detach graph connected)]
-        (cons connected (components new-graph))))))
+  [graph settled]
+  (if (= (count graph) (count settled)) (list)
+   (let [start     (some #(and (not (settled %)) %) (keys graph))
+         connected (into (imap/int-set)
+                         (comp (map first) (map key))
+                         (breath-first graph start))]
+     (cons connected (lazy-seq (components graph (imap/union settled connected)))))))
 
 ;; note for specs: the biggest component of a biggest component should
 ;; be the passed graph (= graph (bc graph)) => true for all
@@ -60,9 +59,9 @@
   "returns a subset of the original graph containing only the elements
   of the biggest strongly connected components"
   [undirected-graph]
-  (let [subsets   (components undirected-graph)
-        connected (into (imap/int-set) (apply max-key count subsets))
-        ids       (into (imap/int-set) (keys undirected-graph))]
-    (reduce route/detach
-            undirected-graph
-            (set/difference ids connected))))
+  (let [subsets   (components undirected-graph (imap/int-set))
+        connected (apply max-key count subsets)]
+    (transduce (remove connected)
+               (completing route/detach)
+               undirected-graph
+               (keys undirected-graph))))
