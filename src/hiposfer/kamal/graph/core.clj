@@ -12,7 +12,7 @@
 ;; NOTE: for convenience we represent the edges as a directed outgoing arc
 ;;       and reverse it only if necessary (see predecesors)
 (defn edge? [coll] (and (satisfies? rp/Link coll)
-                        (satisfies? rp/UndirectedLink coll)))
+                        (satisfies? rp/Bidirectional coll)))
 
 (defn arc? [coll] (satisfies? rp/Link coll))
 
@@ -36,12 +36,17 @@
   [graph]
   (sequence (mapcat rp/predecessors) (vals graph)))
 
-;; TODO: the edges protocol should not exist. It should be possible to
-;; achieve the same behavior with sucessors + edge? + mirror?
 (defn edges
-  "returns a lazy sequence of bidirectional arcs (those that conform to edge?)"
-  [graph]
-  (sequence (mapcat rp/edges) (vals graph)))
+  "returns a lazy sequence of bidirectional arcs (those that conform to edge?)
+  in their original direction i.e. no mirrored Links are returned. The order
+  of the elements is not guaranteed"
+  ([graph]
+   (sequence (mapcat edges) (repeat graph) (keys graph)))
+  ([graph node-id]
+   (sequence (comp (map rp/successors)
+                   (filter edge?)
+                   (map #(if (rp/mirror? %) (rp/mirror %) %)))
+             (graph node-id))))
 
 (defn connect
   "connect the nodes src and dst of link"
@@ -78,24 +83,24 @@
 ; graph is an {id node}
 ; NodeInfo is a {:lon :lat :links {node-id arc}}
 ; Arc is a {:src :dst :way-id}
-
-;; TODO: do I need the :mirror? flag?
 (defrecord Edge [^long src ^long dst ^long way]
   rp/Link
   (src [_] src)
   (dst [_] dst)
   rp/Passage
   (way [_] way)
-  rp/UndirectedLink
-  (mirror [_] (map->Edge {:src dst :dst src :way way}))) ;:mirror? true}))
-  ;(mirror? [this] (:mirror? this))
+  rp/Bidirectional
+  (mirror [this]
+    (if (:mirror? this)
+      (dissoc this :mirror?) ; remove mirror from edge
+      (map->Edge {:src dst :dst src :way way :mirror? true})))
+  (mirror? [this] (:mirror? this)))
 
 
 (defrecord Arc [^long src ^long dst ^long way]
   rp/Link
   (src [_] src)
   (dst [_] dst)
-  ;(mirror? [this] (:mirror? this))
   rp/Passage
   (way [_] way))
 
@@ -111,9 +116,6 @@
                                                (map rp/mirror))
                                          (vals (:incoming this)))
                                (vals (:outgoing this))))
-  (edges [this] (sequence (filter edge?)
-                          (concat (vals (:incoming this))
-                                  (vals (:outgoing this)))))
   rp/GeoCoordinate
   (lat [_] lat)
   (lon [_] lon)
@@ -152,9 +154,6 @@
                                                (map rp/mirror))
                                          (vals (:incoming this)))
                                (vals (:outgoing this))))
-  (edges [this] (sequence (filter edge?)
-                          (concat (:incoming this)
-                                  (:outgoing this))))
   rp/GeoCoordinate
   (lat [this] (:lat this))
   (lon [this] (:lon this))
@@ -171,10 +170,6 @@
   rp/Link
   (src [this] (:src this))
   (dst [this] (:dst this))
-  (mirror [this] (assoc this :src (:dst this)
-                             :dst (:src this)))
-                             ;:mirror? true))
-  ;(mirror? [this] (:mirror? this))
   rp/Passage
   (way [this] (:way this)))
 
@@ -213,7 +208,8 @@
   the queue or adds it otherwise"
   [value f ^Map settled ^Map unsettled ^Heap$Entry entry ^Heap queue trail node-arcs]
   (if (empty? node-arcs) nil
-    (if (.containsKey settled (f (first node-arcs))) nil
+    (if (.containsKey settled (f (first node-arcs)))
+      (recur value f settled unsettled entry queue trail (rest node-arcs))
       (let [arc     (first node-arcs)
             prev-id (key (.getValue entry))
             weight  (rp/sum (value arc trail)
@@ -299,7 +295,7 @@
              trail (produce! graph value arcs f queue settled unsettled)]
         (let [rr (rf ret trail)]
           (if (reduced? rr) @rr
-            (if (.isEmpty queue) ret
+            (if (.isEmpty queue) rr
               (recur rr (produce! graph value arcs f queue settled unsettled))))))))
   ;; ------
   IReduce
