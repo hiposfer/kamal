@@ -173,9 +173,9 @@
         start     (avl/nearest neighbours <= (first coordinates))
         dst       (avl/nearest neighbours <= (last coordinates))]
     (if (or (nil? start) (nil? dst)) {:code "NoSegment"}
-      (let [traversal (alg/dijkstra #(duration graph %1 %2)
-                                  #{(val start)}
-                                  (:graph network))
+      (let [traversal (alg/dijkstra (:graph network)
+                                    #(duration graph %1 %2)
+                                    #{(val start)})
             trace     (alg/shortest-path (val dst) traversal)]
         (if (nil? trace) {:code "NoRoute"}
           {:code "Ok"

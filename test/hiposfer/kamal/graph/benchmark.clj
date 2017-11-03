@@ -22,7 +22,7 @@
              (count (graph/edges graph)) "edges")
     (println "**random graph")
     (c/quick-bench
-      (let [coll (alg/dijkstra (partial direction/duration graph) #{src} graph)]
+      (let [coll (alg/dijkstra graph (partial direction/duration graph) #{src})]
         (alg/shortest-path dst coll))
       :os :runtime :verbose)))
 
@@ -40,7 +40,7 @@
              (count (graph/edges graph)) "edges")
     (println "saarland graph:")
     (c/quick-bench
-      (let [coll (alg/dijkstra (partial direction/duration graph) #{src} graph)]
+      (let [coll (alg/dijkstra graph (partial direction/duration graph) #{src})]
         (alg/shortest-path dst coll))
       :os :runtime :verbose)
     (println "--------")
@@ -48,7 +48,7 @@
     (println "with:" (count Cgraph) "nodes and"
              (count (graph/edges Cgraph)) "edges")
     (c/quick-bench
-      (let [coll (alg/dijkstra (partial direction/duration Cgraph) #{src} Cgraph)]
+      (let [coll (alg/dijkstra Cgraph (partial direction/duration Cgraph) #{src})]
         (alg/shortest-path dst coll))
       :os :runtime :verbose)))
 
