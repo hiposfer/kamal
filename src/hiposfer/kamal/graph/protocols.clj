@@ -23,13 +23,13 @@
   (src [this] "the start node id of a Link")
   (dst [this] "the destination node id of a Link"))
 
+(defprotocol Bidirectional
+  (mirror [this] "returns a Link in the opposite direction of the original.
+                  (= (mirror (mirror edge)) edge)")
+  (mirror? [this] "returns a true if this Link is a mirror copy of the original"))
+
 (defprotocol Passage
   (way [this] "return the way id that a Link is associated with"))
-
-(defprotocol UndirectedLink
-  (mirror [this] "returns an UndirectedLink in the opposite direction than the original"))
-  ;(mirror? [this]))
-
 
 ;; ------- protocols for Nodes
 (defprotocol Context
