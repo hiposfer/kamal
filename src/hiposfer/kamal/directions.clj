@@ -24,7 +24,7 @@
 
 ;; WARNING: we assume that we only traverse outgoing arcs
 ;; and that there is only one arc connecting src & dst
-(defn- wayver
+(defn- link
   "find the link that connects src and dst and returns it"
   [graph src-trace dst-trace]
   (some #(when (= (key dst-trace) (rp/dst %)) %)
@@ -106,7 +106,7 @@
 
   WARNING: we dont support multiple waypoints yet !!"
   [{:keys [graph ways] :as network} steps trail]
-  (let [way-ids     (sequence (comp (map (partial wayver graph))
+  (let [way-ids     (sequence (comp (map (partial link graph))
                                     (map rp/way))
                               trail (rest trail))
         ways&traces (map vector trail (concat way-ids [(last way-ids)]))
