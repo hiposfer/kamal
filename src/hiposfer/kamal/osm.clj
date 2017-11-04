@@ -147,7 +147,7 @@
         neighbours    (into (avl/sorted-map-by math/lexicographic-coordinate)
                             (set/map-invert graph))]
     {:ways   ways   :graph graph
-     ;:points points ;; TODO reactivate them for better geometry precision.
+     :points points
      :neighbours neighbours}))
 
 (def walking-speed  2.5);; m/s
