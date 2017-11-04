@@ -143,11 +143,12 @@
         nodes         (apply dissoc points&nodes (keys points))
         nodes         (into nodes (tool/map-vals route/map->NodeInfo)
                                   nodes)
-        graph         (alg/biggest-component (reduce graph/connect nodes edges))
+        graph         (reduce graph/connect nodes edges)
         neighbours    (into (avl/sorted-map-by math/lexicographic-coordinate)
                             (set/map-invert graph))]
-    {:ways   ways   :graph graph
-     :points points
+    {:ways  ways
+     :graph graph
+     ;;:points points TODO enable them later to improve precision
      :neighbours neighbours}))
 
 (def walking-speed  2.5);; m/s
