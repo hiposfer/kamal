@@ -1,6 +1,6 @@
 (ns hiposfer.kamal.server
-  (:require [ring.util.http-response :refer [ok]]
-            [compojure.api.sweet :refer [context GET api]]
+  (:require [ring.util.http-response :refer [ok not-found]]
+            [compojure.api.sweet :refer [context GET api ANY undocumented]]
             [hiposfer.kamal.spec :as spec]
             [hiposfer.kamal.directions :as dir]
             [hiposfer.kamal.graph.generators :as g]
@@ -27,7 +27,8 @@
                   :spec "/swagger.json"
                   :data {:info {:title "Routing API"
                                 :description "Routing for hippos"}
-                         :tags [{:name "direction", :description "direction similar to mabbox"}]}}}
+                         :tags [{:name "direction", :description "direction similar to mabbox"}]}}
+        :api {:invalid-routes-fn compojure.api.routes/fail-on-invalid-child-routes}}
     (GET "/directions/v5/:coordinates" []
       :coercion :spec
       :summary "directions with clojure.spec"
@@ -54,4 +55,7 @@
                              :steps steps
                              :radiuses radiuses
                              :alternatives alternatives
-                             :language language)))))))
+                             :language language)))))
+    (GET "/*" [] (not-found (ok {:not "found"})))))
+
+;(:app hiposfer.kamal.dev/system)
