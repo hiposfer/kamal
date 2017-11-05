@@ -6,7 +6,7 @@
             [clojure.tools.namespace.repl :as repl]))
             ;[cheshire.core :as cheshire]))
 
-(defonce system nil)
+(def system nil)
 
 (defn init!
   "Constructs the current development system."
@@ -28,8 +28,7 @@
 (defn go!
   "Initializes the current development system and starts it running."
   []
-  (when system ;; prevent leaking resources if already started
-    (stop!))
+  (stop!)
   (init!)
   (start!))
 
