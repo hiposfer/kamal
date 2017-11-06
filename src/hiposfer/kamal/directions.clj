@@ -106,16 +106,18 @@
 
   WARNING: we dont support multiple waypoints yet !!"
   [{:keys [graph ways] :as network} steps trail]
-  (let [way-ids     (sequence (comp (map (partial link graph))
-                                    (map rp/way))
-                              trail (rest trail))
-        ways&traces (map vector trail (concat way-ids [(last way-ids)]))
-        pieces      (partition-by #(:name (ways (second %))) ways&traces)]
-    {:distance   (math/arc-length (:coordinates (linestring network (map key trail))))
-     :duration   (rp/cost (val (last trail)))
-     :steps      (route-steps network steps pieces)
-     :summary    "" ;; TODO
-     :annotation []})) ;; TODO
+  (if (= (count trail) 1) ;; a single trace is returned for src = dst
+    {:distance 0 :duration 0 :steps [] :summary "" :annotation []}
+    (let [way-ids     (sequence (comp (map (partial link graph))
+                                      (map rp/way))
+                                trail (rest trail))
+          ways&traces (map vector trail (concat way-ids [(last way-ids)]))
+          pieces      (partition-by #(:name (ways (second %))) ways&traces)]
+      {:distance   (math/arc-length (:coordinates (linestring network (map key trail))))
+       :duration   (rp/cost (val (last trail)))
+       :steps      (route-steps network steps pieces)
+       :summary    "" ;; TODO
+       :annotation []}))) ;; TODO
 
 ;https://www.mapbox.com/api-documentation/#route-object
 (defn- route
@@ -123,10 +125,7 @@
 
   WARNING: we dont support multiple waypoints yet !!"
   [network steps rtrail]
-  ;; a single trace is returned for src = dst
-  (let [trail (if (= 1 (count rtrail))
-                 (repeat 2 (first rtrail))
-                 (rseq (into [] rtrail)))
+  (let [trail  (rseq (into [] rtrail))
         leg    (route-leg network steps trail)]
     {:geometry    (linestring network (map key trail))
      :duration    (:duration leg)
