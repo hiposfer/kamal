@@ -35,3 +35,12 @@
   ([f coll] (map (fn [[k v]] [k (f v)])
                  coll))
   ([f] (map (fn [[k v]] [k (f v)]))))
+
+(defn some*
+  "an alternative version of Clojure's some which uses reduce instead of
+  recur. Useful for collections that know how to reduce themselves faster
+  than first/next"
+  [pred? coll]
+  (reduce (fn [_ value] (when (pred? value) (reduced value)))
+          nil
+          coll))
