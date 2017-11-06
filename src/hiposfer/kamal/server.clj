@@ -1,6 +1,6 @@
 (ns hiposfer.kamal.server
-  (:require [ring.util.http-response :refer [ok]]
-            [compojure.api.sweet :refer [context GET api]]
+  (:require [ring.util.http-response :refer [ok not-found]]
+            [compojure.api.sweet :refer [context GET api ANY undocumented]]
             [hiposfer.kamal.spec :as spec]
             [hiposfer.kamal.directions :as dir]
             [hiposfer.kamal.graph.generators :as g]
@@ -20,6 +20,7 @@
   (map edn/read-string (str/split text #";")))
 ;(->radiuses "1200.50;100;500;unlimited;100")
 
+;; ring handlers are matched in order
 (defn create
   "creates an API handler with a closure around the grid"
   [grid]
@@ -27,7 +28,8 @@
                   :spec "/swagger.json"
                   :data {:info {:title "Routing API"
                                 :description "Routing for hippos"}
-                         :tags [{:name "direction", :description "direction similar to mabbox"}]}}}
+                         :tags [{:name "direction", :description "direction similar to mabbox"}]}}
+        :api {:invalid-routes-fn compojure.api.routes/fail-on-invalid-child-routes}}
     (GET "/directions/v5/:coordinates" []
       :coercion :spec
       :summary "directions with clojure.spec"
@@ -54,4 +56,8 @@
                              :steps steps
                              :radiuses radiuses
                              :alternatives alternatives
-                             :language language)))))))
+                             :language language)))))
+    ;; if nothing else matched, return a 404 - not found
+    (ANY "/*" [] (not-found "we couldnt find what you were looking for"))))
+
+;(:app hiposfer.kamal.dev/system)
