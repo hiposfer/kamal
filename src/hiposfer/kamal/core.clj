@@ -41,7 +41,7 @@
   [config]
   (if (:dev config)
     (map->FakeNetwork {:size (or (:network-size config) 1000)})
-    (map->RoadNetwork {:url (:osm-url config)})))
+    (map->RoadNetwork {:url (:osm_url config)})))
 
 ;; --------
 ;; Our Server application. Uses the jetty adapter with
@@ -83,7 +83,7 @@
    (let [default  (edn/read-string (slurp "resources/default-config.edn"))
          env-opts {:port    (edn/read-string (env :port))
                    :join?   (edn/read-string (env :join?))
-                   :osm-url (env :osm-url)}]
+                   :osm_url (env :osm_url)}]
      (merge default
             (into {} (remove (comp nil? second) env-opts)) ;; ignore nil values
             custom-options))))
