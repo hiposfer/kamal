@@ -20,6 +20,7 @@
   (map edn/read-string (str/split text #";")))
 ;(->radiuses "1200.50;100;500;unlimited;100")
 
+;; ring handlers are matched in order
 (defn create
   "creates an API handler with a closure around the grid"
   [grid]
@@ -56,6 +57,7 @@
                              :radiuses radiuses
                              :alternatives alternatives
                              :language language)))))
-    (GET "/*" [] (not-found (ok {:not "found"})))))
+    ;; if nothing else matched, return a 404 - not found
+    (ANY "/*" [] (not-found "we couldnt find what you were looking for"))))
 
 ;(:app hiposfer.kamal.dev/system)
