@@ -1,6 +1,7 @@
 (ns hiposfer.kamal.server
   (:require [ring.util.http-response :refer [ok not-found]]
             [compojure.api.sweet :refer [context GET api ANY undocumented]]
+            [compojure.route :as route]
             [hiposfer.kamal.spec :as spec]
             [hiposfer.kamal.directions :as dir]
             [hiposfer.kamal.graph.generators :as g]
@@ -58,6 +59,7 @@
                              :alternatives alternatives
                              :language language)))))
     ;; if nothing else matched, return a 404 - not found
-    (ANY "/*" [] (not-found "we couldnt find what you were looking for"))))
+    (undocumented
+      (route/not-found (not-found "we couldnt find what you were looking for")))))
 
 ;(:app hiposfer.kamal.dev/system)
