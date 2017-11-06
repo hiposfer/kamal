@@ -126,7 +126,8 @@
   WARNING: we dont support multiple waypoints yet !!"
   [network steps rtrail]
   (let [trail  (rseq (into [] rtrail))
-        leg    (route-leg network steps trail)]
+        leg    (route-leg network steps trail)
+        trail  (if (= (count trail) 1) (repeat 2 (first trail)) trail)]
     {:geometry    (linestring network (map key trail))
      :duration    (:duration leg)
      :distance    (:distance leg)
