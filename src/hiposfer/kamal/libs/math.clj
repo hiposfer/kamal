@@ -60,7 +60,7 @@
 ; http://www.movable-type.co.uk/scripts/latlong.html
 (defn bearing
   "return a Number between 0 and 360 indicating the clockwise angle from true
-   north to the direction of travel right before the maneuver"
+   north to the direction of travel (p1 -> p2)"
   [p1 p2]
   (let [φ1 (Math/toRadians (rp/lat p1))
         φ2 (Math/toRadians (rp/lat p2))
@@ -72,6 +72,8 @@
     (rem (+ (Math/toDegrees (Math/atan2 y x)) 360)
          360)));
 
+;; TODO: consider using geohashes
+;; http://www.bigfastblog.com/geohash-intro
 (defn lexicographic-coordinate
   "comparator function to order nodes in a graph
   WARNING: this assumes that two points cannot occupy the same
