@@ -2,7 +2,6 @@
   (:require [clojure.spec.alpha :as s]
             [spec-tools.spec :as spec]
             [hiposfer.geojson.specs :as geojson]))
-            ;[expound.alpha :as expound]))
 
 (def coordinate-regex #"(-?\d+(\.\d+)?),(-?\d+(\.\d+)?)(;(-?\d+(\.\d+)?),(-?\d+(\.\d+)?))+")
 (def rads-regex #"((\d+(\.\d+)?)|unlimited)(;((\d+(\.\d+)?)|unlimited))*")
