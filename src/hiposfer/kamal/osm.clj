@@ -155,7 +155,7 @@
   "assocs a :neighbours key into this network to allow nearest neighbour search"
   [network]
   (assoc network :neighbours
-    (into (avl/sorted-map-by math/lexicographic-coordinate)
+    (into (avl/sorted-map-by math/geohash)
           (set/map-invert (:graph network)))))
 
 

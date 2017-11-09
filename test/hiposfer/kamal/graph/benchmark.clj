@@ -8,7 +8,8 @@
             [hiposfer.kamal.directions :as direction]
             [hiposfer.kamal.libs.math :as math]
             [clojure.data.avl :as avl]
-            [hiposfer.kamal.graph.core :as graph]))
+            [hiposfer.kamal.graph.core :as graph]
+            [clojure.set :as set]))
 
 ;; This is just to show the difference between a randomly generated graph
 ;; and a real-world graph. The randomly generated graph does not have a structure
@@ -26,7 +27,10 @@
         (alg/shortest-path dst coll))
       :os :runtime :verbose)))
 
-(def networker (delay (osm/network "resources/osm/saarland.min.osm.bz2")))
+(def networker (-> (osm/network "resources/osm/saarland.min.osm.bz2")
+                   (osm/neighbourhood)
+                   (delay)))
+
 ;(take 10 (:graph @networker)) ;; force read
 ;(take 10 (alg/biggest-component (:graph @networker)))
 
@@ -67,9 +71,9 @@
 
 ;; only the connected nodes
 (test/deftest ^:benchmark nearest-neighbour-search
-  (let [neighbours   (:neighbours @networker)
-        graph        (:graph @networker)
-        src          (val (last graph))]
+  (let [neighbours (:neighbours @networker)
+        graph      (:graph @networker)
+        src        (val (last graph))]
     (println "\n\nsaarland graph: nearest neighbour search with random src/dst")
     (println "AVL tree with:" (count graph) "nodes")
     ;; https://github.com/clojure/data.avl
@@ -78,12 +82,11 @@
     ;; field per key), rank queries (one int) and the rebalancing algorithm
     ;; itself (the final int).
     ;; + 1 due to integer key duplicated
-    (println "extra space required:" (/ (* (* 4 8) (count graph)) 1e6) " MB")
-    (c/quick-bench (avl/nearest neighbours <= src)
-      :os :runtime :verbose)
+    (println "accuraccy: " (math/haversine src (first (avl/nearest neighbours >= src))))
+    (c/quick-bench (avl/nearest neighbours >= src)
+                   :os :runtime :verbose)
     (println "--------")
     (println "BRUTE force with:" (count graph) "nodes")
+    (println "accuraccy: " (math/haversine src (second (brute-nearest @networker src))))
     (c/quick-bench (brute-nearest @networker src)
-      :os :runtime :verbose)))
-
-;(clojure.test/run-tests)
+                   :os :runtime :verbose)))
