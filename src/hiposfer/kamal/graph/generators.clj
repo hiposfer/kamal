@@ -58,9 +58,7 @@
                                                                       (graph/edges graph))}])
                      way-ids)]
     {:graph      graph
-     :ways       (into {} ways)
-     :neighbours (into (avl/sorted-map-by math/lexicographic-coordinate)
-                       (set/map-invert graph))}))
+     :ways       (into {} ways)}))
 
 ;; example usage
 ;(complete (gen/generate (graph 10)))
