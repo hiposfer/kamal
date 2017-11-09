@@ -48,12 +48,12 @@
 
 ;; --------
 ;; A Jetty WebServer +  compojure api
-(defrecord WebServer [options grid server]
+(defrecord WebServer [config grid server]
   component/Lifecycle
   (start [this]
     (if (:server this) this
       (let [handler (server/handler grid)
-            server  (jetty/run-jetty handler options)]
+            server  (jetty/run-jetty handler config)]
         (println "-- Starting App server")
         (assoc this :server server))))
   (stop [this]
