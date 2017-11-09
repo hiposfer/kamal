@@ -9,7 +9,8 @@
             [hiposfer.kamal.libs.math :as math]
             [clojure.data.avl :as avl]
             [hiposfer.kamal.graph.core :as graph]
-            [clojure.set :as set]))
+            [hiposfer.kamal.graph.protocols :as rp])
+  (:import (ch.hsr.geohash GeoHash)))
 
 ;; This is just to show the difference between a randomly generated graph
 ;; and a real-world graph. The randomly generated graph does not have a structure
@@ -69,11 +70,13 @@
   ([network point]
    (brute-nearest network point math/euclidean-pow2)))
 
-;; only the connected nodes
+;; note >= search will approximate any point with lat, lon less than point
+;; to the minimum point in neighbours. <= does the same but approximates to
+;; the maximum.
 (test/deftest ^:benchmark nearest-neighbour-search
   (let [neighbours (:neighbours @networker)
         graph      (:graph @networker)
-        src        (val (last graph))]
+        src        [7.038535 49.345088]]
     (println "\n\nsaarland graph: nearest neighbour search with random src/dst")
     (println "AVL tree with:" (count graph) "nodes")
     ;; https://github.com/clojure/data.avl

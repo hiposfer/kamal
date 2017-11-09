@@ -145,8 +145,8 @@
    (direction network :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
   [{:keys [graph ways neighbours] :as network} & params]
   (let [{:keys [coordinates steps radiuses alternatives language]} params
-        start     (avl/nearest neighbours >= (first coordinates))
-        dst       (avl/nearest neighbours >= (last coordinates))]
+        start     (avl/nearest neighbours >= (first coordinates)) ;; nil when lat,lon are both greater than
+        dst       (avl/nearest neighbours >= (last coordinates))] ;; any node in the graph
     (if (or (nil? start) (nil? dst)) {:code "NoSegment"}
       (let [traversal (alg/dijkstra (:graph network)
                                     #(duration graph %1 %2)
