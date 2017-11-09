@@ -37,7 +37,7 @@
 ;; <node id="298884269" lat="54.0901746" lon="12.2482632" user="SvenHRO"
 ;;      uid="46882" visible="true" version="1" changeset="676636"
 ;;      timestamp="2008-09-21T21:37:45Z"/>)
-(defn- ->point-entry
+(defn- point-entry
   "takes an OSM node and returns a [id Node-instance]"
   [element] ; returns [id node] for later use in int-map
   [(Long/parseLong (:id  (:attrs element)))
@@ -53,7 +53,7 @@
 ;   <tag k="highway" v="unclassified"/>
 ;   <tag k="name" v="Pastower Straße"/>
 ;  </way>
-(defn- ->ways-entry
+(defn- ways-entry
   "parse a OSM xml-way into a [way-id {attrs}] representing the same way"
   [element] ;; returns '(arc1 arc2 ...)
   (let [attrs (into {} (comp (filter #(= :tag (:tag %)))
@@ -103,11 +103,12 @@
     (map (fn [[id attr]] [id (strip-points intersections (::nodes attr))])
          ways)))
 
-(defn- osm->entries
+(defn- entries
+  "returns a [id node], {id way} or nil otherwise"
   [xml-entry]
   (case (:tag xml-entry)
-    :node (->point-entry xml-entry)
-    :way  (postprocess (->ways-entry xml-entry))
+    :node (point-entry xml-entry)
+    :way  (postprocess (ways-entry xml-entry))
     nil))
 
 ;; There are generally speaking two ways to process an OSM file for routing
@@ -121,14 +122,14 @@
 ;; that preprocessing the files was already performed and that only the useful
 ;; data is part of the OSM file. See README
 
-(defn osm->network
+(defn network
   "read an OSM file and transforms it into a network of {:graph :ways :points},
    such that the graph represent only the connected nodes, the points represent
    the shape of the connection and the ways are the metadata associated with
    the connections"
   [filename] ;; read all elements into memory
   (let [nodes&ways    (with-open [file-rdr (bz2-reader filename)]
-                        (into [] (comp (map osm->entries)
+                        (into [] (comp (map entries)
                                        (remove nil?))
                                  (:content (xml/parse file-rdr))))
         ;; separate ways from nodes
@@ -143,15 +144,20 @@
         nodes         (apply dissoc points&nodes (keys points))
         nodes         (into nodes (tool/map-vals route/map->NodeInfo)
                                   nodes)
-        graph         (reduce graph/connect nodes edges)
-        neighbours    (into (avl/sorted-map-by math/lexicographic-coordinate)
-                            (set/map-invert graph))]
+        graph         (reduce graph/connect nodes edges)]
     {:ways  ways
-     :graph graph
+     :graph graph}))
      ;;:points points TODO enable them later to improve precision
-     :neighbours neighbours}))
 
 (def walking-speed  2.5);; m/s
+
+(defn neighbourhood
+  "assocs a :neighbours key into this network to allow nearest neighbour search"
+  [network]
+  (assoc network :neighbours
+    (into (avl/sorted-map-by math/lexicographic-coordinate)
+          (set/map-invert (:graph network)))))
+
 
 ;(System/gc)
 ;(def network (time (osm->network "resources/osm/saarland.min.osm.bz2")))

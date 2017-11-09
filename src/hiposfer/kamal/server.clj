@@ -1,10 +1,9 @@
 (ns hiposfer.kamal.server
-  (:require [ring.util.http-response :refer [ok not-found]]
-            [compojure.api.sweet :refer [context GET api ANY undocumented]]
+  (:require [ring.util.http-response :as code]
+            [compojure.api.sweet :refer [GET api undocumented]]
             [compojure.route :as route]
             [hiposfer.kamal.spec :as spec]
             [hiposfer.kamal.directions :as dir]
-            [hiposfer.kamal.graph.generators :as g]
             [clojure.string :as str]
             [clojure.edn :as edn]
             [clojure.spec.alpha :as s]))
@@ -22,7 +21,7 @@
 ;(->radiuses "1200.50;100;500;unlimited;100")
 
 ;; ring handlers are matched in order
-(defn create
+(defn handler
   "creates an API handler with a closure around the grid"
   [grid]
   (api {:swagger {:ui "/"
@@ -40,26 +39,29 @@
                      {alternatives :- boolean? false}
                      {language :- string? "en"}]
       :return ::spec/direction
-      (ok (let [coordinates (parse-coordinates coordinates)
-                radiuses    (some-> radiuses (parse-radiuses))]
-            (cond
-              (not (s/valid? :hiposfer.geojson.specs.linestring/coordinates coordinates))
-              {:message (format "Coordinate is invalid: %s"
-                          (first (:clojure.spec.alpha/value 
-                                  (s/explain-data :hiposfer.geojson.specs.linestring/coordinates coordinates))))
-               :code "InvalidInput"}
-              (and (not-empty radiuses) (not= (count radiuses) (count coordinates)))
-              {:message "The same amount of radiouses and coordinates must be provided"
-               :code "InvalidInput"}
-              :else
-              (dir/direction @(:network grid)
-                             :coordinates coordinates
-                             :steps steps
-                             :radiuses radiuses
-                             :alternatives alternatives
-                             :language language)))))
+      (if (nil? @(:network grid)) (code/service-unavailable)
+        (let [coordinates (parse-coordinates coordinates)
+              radiuses    (some-> radiuses (parse-radiuses))]
+          (cond
+            (not (s/valid? :hiposfer.geojson.specs.linestring/coordinates coordinates))
+            (code/unprocessable-entity
+              {:code    "InvalidInput"
+               :message (s/explain-data :hiposfer.geojson.specs.linestring/coordinates coordinates)})
+
+            (and (not-empty radiuses) (not= (count radiuses) (count coordinates)))
+            (code/unprocessable-entity
+              {:code "InvalidInput"
+               :message "The same amount of radiouses and coordinates must be provided"})
+
+            :else
+            (code/ok (dir/direction @(:network grid)
+                       :coordinates coordinates
+                       :steps steps
+                       :radiuses radiuses
+                       :alternatives alternatives
+                       :language language))))))
     ;; if nothing else matched, return a 404 - not found
     (undocumented
-      (route/not-found (not-found "we couldnt find what you were looking for")))))
+      (route/not-found (code/not-found "we couldnt find what you were looking for")))))
 
 ;(:app hiposfer.kamal.dev/system)

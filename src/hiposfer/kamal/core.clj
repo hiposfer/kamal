@@ -10,12 +10,16 @@
             [clojure.spec.gen.alpha :as gen])
   (:import (org.eclipse.jetty.server Server)))
 
-;; a Road network created by parsing a OSM file
-(defrecord RoadNetwork [url network]
+;; a network created by parsing a OSM file
+(defrecord RoadNetwork [config network]
   component/Lifecycle
   (start [this]
     (if (:network this) this
-      (let [result (future (time (osm/osm->network url)))]
+      (let [url     (:osm_url config)
+            result  (send-off (agent nil) ;; TODO: error handler
+                      (fn [_] (-> (osm/network url)
+                                  (osm/neighbourhood)
+                                  (time))))]
         (println "-- Starting OSM road network from" url)
         (assoc this :network result))))
   (stop [this]
@@ -23,12 +27,18 @@
       (do (println "-- Stopping OSM road network")
           (assoc this :network nil)))))
 
-;; a fake Road network created using test.check Clojure generative testing library
-(defrecord FakeNetwork [size network]
+;; a network created using test.check Clojure generative testing library
+(defrecord FakeNetwork [config network]
   component/Lifecycle
   (start [this]
     (if (:network this) this
-      (let [result (future (time (g/complete (gen/generate (g/graph size)))))]
+      (let [size    (or (:network-size config) 1000)
+            result  (send-off (agent nil) ;; TODO: error handler
+                      (fn [_] (-> (g/graph size)
+                                  (gen/generate)
+                                  (g/complete)
+                                  (osm/neighbourhood)
+                                  (time))))]
         (println "-- Starting fake OSM road network with size " size)
         (assoc this :network result))))
   (stop [this]
@@ -36,21 +46,13 @@
       (do (println "-- Stopping fake OSM road network")
           (assoc this :network nil)))))
 
-(defn network
-  "creates a network component map based on the given configuration"
-  [config]
-  (if (:dev config)
-    (map->FakeNetwork {:size (or (:network-size config) 1000)})
-    (map->RoadNetwork {:url (:osm_url config)})))
-
 ;; --------
-;; Our Server application. Uses the jetty adapter with
-;; compojure api
-(defrecord AppServer [options grid]
+;; A Jetty WebServer +  compojure api
+(defrecord WebServer [options grid server]
   component/Lifecycle
   (start [this]
     (if (:server this) this
-      (let [handler (server/create grid)
+      (let [handler (server/handler grid)
             server  (jetty/run-jetty handler options)]
         (println "-- Starting App server")
         (assoc this :server server))))
@@ -62,17 +64,18 @@
           (assoc this :server nil)))
     this))
 
-;; the complete system
-(defn system [config]
-  (component/system-map
-    :config-options config
-    :grid (network config)
-    :app (component/using
-           (map->AppServer {:options config})
-           [:grid])))
-  ;(component/system-using
-  ;   {:app {:database  :db}
-  ;          :scheduler :sched)))))
+(defn system
+  "creates a complete system map using components and the provided
+  config"
+  [config]
+  (let [network (if (:dev config) (map->FakeNetwork {})
+                    (map->RoadNetwork {}))]
+    (component/system-map
+      :config config
+      :grid   (component/using network
+                               [:config])
+      :app    (component/using (map->WebServer {})
+                               [:config :grid]))))
 
 (defn config
   "returns a configuration for the system based on defaults, environment
@@ -84,15 +87,12 @@
          env-opts {:port    (edn/read-string (env :port))
                    :join?   (edn/read-string (env :join?))
                    :osm_url (env :osm_url)}]
-     (merge default
-            (into {} (remove (comp nil? second) env-opts)) ;; ignore nil values
-            custom-options))))
+     (into default (remove (comp nil? second)) ;; ignore nil values
+                   (concat env-opts custom-options)))))
 
 (defn -main [& args]
   (println "\n\nWelcome to the hiposfer/kamal App")
-  (let [config     (config)
-        port       (edn/read-string (first args))
-        overwrites (into {} (remove (comp nil? second))
-                            {:port port}) ;; ignore nil values
-        new-config (merge config overwrites)]
-    (component/start (system new-config))))
+  (let [port       (edn/read-string (first args))
+        overwrites {:port port}
+        config     (config overwrites)]
+    (component/start (system config))))
