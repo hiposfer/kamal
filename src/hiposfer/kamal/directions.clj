@@ -4,9 +4,6 @@
             [hiposfer.kamal.graph.protocols :as rp]
             [hiposfer.kamal.libs.math :as math]
             [clojure.data.avl :as avl]))
-            ;[clojure.set :as set]
-            ;[cheshire.core :as cheshire]))
-            ;[cheshire.core :as cheshire]))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
 (def bearing-turns
@@ -148,8 +145,8 @@
    (direction network :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
   [{:keys [graph ways neighbours] :as network} & params]
   (let [{:keys [coordinates steps radiuses alternatives language]} params
-        start     (avl/nearest neighbours <= (first coordinates))
-        dst       (avl/nearest neighbours <= (last coordinates))]
+        start     (avl/nearest neighbours >= (first coordinates)) ;; nil when lat,lon are both greater than
+        dst       (avl/nearest neighbours >= (last coordinates))] ;; any node in the graph
     (if (or (nil? start) (nil? dst)) {:code "NoSegment"}
       (let [traversal (alg/dijkstra (:graph network)
                                     #(duration graph %1 %2)
@@ -162,41 +159,3 @@
                         :location (->coordinates (key start))}
                        {:name (str (:name (ways (some rp/way (rp/successors (key dst))))))
                         :location (->coordinates (key dst))}]})))))
-
-
-;(def conn (alg/biggest-component (:graph @(:network (:grid hiposfer.kamal.dev/system)))))
-;(def origin      (->coordinates (val (rand-nth (seq conn)))))
-;(def destination (->coordinates (val (rand-nth (seq conn)))))
-;
-;origin
-;(math/haversine origin
-;  (key (avl/nearest (into (avl/sorted-map-by math/lexicographic-coordinate)
-;                          (set/map-invert conn))
-;                    >=
-;                    origin)))
-;;
-;(direction {:graph      conn
-;            :ways       (:graph @(:network (:grid hiposfer.kamal.dev/system)))
-;            :neighbours (into (avl/sorted-map-by math/lexicographic-coordinate)
-;                              (set/map-invert conn))}
-;           :coordinates [origin destination]
-;           :steps true)
-
-;(def result (direction {:graph      conn
-;                        :ways       (:graph @(:network (:grid hiposfer.kamal.dev/system)))
-;                        :neighbours (into (avl/sorted-map-by math/lexicographic-coordinate)
-;                                          (set/map-invert conn))}
-;                       :coordinates [origin destination]
-;                       :steps true))
-;
-;(time (count (alg/biggest-component (:graph @(:network (:grid hiposfer.kamal.dev/system))))))
-;
-;(time (count (:graph @(:network (:grid hiposfer.kamal.dev/system)))))
-;
-;(take 10 (:ways @(:network (:grid hiposfer.kamal.dev/system))))
-;
-;result
-;(spit "resources/linestring.json"
-;  (cheshire/generate-string (:geometry (first (:routes result)))))
-
-;(keys (:grid dev/system))
