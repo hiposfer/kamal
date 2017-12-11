@@ -1,0 +1,11 @@
+agency_id,agency_name,agency_url,agency_timezone,agency_lang,agency_phone,agency_fare_url,agency_email
+7589882482457338125,Saarbahn GmbH,,Europe/Berlin,,,,
+4553514526595604944,VGZ,,Europe/Berlin,,,,
+8051427652788841760,Versorgungs- und Verkehrsgesellschaft Saarbrücken,,Europe/Berlin,,,,
+4734454178002219922,DB,,Europe/Berlin,,,,
+1209936381239817301,DB Regio Südwest,,Europe/Berlin,,,,
+3480267984918957045,SNCF,,Europe/Paris,,,,
+5253651329260806242,SPB,,Europe/Berlin,,,,
+2613269760633785747,Lay Reisen,,Europe/Berlin,,,,
+340004814380400531,Weber,,Europe/Luxembourg,,,,
+-1,Unkown agency,,,,,,

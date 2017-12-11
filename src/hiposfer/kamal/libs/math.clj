@@ -1,5 +1,6 @@
 (ns hiposfer.kamal.libs.math
-  (:require [hiposfer.kamal.graph.protocols :as rp]))
+  (:require [hiposfer.kamal.graph.protocols :as rp])
+  (:import (ch.hsr.geohash GeoHash)))
 
 ;; Note in these scripts, I generally use
 ;; - latitude, longitude in degrees
@@ -56,7 +57,6 @@
   [coordinates]
   (reduce + (map haversine coordinates (rest coordinates))))
 
-; sources
 ; http://www.movable-type.co.uk/scripts/latlong.html
 (defn bearing
   "return a Number between 0 and 360 indicating the clockwise angle from true
@@ -72,13 +72,12 @@
     (rem (+ (Math/toDegrees (Math/atan2 y x)) 360)
          360)));
 
-;; TODO: consider using geohashes
 ;; http://www.bigfastblog.com/geohash-intro
-(defn lexicographic-coordinate
+(defn geohash
   "comparator function to order nodes in a graph
   WARNING: this assumes that two points cannot occupy the same
   space. e.g. no 3D points since two point with different height
   but equal lat, lon would collide"
   [x y]
-  (compare [(rp/lat x) (rp/lon x)]
-           [(rp/lat y) (rp/lon y)]))
+  (compare (GeoHash/withBitPrecision (rp/lat x) (rp/lon x) 64)
+           (GeoHash/withBitPrecision (rp/lat y) (rp/lon y) 64)))
