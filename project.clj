@@ -38,14 +38,10 @@
   ;;FIXME: https://github.com/technomancy/leiningen/issues/2173
   :monkeypatch-clojure-test false
   :jvm-opts ["-Xmx1g" "-XX:-OmitStackTraceInFastThrow"]
-  :repositories [["snapshots" {:url "https://clojars.org/repo"
-                               :username :env/clojars_username
-                               :password :env/clojars_password}]
-                 ["releases"  {:url      "https://clojars.org/repo"
+  :repositories [["releases"  {:url      "https://clojars.org/repo"
                                :username :env/clojars_username
                                :password :env/clojars_password
                                :sign-releases false}]]
-  :deploy-repositories [["snapshots" :snapshots]
-                        ["releases"  :releases]])
+  :deploy-repositories [["releases"  :releases]])
   ;; "-Dclojure.compiler.direct-linking=true"
   ;; https://github.com/clojure/clojure/blob/master/changes.md#11-direct-linking
