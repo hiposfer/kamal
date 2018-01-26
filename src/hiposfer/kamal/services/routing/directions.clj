@@ -146,16 +146,19 @@
   [{:keys [graph ways neighbours] :as network} & params]
   (let [{:keys [coordinates steps]} params
         start     (avl/nearest neighbours >= (first coordinates)) ;; nil when lat,lon are both greater than
-        dst       (avl/nearest neighbours >= (last coordinates))] ;; any node in the graph
-    (if (or (nil? start) (nil? dst)) {:code "NoSegment"}
-      (let [traversal  (alg/dijkstra (:graph network)
-                                     #(duration graph %1 %2)
-                                     #{(val start)})
-            rtrail     (alg/shortest-path (val dst) traversal)]
-        (if (nil? rtrail) {:code "NoRoute"}
-          {:code "Ok"
-           :routes [(route network steps rtrail)]
-           :waypoints [{:name (str (:name (ways (some rp/way (rp/successors (key start))))))
-                        :location (->coordinates (key start))}
-                       {:name (str (:name (ways (some rp/way (rp/successors (key dst))))))
-                        :location (->coordinates (key dst))}]})))))
+        dst       (avl/nearest neighbours >= (last coordinates)) ;; any node in the graph
+       ; both start and dst should be found since we checked that before
+        traversal  (alg/dijkstra (:graph network)
+                                 #(duration graph %1 %2)
+                                 #{(val start)})
+        rtrail     (alg/shortest-path (val dst) traversal)]
+    (if (some? rtrail)
+      {:code "Ok"
+       :routes [(route network steps rtrail)]
+       :waypoints [{:name (str (:name (ways (some rp/way (rp/successors (key start))))))
+                    :location (->coordinates (key start))}
+                   {:name (str (:name (ways (some rp/way (rp/successors (key dst))))))
+                    :location (->coordinates (key dst))}]}
+      {:code "NoRoute"
+       :message "There was no route found for the given coordinates. Check for
+                       impossible routes (e.g. routes over oceans without ferry connections)."})))
