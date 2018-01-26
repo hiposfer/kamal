@@ -1,5 +1,5 @@
-(ns hiposfer.kamal.directions
-  (:require [hiposfer.kamal.osm :as osm]
+(ns hiposfer.kamal.services.routing.directions
+  (:require [hiposfer.kamal.parsers.osm :as osm]
             [hiposfer.kamal.graph.algorithms :as alg]
             [hiposfer.kamal.graph.protocols :as rp]
             [hiposfer.kamal.libs.math :as math]

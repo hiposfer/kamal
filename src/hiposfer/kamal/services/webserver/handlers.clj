@@ -1,9 +1,9 @@
-(ns hiposfer.kamal.server
+(ns hiposfer.kamal.services.webserver.handlers
   (:require [ring.util.http-response :as code]
-            [compojure.api.sweet :refer [GET api undocumented]]
+            [compojure.api.sweet :as sweet]
             [compojure.route :as route]
-            [hiposfer.kamal.spec :as spec]
-            [hiposfer.kamal.directions :as dir]
+            [hiposfer.kamal.specs.mapbox.directions :as mapbox]
+            [hiposfer.kamal.services.routing.directions :as dir]
             [clojure.string :as str]
             [clojure.edn :as edn]
             [clojure.spec.alpha :as s]))
@@ -21,24 +21,24 @@
 ;(->radiuses "1200.50;100;500;unlimited;100")
 
 ;; ring handlers are matched in order
-(defn handler
+(defn create
   "creates an API handler with a closure around the grid"
   [grid]
-  (api {:swagger {:ui "/"
+  (sweet/api {:swagger {:ui "/"}
                   :spec "/swagger.json"
                   :data {:info {:title "Routing API"
                                 :description "Routing for hippos"}
                          :tags [{:name "direction", :description "direction similar to mabbox"}]}}
-        :api {:invalid-routes-fn compojure.api.routes/fail-on-invalid-child-routes}}
-    (GET "/directions/v5/:coordinates" []
+        :api {:invalid-routes-fn compojure.api.routes/fail-on-invalid-child-routes}
+    (sweet/GET "/directions/v5/:coordinates" []
       :coercion :spec
       :summary "directions with clojure.spec"
-      :path-params [coordinates :- ::spec/raw-coordinates]
+      :path-params [coordinates :- ::mapbox/raw-coordinates]
       :query-params [{steps :- boolean? false}
-                     {radiuses :- ::spec/raw-radiuses nil}
+                     {radiuses :- ::mapbox/raw-radiuses nil}
                      {alternatives :- boolean? false}
                      {language :- string? "en"}]
-      :return ::spec/direction
+      :return ::mapbox/direction
       (if (nil? @(:network grid)) (code/service-unavailable)
         (let [coordinates (parse-coordinates coordinates)
               radiuses    (some-> radiuses (parse-radiuses))]
@@ -61,7 +61,7 @@
                        :alternatives alternatives
                        :language language))))))
     ;; if nothing else matched, return a 404 - not found
-    (undocumented
+    (sweet/undocumented
       (route/not-found (code/not-found "we couldnt find what you were looking for")))))
 
 ;(:app hiposfer.kamal.dev/system)

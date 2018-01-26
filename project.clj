@@ -4,14 +4,14 @@
   :license {:name "LGPLv3"
             :url "https://github.com/hiposfer/kamal/blob/master/LICENSE"}
   :min-lein-version "2.0.0"
-  :dependencies [[org.clojure/clojure "1.9.0-alpha17"]
+  :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/data.xml "0.0.8"] ; parse xml lazily
                  [org.clojure/data.int-map "0.2.4"] ; fast integers-map
                  [org.clojure/test.check "0.9.0"] ;; generators
-                 [metosin/compojure-api "2.0.0-alpha7"]
-                 [metosin/spec-tools "0.3.3"]
-                 [hiposfer/geojson.specs "0.1.0"]
-                 [ring/ring-jetty-adapter "1.6.2"]
+                 [metosin/compojure-api "2.0.0-alpha18"]
+                 [metosin/spec-tools "0.5.1"]
+                 [hiposfer/geojson.specs "0.2.0"]
+                 [ring/ring-jetty-adapter "1.6.3"]
                  [com.stuartsierra/component "0.3.2"]
                  [org.apache.commons/commons-compress "1.4"] ;;bz2 files read
                  [org.clojure/data.avl "0.0.17"]

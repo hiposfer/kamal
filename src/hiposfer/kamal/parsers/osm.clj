@@ -1,4 +1,4 @@
-(ns hiposfer.kamal.osm
+(ns hiposfer.kamal.parsers.osm
   (:require [clojure.data.xml :as xml]
             [clojure.data.int-map :as imap]
             [hiposfer.kamal.graph.core :as route]
