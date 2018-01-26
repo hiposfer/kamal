@@ -4,13 +4,11 @@
             [clojure.spec.gen.alpha :as gen]
             [hiposfer.kamal.graph.generators :as g]
             [hiposfer.kamal.graph.algorithms :as alg]
-            [hiposfer.kamal.osm :as osm]
-            [hiposfer.kamal.directions :as direction]
+            [hiposfer.kamal.parsers.osm :as osm]
+            [hiposfer.kamal.services.routing.directions :as directions]
             [hiposfer.kamal.libs.math :as math]
             [clojure.data.avl :as avl]
-            [hiposfer.kamal.graph.core :as graph]
-            [hiposfer.kamal.graph.protocols :as rp])
-  (:import (ch.hsr.geohash GeoHash)))
+            [hiposfer.kamal.graph.core :as graph]))
 
 ;; This is just to show the difference between a randomly generated graph
 ;; and a real-world graph. The randomly generated graph does not have a structure
@@ -24,7 +22,7 @@
              (count (graph/edges graph)) "edges")
     (println "**random graph")
     (c/quick-bench
-      (let [coll (alg/dijkstra graph (partial direction/duration graph) #{src})]
+      (let [coll (alg/dijkstra graph (partial directions/duration graph) #{src})]
         (alg/shortest-path dst coll))
       :os :runtime :verbose)))
 
@@ -45,7 +43,7 @@
              (count (graph/edges graph)) "edges")
     (println "saarland graph:")
     (c/quick-bench
-      (let [coll (alg/dijkstra graph (partial direction/duration graph) #{src})]
+      (let [coll (alg/dijkstra graph (partial directions/duration graph) #{src})]
         (alg/shortest-path dst coll))
       :os :runtime :verbose)
     (println "--------")
@@ -53,7 +51,7 @@
     (println "with:" (count Cgraph) "nodes and"
              (count (graph/edges Cgraph)) "edges")
     (c/quick-bench
-      (let [coll (alg/dijkstra Cgraph (partial direction/duration Cgraph) #{src})]
+      (let [coll (alg/dijkstra Cgraph (partial directions/duration Cgraph) #{src})]
         (alg/shortest-path dst coll))
       :os :runtime :verbose)))
 

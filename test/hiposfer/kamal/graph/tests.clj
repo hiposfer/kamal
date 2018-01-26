@@ -6,10 +6,8 @@
             [hiposfer.kamal.graph.algorithms :as alg]
             [hiposfer.kamal.graph.protocols :as rp]
             [hiposfer.kamal.graph.generators :as g]
-            [hiposfer.kamal.directions :as direction]
-            [hiposfer.kamal.graph.core :as route]
-            [clojure.data.int-map :as imap]
-            [hiposfer.kamal.graph.core :as graph]))
+            [hiposfer.kamal.services.routing.directions :as direction]
+            [hiposfer.kamal.graph.core :as route]))
 
 ;; https://rosettacode.org/wiki/Dijkstra%27s_algorithm
 (def rosetta {1 {:outgoing {2 {:src 1 :dst 2 :length 7}

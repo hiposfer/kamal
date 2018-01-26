@@ -6,7 +6,6 @@
             [hiposfer.kamal.services.webserver.core :as webserver]
             [hiposfer.kamal.services.routing.core :as routing]))
 
-
 (defn system
   "creates a complete system map using components and the provided
   config"
