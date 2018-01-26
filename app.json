@@ -1,17 +1,13 @@
 {
   "name": "kamal",
-  "scripts": {
-  },
+  "scripts": {},
   "env": {
     "LEIN_BUILD_TASK": {
       "required": true
     }
   },
-  "formation": {
-  },
-  "addons": [
-
-  ],
+  "formation": {},
+  "addons": [],
   "buildpacks": [
     {
       "url": "heroku/clojure"

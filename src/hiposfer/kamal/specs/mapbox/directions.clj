@@ -1,4 +1,4 @@
-(ns hiposfer.kamal.spec
+(ns hiposfer.kamal.specs.mapbox.directions
   (:require [clojure.spec.alpha :as s]
             [spec-tools.spec :as spec]
             [hiposfer.geojson.specs :as geojson]))
