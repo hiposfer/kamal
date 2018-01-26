@@ -17,16 +17,32 @@
 (defn- parse-radiuses [text] (map edn/read-string (str/split text #";")))
 ;(->radiuses "1200.50;100;500;unlimited;100")
 
-;; ring handlers are matched in order
+(defn validate
+  "validates that the coordinates and the radiuses conform to the mapbox specification.
+  Returns an http response object if validation fails or nil otherwise."
+  [coordinates radiuses]
+  (cond
+    (not (s/valid? :hiposfer.geojson.specs.linestring/coordinates coordinates))
+    (code/unprocessable-entity
+      {:code    "InvalidInput"
+       :message (s/explain-data :hiposfer.geojson.specs.linestring/coordinates coordinates)})
+
+    (and (not-empty radiuses) (not= (count radiuses) (count coordinates)))
+    (code/unprocessable-entity
+      {:code "InvalidInput"
+       :message "The same amount of radiuses and coordinates must be provided"})
+    :else nil))
+
+
+  ;; ring handlers are matched in order
 (defn create
   "creates an API handler with a closure around the router"
   [router]
-  (sweet/api {:swagger {:ui "/"}
-                  :spec "/swagger.json"
-                  :data {:info {:title "Routing API"
-                                :description "Routing for hippos"}
-                         :tags [{:name "direction", :description "direction similar to mabbox"}]}}
-        :api {:invalid-routes-fn compojure.api.routes/fail-on-invalid-child-routes}
+  (sweet/api {:swagger {:ui "/"
+                        :spec "/swagger.json"
+                        :data {:info {:title "kamal"
+                                      :description "Routing for hippos"}}}
+              :api {:invalid-routes-fn compojure.api.routes/fail-on-invalid-child-routes}}
     (sweet/GET "/directions/v5/:coordinates" []
       :coercion :spec
       :summary "directions with clojure.spec"
@@ -38,25 +54,15 @@
       :return ::mapbox/direction ;; TODO
       (if (nil? @(:network router)) (code/service-unavailable)
         (let [coordinates (parse-coordinates coordinates)
-              radiuses    (some-> radiuses (parse-radiuses))]
-          (cond
-            (not (s/valid? :hiposfer.geojson.specs.linestring/coordinates coordinates))
-            (code/unprocessable-entity
-              {:code    "InvalidInput"
-               :message (s/explain-data :hiposfer.geojson.specs.linestring/coordinates coordinates)})
-
-            (and (not-empty radiuses) (not= (count radiuses) (count coordinates)))
-            (code/unprocessable-entity
-              {:code "InvalidInput"
-               :message "The same amount of radiouses and coordinates must be provided"})
-
-            :else
-            (code/ok (dir/direction @(:network router)
-                       :coordinates coordinates
-                       :steps steps
-                       :radiuses radiuses
-                       :alternatives alternatives
-                       :language language))))))
+              radiuses    (some-> radiuses (parse-radiuses))
+              errors      (validate coordinates radiuses)]
+            (if (not (nil? errors)) errors
+              (code/ok (dir/direction @(:network router)
+                         :coordinates coordinates
+                         :steps steps
+                         :radiuses radiuses
+                         :alternatives alternatives
+                         :language language))))))
     ;; if nothing else matched, return a 404 - not found
     (sweet/undocumented
       (route/not-found (code/not-found "we couldnt find what you were looking for")))))

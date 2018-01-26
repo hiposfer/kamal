@@ -6,7 +6,7 @@
             [hiposfer.kamal.graph.algorithms :as alg]
             [hiposfer.kamal.parsers.osm :as osm]
             [hiposfer.kamal.services.routing.directions :as directions]
-            [hiposfer.kamal.libs.math :as math]
+            [hiposfer.kamal.libs.geometry :as geometry]
             [clojure.data.avl :as avl]
             [hiposfer.kamal.graph.core :as graph]))
 
@@ -27,7 +27,7 @@
       :os :runtime :verbose)))
 
 (def networker (-> (osm/network "resources/osm/saarland.min.osm.bz2")
-                   (osm/neighbourhood)
+                   (osm/complete)
                    (delay)))
 
 ;(take 10 (:graph @networker)) ;; force read
@@ -66,7 +66,7 @@
            (first (:graph network))
            (:graph network)))
   ([network point]
-   (brute-nearest network point math/euclidean-pow2)))
+   (brute-nearest network point geometry/euclidean-pow2)))
 
 ;; note >= search will approximate any point with lat, lon less than point
 ;; to the minimum point in neighbours. <= does the same but approximates to
@@ -83,11 +83,11 @@
     ;; field per key), rank queries (one int) and the rebalancing algorithm
     ;; itself (the final int).
     ;; + 1 due to integer key duplicated
-    (println "accuraccy: " (math/haversine src (first (avl/nearest neighbours >= src))))
+    (println "accuraccy: " (geometry/haversine src (first (avl/nearest neighbours >= src))))
     (c/quick-bench (avl/nearest neighbours >= src)
                    :os :runtime :verbose)
     (println "--------")
     (println "BRUTE force with:" (count graph) "nodes")
-    (println "accuraccy: " (math/haversine src (second (brute-nearest @networker src))))
+    (println "accuraccy: " (geometry/haversine src (second (brute-nearest @networker src))))
     (c/quick-bench (brute-nearest @networker src)
                    :os :runtime :verbose)))

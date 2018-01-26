@@ -1,6 +1,7 @@
-(ns hiposfer.kamal.libs.math
+(ns hiposfer.kamal.libs.geometry
+  (:refer-clojure :rename {contains? contains?!})
   (:require [hiposfer.kamal.graph.protocols :as rp])
-  (:import (ch.hsr.geohash GeoHash)))
+  (:import (ch.hsr.geohash GeoHash BoundingBox WGS84Point)))
 
 ;; Note in these scripts, I generally use
 ;; - latitude, longitude in degrees
@@ -81,3 +82,31 @@
   [x y]
   (compare (GeoHash/withBitPrecision (rp/lat x) (rp/lon x) 64)
            (GeoHash/withBitPrecision (rp/lat y) (rp/lon y) 64)))
+
+(defn bbox
+  "takes a sequence of GeoCoordinates and returns a mutable BoundingBox
+  for them"
+  [coordinates]
+  (let [even?   (= 0 (rem (count coordinates) 2))
+        [c1 c2] (take 2 coordinates)
+        init    (if even?
+                  (BoundingBox. (rp/lat c1) (rp/lat c2) (rp/lon c1) (rp/lon c2))
+                  (BoundingBox. (rp/lat c1) (rp/lat c1) (rp/lon c1) (rp/lon c1)))
+        amount  (if even? 2 1)]
+    (transduce (comp (drop amount)
+                     (partition-all 2)
+                     (map (fn [[p1 p2]] (BoundingBox. (rp/lat p1) (rp/lat p2)
+                                                      (rp/lon p1) (rp/lon p2)))))
+               (completing #(.expandToInclude ^BoundingBox init %2))
+               init
+               coordinates)
+    init))
+
+(defn contains?
+  "checks if point is contained in bbox"
+  [^BoundingBox bbox point]
+  (.contains bbox (WGS84Point. (rp/lat point) (rp/lon point))))
+
+
+;(contains? (:bbox @(:saarland (:networks (:router hiposfer.kamal.dev/system))))
+;           [6.938666 49.393097])
