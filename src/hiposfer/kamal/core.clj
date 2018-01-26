@@ -31,8 +31,11 @@
 
 (defn -main [& args]
   (println "\n\nWelcome to the hiposfer/kamal App")
-  (let [config-path (edn/read-string (first args))
+  (let [port        (edn/read-string (System/getenv "PORT"))
+        config-path (edn/read-string (first args))
         user-config (if-not config-path {}
                       (edn/read-string (slurp config-path)))
-        config      (config user-config)]
+        config      (if (some? port)
+                      (config (merge user-config {:port port}))
+                      (config user-config))]
     (component/start (system config))))
