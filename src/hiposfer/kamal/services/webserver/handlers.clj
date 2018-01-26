@@ -19,8 +19,8 @@
 
 ;; ring handlers are matched in order
 (defn create
-  "creates an API handler with a closure around the grid"
-  [grid]
+  "creates an API handler with a closure around the router"
+  [router]
   (sweet/api {:swagger {:ui "/"}
                   :spec "/swagger.json"
                   :data {:info {:title "Routing API"
@@ -35,8 +35,8 @@
                      {radiuses :- ::mapbox/raw-radiuses nil}
                      {alternatives :- boolean? false}
                      {language :- string? "en"}]
-      :return ::mapbox/direction
-      (if (nil? @(:network grid)) (code/service-unavailable)
+      :return ::mapbox/direction ;; TODO
+      (if (nil? @(:network router)) (code/service-unavailable)
         (let [coordinates (parse-coordinates coordinates)
               radiuses    (some-> radiuses (parse-radiuses))]
           (cond
@@ -51,7 +51,7 @@
                :message "The same amount of radiouses and coordinates must be provided"})
 
             :else
-            (code/ok (dir/direction @(:network grid)
+            (code/ok (dir/direction @(:network router)
                        :coordinates coordinates
                        :steps steps
                        :radiuses radiuses

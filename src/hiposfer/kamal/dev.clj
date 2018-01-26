@@ -34,7 +34,7 @@
 ;; WARN: this will fail if you just ran `lein uberjar` without
 ;; cleaning afterwards. See
 ;; https://stackoverflow.com/questions/44246924/clojure-tools-namespace-refresh-fails-with-no-namespace-foo
-(defn reset
+(defn refresh!
   "reset the system to a fresh state. Prefer using this over go!"
   []
   (stop!)
@@ -45,10 +45,4 @@
 ;(set! *print-length* 50)
 ;(take 10 (:graph @(:network (:grid system))))
 
-;(System/gc)
-
-;(time (cheshire/generate-stream @(:network (:grid system))
-;        (clojure.java.io/writer "resources/saarland.json")))
-;
-;(time (last (cheshire/parse-stream
-;              (clojure.java.io/reader "resources/saarland.json"))))
+;(keys system)
