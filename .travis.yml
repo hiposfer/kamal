@@ -2,9 +2,9 @@ language: clojure
 jdk:
 - oraclejdk8
 script:
-- lein do clean, compile, check, test, jar
+- lein do clean, compile, check, test, uberjar
 # linter
-- lein eastwood '{:exclude-namespaces [hiposfer.kamal.graph.specs hiposfer.kamal.spec]}'
+- lein eastwood '{:exclude-namespaces [hiposfer.kamal.graph.specs hiposfer.kamal.specs.mapbox.directions]}'
 notifications:
   email:
     on_success: change
