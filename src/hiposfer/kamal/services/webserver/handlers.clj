@@ -82,5 +82,3 @@
                                        Check for coordinates too far away from a road."}))))))
     (sweet/undocumented ;; returns a 404 when nothing matched
       (route/not-found (code/not-found "we couldnt find what you were looking for")))))
-
-(:bbox @(:saarland (:networks (:router hiposfer.kamal.dev/system))))
