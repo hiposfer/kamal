@@ -108,5 +108,5 @@
   (.contains bbox (WGS84Point. (rp/lat point) (rp/lon point))))
 
 
-(contains? (:bbox @(:saarland (:networks (:router hiposfer.kamal.dev/system))))
-           [7.0288485 49.1064844])
+;(contains? (:bbox @(:saarland (:networks (:router hiposfer.kamal.dev/system))))
+;           [7.0288485 49.1064844])
