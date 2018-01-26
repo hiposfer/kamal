@@ -11,11 +11,11 @@
 (defn start!
   [config]
   (let [result (zipmap (keys (:networks config))
-                       (map agent (vals (:networks config))))
-        exec   (if (:dev config) #(time (fake-network (:size %)))
-                                 #(time (network (:osm %))))]
-    (run! (fn [ag] (send-off ag exec))
-          (vals result))
+                       (map agent (repeat (count (:networks config)) nil)))
+        exec   (if (:dev config) #(time (fake-network (:size %2)))
+                                 #(time (network (:osm %2))))]
+    (run! (fn [[k cf]] (send-off (k result) exec cf))
+          (:networks config))
     result))
 
 (defrecord Router [config networks]

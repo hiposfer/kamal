@@ -6,7 +6,8 @@
             [hiposfer.kamal.services.routing.directions :as dir]
             [clojure.string :as str]
             [clojure.edn :as edn]
-            [clojure.spec.alpha :as s]))
+            [clojure.spec.alpha :as s]
+            [hiposfer.kamal.libs.geometry :as geometry]))
 
 (defn- parse-coordinates
   [text]
@@ -17,7 +18,7 @@
 (defn- parse-radiuses [text] (map edn/read-string (str/split text #";")))
 ;(->radiuses "1200.50;100;500;unlimited;100")
 
-(defn validate
+(defn- validate
   "validates that the coordinates and the radiuses conform to the mapbox specification.
   Returns an http response object if validation fails or nil otherwise."
   [coordinates radiuses]
@@ -33,6 +34,17 @@
        :message "The same amount of radiuses and coordinates must be provided"})
     :else nil))
 
+(def available "xform - returns the networks that are available for computation"
+  (comp (map val) (map deref) (remove nil?)))
+
+(defn- select
+  "returns a network whose bounding box contains all points"
+  [networks points]
+  (transduce available
+    (completing (fn [_ nw] (when (every? #(geometry/contains? (:bbox nw) %) points)
+                              (reduced nw))))
+    nil
+    networks))
 
   ;; ring handlers are matched in order
 (defn create
@@ -51,20 +63,24 @@
                      {radiuses :- ::mapbox/raw-radiuses nil}
                      {alternatives :- boolean? false}
                      {language :- string? "en"}]
-      :return ::mapbox/direction ;; TODO
-      (if (nil? @(:network router)) (code/service-unavailable)
-        (let [coordinates (parse-coordinates coordinates)
-              radiuses    (some-> radiuses (parse-radiuses))
-              errors      (validate coordinates radiuses)]
-            (if (not (nil? errors)) errors
-              (code/ok (dir/direction @(:network router)
+      :return ::mapbox/direction
+      (let [coordinates (parse-coordinates coordinates)
+            radiuses    (some-> radiuses (parse-radiuses))
+            error       (validate coordinates radiuses)]
+          (if (some? error) error
+            (if-let [network (select (:networks router) coordinates)]
+              (code/ok (dir/direction network
                          :coordinates coordinates
                          :steps steps
                          :radiuses radiuses
                          :alternatives alternatives
-                         :language language))))))
-    ;; if nothing else matched, return a 404 - not found
-    (sweet/undocumented
+                         :language language))
+              (if (empty? (sequence available (:networks router)))
+                (code/service-unavailable)
+                (code/ok {:code "NoSegment"
+                          :message "No road segment could be matched for coordinates.
+                                       Check for coordinates too far away from a road."}))))))
+    (sweet/undocumented ;; returns a 404 when nothing matched
       (route/not-found (code/not-found "we couldnt find what you were looking for")))))
 
-;(:app hiposfer.kamal.dev/system)
+(:bbox @(:saarland (:networks (:router hiposfer.kamal.dev/system))))
