@@ -10,14 +10,11 @@
 
 (defn- parse-coordinates
   [text]
-  (let [pairs (str/split text #";")]
-    (for [coords pairs]
-      (mapv edn/read-string (str/split coords #",")))))
+  (for [coords (str/split text #";")]
+    (mapv edn/read-string (str/split coords #","))))
 ;(->coordinates "-122.42,37.78;-77.03,38.91")
 
-(defn- parse-radiuses
-  [text]
-  (map edn/read-string (str/split text #";")))
+(defn- parse-radiuses [text] (map edn/read-string (str/split text #";")))
 ;(->radiuses "1200.50;100;500;unlimited;100")
 
 ;; ring handlers are matched in order
