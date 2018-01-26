@@ -4,9 +4,9 @@
             [clojure.test.check.generators :as gen]
             [com.stuartsierra.component :as component]))
 
-(def network (comp osm/neighbourhood osm/network))
+(def network (comp osm/complete osm/network))
 
-(def fake-network (comp osm/neighbourhood g/complete gen/generate g/graph))
+(def fake-network (comp osm/complete g/with-ways gen/generate g/graph))
 
 (defn start!
   [config]

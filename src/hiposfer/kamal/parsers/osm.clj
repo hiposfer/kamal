@@ -6,10 +6,9 @@
             [clojure.java.io :as io]
             [clojure.data.avl :as avl]
             [clojure.set :as set]
-            [hiposfer.kamal.libs.math :as math]
+            [hiposfer.kamal.libs.geometry :as geometry]
             [hiposfer.kamal.libs.tool :as tool]
-            [hiposfer.kamal.graph.core :as graph]
-            [hiposfer.kamal.graph.algorithms :as alg])
+            [hiposfer.kamal.graph.core :as graph])
   (:import (org.apache.commons.compress.compressors.bzip2 BZip2CompressorInputStream)))
 
 (defn- bz2-reader
@@ -147,17 +146,20 @@
         graph         (reduce graph/connect nodes edges)]
     {:ways  ways
      :graph graph}))
-     ;;:points points TODO enable them later to improve precision
+     ;;TODO enable them later to improve precision
+     ;;:points points
 
 (def walking-speed  2.5);; m/s
 
-(defn neighbourhood
-  "assocs a :neighbours key into this network to allow nearest neighbour search"
+(defn complete
+  "computes and assocs the neighbours (to allow nearest neighbour search) and
+   bbox (to allow containment testing) into the network"
   [network]
-  (assoc network :neighbours
-    (into (avl/sorted-map-by math/geohash)
-          (set/map-invert (:graph network)))))
-
+  (let [neighbours (into (avl/sorted-map-by geometry/geohash)
+                         (set/map-invert (:graph network)))
+        bbox       (geometry/bbox (vals (:graph network)))]
+    (assoc network :neighbours neighbours
+                   :bbox bbox)))
 
 ;(System/gc)
 ;(def network (time (osm->network "resources/osm/saarland.min.osm.bz2")))

@@ -5,10 +5,7 @@
             [hiposfer.kamal.graph.protocols :as rp]
             [clojure.spec.alpha :as s]
             [hiposfer.kamal.graph.core :as graph]
-            [clojure.data.int-map :as imap]
-            [clojure.data.avl :as avl]
-            [clojure.set :as set]
-            [hiposfer.kamal.libs.math :as math]))
+            [clojure.data.int-map :as imap]))
 
 (defn- grapher
   "returns a graph based on the provided node ids. Random latitude and longitudes
@@ -41,7 +38,7 @@
   "Generate alpha strings"
   (gen/fmap str/join (gen/vector gen/char-alpha)))
 
-(defn complete
+(defn with-ways
   "returns a network with a fake ways element to conform to the generated graph"
   [graph]
   (let [arcs    (map rp/successors (vals graph))

@@ -2,7 +2,7 @@
   (:require [hiposfer.kamal.parsers.osm :as osm]
             [hiposfer.kamal.graph.algorithms :as alg]
             [hiposfer.kamal.graph.protocols :as rp]
-            [hiposfer.kamal.libs.math :as math]
+            [hiposfer.kamal.libs.geometry :as geometry]
             [clojure.data.avl :as avl]))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
@@ -34,8 +34,8 @@
   [graph arc _] ;; 1 is a simple value used for test whenever no other value would be suitable
   (let [src    (graph (rp/src arc))
         dst    (graph (rp/dst arc))
-        length (math/haversine (rp/lon src) (rp/lat src)
-                               (rp/lon dst) (rp/lat dst))]
+        length (geometry/haversine (rp/lon src) (rp/lat src)
+                                   (rp/lon dst) (rp/lat dst))]
     (/ length osm/walking-speed)))
 
 (defn- linestring
@@ -53,10 +53,10 @@
   "returns a step manuever"
   [{:keys [graph ways]} prev-piece  piece next-piece]
   (let [location     (->coordinates (graph (key (first (first piece)))))
-        pre-bearing  (math/bearing (graph (key (first (first prev-piece))))
-                                   (graph (key (first (first piece)))))
-        post-bearing (math/bearing (graph (key (first (first piece))))
-                                   (graph (key (first (first next-piece)))))
+        pre-bearing  (geometry/bearing (graph (key (first (first prev-piece))))
+                                       (graph (key (first (first piece)))))
+        post-bearing (geometry/bearing (graph (key (first (first piece))))
+                                       (graph (key (first (first next-piece)))))
         angle        (mod (+ 360 (- post-bearing pre-bearing)) 360)
         modifier     (val (last (subseq bearing-turns <= angle)))
         way-name     (:name (ways (second (first piece))))
@@ -75,7 +75,7 @@
   "includes one StepManeuver object and travel to the following RouteStep"
   [{:keys [ways] :as network} prev-piece piece next-piece]
   (let [linestring (linestring network (map (comp key first) (concat piece [(first next-piece)])))]
-    {:distance (math/arc-length (:coordinates linestring))
+    {:distance (geometry/arc-length (:coordinates linestring))
      :duration (- (val (first (first next-piece)))
                   (val (first (first piece))))
      :geometry linestring
@@ -110,7 +110,7 @@
                                 trail (rest trail))
           ways&traces (map vector trail (concat way-ids [(last way-ids)]))
           pieces      (partition-by #(:name (ways (second %))) ways&traces)]
-      {:distance   (math/arc-length (:coordinates (linestring network (map key trail))))
+      {:distance   (geometry/arc-length (:coordinates (linestring network (map key trail))))
        :duration   (rp/cost (val (last trail)))
        :steps      (route-steps network steps pieces)
        :summary    "" ;; TODO
@@ -144,13 +144,13 @@
    Example:
    (direction network :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
   [{:keys [graph ways neighbours] :as network} & params]
-  (let [{:keys [coordinates steps radiuses alternatives language]} params
+  (let [{:keys [coordinates steps]} params
         start     (avl/nearest neighbours >= (first coordinates)) ;; nil when lat,lon are both greater than
         dst       (avl/nearest neighbours >= (last coordinates))] ;; any node in the graph
     (if (or (nil? start) (nil? dst)) {:code "NoSegment"}
-      (let [traversal (alg/dijkstra (:graph network)
-                                    #(duration graph %1 %2)
-                                    #{(val start)})
+      (let [traversal  (alg/dijkstra (:graph network)
+                                     #(duration graph %1 %2)
+                                     #{(val start)})
             rtrail     (alg/shortest-path (val dst) traversal)]
         (if (nil? rtrail) {:code "NoRoute"}
           {:code "Ok"
