@@ -1,7 +1,7 @@
-(ns hiposfer.kamal.graph.specs
+(ns hiposfer.kamal.network.specs
   (:require [clojure.set :as set]
             [clojure.spec.alpha :as s]
-            [hiposfer.kamal.graph.protocols :as rp]
+            [hiposfer.kamal.network.graph.protocols :as rp]
             [hiposfer.geojson.specs :as geojson]))
 
 (s/def ::way int?)

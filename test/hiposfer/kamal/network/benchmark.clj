@@ -1,21 +1,21 @@
-(ns hiposfer.kamal.graph.benchmark
+(ns hiposfer.kamal.network.benchmark
   (:require [criterium.core :as c]
             [clojure.test :as test]
             [clojure.spec.gen.alpha :as gen]
-            [hiposfer.kamal.graph.generators :as g]
-            [hiposfer.kamal.graph.algorithms :as alg]
+            [hiposfer.kamal.network.generators :as ng]
+            [hiposfer.kamal.network.algorithms.core :as alg]
             [hiposfer.kamal.parsers.osm :as osm]
             [hiposfer.kamal.services.routing.directions :as directions]
             [hiposfer.kamal.libs.geometry :as geometry]
             [clojure.data.avl :as avl]
-            [hiposfer.kamal.graph.core :as graph]))
+            [hiposfer.kamal.network.graph.core :as graph]))
 
-;; This is just to show the difference between a randomly generated graph
-;; and a real-world graph. The randomly generated graph does not have a structure
+;; This is just to show the difference between a randomly generated network
+;; and a real-world network. The randomly generated network does not have a structure
 ;; meant to go from one place to the other, thus Dijkstra almost always fails to
 ;; finds a path (really fast)
 (test/deftest ^:benchmark dijkstra-random-graph
-  (let [graph        (gen/generate (g/graph 1000))
+  (let [graph        (gen/generate (ng/graph 1000))
         src          (key (first graph))
         dst          (key (last graph))]
     (println "\n\nDIJKSTRA forward with:" (count graph) "nodes and"
@@ -30,13 +30,13 @@
                    (osm/complete)
                    (delay)))
 
-;(take 10 (:graph @networker)) ;; force read
-;(take 10 (alg/biggest-component (:graph @networker)))
+;(take 10 (:network @networker)) ;; force read
+;(take 10 (alg/biggest-component (:network @networker)))
 
 (test/deftest ^:benchmark dijkstra-saarland-graph
   (let [graph        (:graph @networker) ;; force read
         Cgraph       (alg/biggest-component (:graph @networker))
-        ;; the src and dst might have been removed from the original graph
+        ;; the src and dst might have been removed from the original network
         src          (key (first Cgraph))
         dst          (key (last Cgraph))]
     (println "\n\nDIJKSTRA forward with:" (count graph) "nodes and"

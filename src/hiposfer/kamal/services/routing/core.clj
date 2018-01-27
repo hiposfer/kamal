@@ -1,12 +1,12 @@
 (ns hiposfer.kamal.services.routing.core
   (:require [hiposfer.kamal.parsers.osm :as osm]
-            [hiposfer.kamal.graph.generators :as g]
+            [hiposfer.kamal.network.generators :as ng]
             [clojure.test.check.generators :as gen]
             [com.stuartsierra.component :as component]))
 
 (def network (comp osm/complete osm/network))
 
-(def fake-network (comp osm/complete g/with-ways gen/generate g/graph))
+(def fake-network (comp osm/complete ng/with-ways gen/generate ng/graph))
 
 (defn start!
   [config]

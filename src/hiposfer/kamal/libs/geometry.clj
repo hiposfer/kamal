@@ -1,6 +1,6 @@
 (ns hiposfer.kamal.libs.geometry
   (:refer-clojure :rename {contains? contains?!})
-  (:require [hiposfer.kamal.graph.protocols :as rp])
+  (:require [hiposfer.kamal.network.algorithms.protocols :as np])
   (:import (ch.hsr.geohash GeoHash BoundingBox WGS84Point)))
 
 ;; Note in these scripts, I generally use
@@ -28,8 +28,8 @@
   ([p1 p2]
    (if (and (seq? p1) (seq? p2))
      (apply haversine (concat p1 p2))
-     (haversine (rp/lon p1) (rp/lat p1)
-                (rp/lon p2) (rp/lat p2)))))
+     (haversine (np/lon p1) (np/lat p1)
+                (np/lon p2) (np/lat p2)))))
 
 ;; (frepos/distance [-86.67 36.12] [-118.40 33.94])
 ;=> 2887.2599506071106 km
@@ -42,8 +42,8 @@
   {lat, lon} points. Use only if you interested in performance and not on the
    real value since the square root is an expensive computation"
   [p1 p2]
-  (+ (Math/pow (- (rp/lat p1) (rp/lat p2)) 2)
-     (Math/pow (- (rp/lon p1) (rp/lon p2)) 2)))
+  (+ (Math/pow (- (np/lat p1) (np/lat p2)) 2)
+     (Math/pow (- (np/lon p1) (np/lon p2)) 2)))
 
 (defn euclidean
   "computes the euclidean distance between p1 and p2 being both of them
@@ -63,9 +63,9 @@
   "return a Number between 0 and 360 indicating the clockwise angle from true
    north to the direction of travel (p1 -> p2)"
   [p1 p2]
-  (let [φ1 (Math/toRadians (rp/lat p1))
-        φ2 (Math/toRadians (rp/lat p2))
-        Δλ (Math/toRadians (- (rp/lon p2) (rp/lon p1)))
+  (let [φ1 (Math/toRadians (np/lat p1))
+        φ2 (Math/toRadians (np/lat p2))
+        Δλ (Math/toRadians (- (np/lon p2) (np/lon p1)))
         ; actual computation
         y (* (Math/sin Δλ) (Math/cos φ2))
         x (- (* (Math/cos φ1) (Math/sin φ2))
@@ -80,8 +80,8 @@
   space. e.g. no 3D points since two point with different height
   but equal lat, lon would collide"
   [x y]
-  (compare (GeoHash/withBitPrecision (rp/lat x) (rp/lon x) 64)
-           (GeoHash/withBitPrecision (rp/lat y) (rp/lon y) 64)))
+  (compare (GeoHash/withBitPrecision (np/lat x) (np/lon x) 64)
+           (GeoHash/withBitPrecision (np/lat y) (np/lon y) 64)))
 
 (defn bbox
   "takes a sequence of GeoCoordinates and returns a mutable BoundingBox
@@ -90,13 +90,13 @@
   (let [even?   (= 0 (rem (count coordinates) 2))
         [c1 c2] (take 2 coordinates)
         init    (if even?
-                  (BoundingBox. (rp/lat c1) (rp/lat c2) (rp/lon c1) (rp/lon c2))
-                  (BoundingBox. (rp/lat c1) (rp/lat c1) (rp/lon c1) (rp/lon c1)))
+                  (BoundingBox. (np/lat c1) (np/lat c2) (np/lon c1) (np/lon c2))
+                  (BoundingBox. (np/lat c1) (np/lat c1) (np/lon c1) (np/lon c1)))
         amount  (if even? 2 1)]
     (transduce (comp (drop amount)
                      (partition-all 2)
-                     (map (fn [[p1 p2]] (BoundingBox. (rp/lat p1) (rp/lat p2)
-                                                      (rp/lon p1) (rp/lon p2)))))
+                     (map (fn [[p1 p2]] (BoundingBox. (np/lat p1) (np/lat p2)
+                                                      (np/lon p1) (np/lon p2)))))
                (completing #(.expandToInclude ^BoundingBox init %2))
                init
                coordinates)
@@ -105,7 +105,7 @@
 (defn contains?
   "checks if point is contained in bbox"
   [^BoundingBox bbox point]
-  (.contains bbox (WGS84Point. (rp/lat point) (rp/lon point))))
+  (.contains bbox (WGS84Point. (np/lat point) (np/lon point))))
 
 
 ;(contains? (:bbox @(:saarland (:networks (:router hiposfer.kamal.dev/system))))

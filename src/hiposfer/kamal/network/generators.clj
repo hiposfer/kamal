@@ -1,10 +1,11 @@
-(ns hiposfer.kamal.graph.generators
+(ns hiposfer.kamal.network.generators
   (:require [clojure.test.check.generators :as gen]
             [hiposfer.geojson.specs :as geojson]
             [clojure.string :as str]
-            [hiposfer.kamal.graph.protocols :as rp]
+            [hiposfer.kamal.network.graph.protocols :as gp]
             [clojure.spec.alpha :as s]
-            [hiposfer.kamal.graph.core :as graph]
+            [hiposfer.kamal.network.graph.core :as graph]
+            [hiposfer.kamal.network.core :as network]
             [clojure.data.int-map :as imap]))
 
 (defn- grapher
@@ -14,13 +15,13 @@
   (let [pick     #(rand-nth (seq ids))
         lat-gen   (partial gen/generate (s/gen ::geojson/lat))
         lon-gen   (partial gen/generate (s/gen ::geojson/lon))
-        arcer    #(graph/->Edge (pick) (pick) (rand-int (* 3 (count ids))))
+        arcer    #(network/->Edge (pick) (pick) (rand-int (* 3 (count ids))))
         ;; create 3 times as many edges as node IDs
         edges     (distinct (repeatedly (* 3 (count ids)) arcer))
         ;; first create nodes to store the edges
-        nodes     (into (imap/int-map) (map #(vector % (graph/->NodeInfo (lat-gen)
-                                                                         (lon-gen)
-                                                                         nil nil)))
+        nodes     (into (imap/int-map) (map #(vector % (network/->NodeInfo (lat-gen)
+                                                                           (lon-gen)
+                                                                           nil nil)))
                         ids)]
     (reduce graph/connect nodes edges)))     ;; now connect the nodes
 
@@ -32,7 +33,7 @@
                              {:min-elements size})))
 
 ;;example usage
-;(gen/generate (graph 100))
+;(gen/generate (network 100))
 
 (def string-alpha
   "Generate alpha strings"
@@ -41,21 +42,23 @@
 (defn with-ways
   "returns a network with a fake ways element to conform to the generated graph"
   [graph]
-  (let [arcs    (map rp/successors (vals graph))
+  (let [arcs    (map gp/successors (vals graph))
         way-ids (into #{} (comp cat
-                                (map rp/way)
+                                (map gp/way)
                                 (remove nil?))
                           arcs)
         ;; An string 90% of the time, nil 10%
         namer   (gen/frequency [[1 (gen/return nil)]
                                 [9 (gen/fmap str/capitalize string-alpha)]])
-        ways    (map (fn [id] [id {:name (gen/generate namer)
-                                   :hiposfer.kamal.osm/nodes (into [] (comp (filter #(= id (rp/way %)))
-                                                                            (map rp/src))
-                                                                      (graph/edges graph))}])
+        ways    (map (fn [id]
+                       [id {:name (gen/generate namer)
+                            :hiposfer.kamal.osm/nodes
+                                  (into [] (comp (filter #(= id (gp/way %)))
+                                                 (map gp/src))
+                                           (graph/edges graph))}])
                      way-ids)]
     {:graph      graph
      :ways       (into {} ways)}))
 
 ;; example usage
-;(complete (gen/generate (graph 10)))
+;(complete (gen/generate (network 10)))
