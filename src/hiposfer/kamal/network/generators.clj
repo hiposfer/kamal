@@ -6,7 +6,8 @@
             [clojure.spec.alpha :as s]
             [hiposfer.kamal.network.graph.core :as graph]
             [hiposfer.kamal.network.core :as network]
-            [clojure.data.int-map :as imap]))
+            [clojure.data.int-map :as imap]
+            [hiposfer.kamal.network.algorithms.protocols :as np]))
 
 (defn- grapher
   "returns a graph based on the provided node ids. Random latitude and longitudes
@@ -44,7 +45,7 @@
   [graph]
   (let [arcs    (map gp/successors (vals graph))
         way-ids (into #{} (comp cat
-                                (map gp/way)
+                                (map np/way)
                                 (remove nil?))
                           arcs)
         ;; An string 90% of the time, nil 10%
@@ -53,7 +54,7 @@
         ways    (map (fn [id]
                        [id {:name (gen/generate namer)
                             :hiposfer.kamal.osm/nodes
-                                  (into [] (comp (filter #(= id (gp/way %)))
+                                  (into [] (comp (filter #(= id (np/way %)))
                                                  (map gp/src))
                                            (graph/edges graph))}])
                      way-ids)]
