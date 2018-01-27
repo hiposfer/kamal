@@ -1,13 +1,13 @@
-(ns hiposfer.kamal.graph.algorithms
-  (:require [hiposfer.kamal.graph.protocols :as rp]
-            [hiposfer.kamal.graph.core :as route]
-            [clojure.data.int-map :as imap]))
-
+(ns hiposfer.kamal.network.algorithms.core
+  (:require [hiposfer.kamal.network.graph.protocols :as gp]
+            [hiposfer.kamal.network.algorithms.dijkstra :as djk]
+            [clojure.data.int-map :as imap]
+            [hiposfer.kamal.network.graph.core :as graph]))
 
 (def movement
   "mapping of direction to protocol functions for Link and Nodes"
-  {::forward  [rp/dst rp/successors]
-   ::backward [rp/src rp/predecessors]})
+  {::forward  [gp/dst gp/successors]
+   ::backward [gp/src gp/predecessors]})
 
 (defn dijkstra
   "returns a sequence of traversal-paths taken to reach each node. Each path is
@@ -23,7 +23,7 @@
    (dijkstra graph ::forward value-by start-from))
   ([graph direction value-by start-from]
    (let [[f arcs] (movement direction)]
-     (route/->Dijkstra graph start-from value-by arcs f))))
+     (djk/->Dijkstra graph start-from value-by arcs f))))
 
 (defn breath-first
   "returns a sequence of traversal-paths taken to reach each node in the same
@@ -54,7 +54,7 @@
      (cons connected (lazy-seq (components graph (imap/union settled connected)))))))
 
 ;; note for specs: the biggest component of a biggest component should
-;; be the passed graph (= graph (bc graph)) => true for all
+;; be the passed network (= network (bc network)) => true for all
 (defn biggest-component
   "returns a subset of the original graph containing only the elements
   of the biggest strongly connected components"
@@ -62,6 +62,6 @@
   (let [subsets   (components undirected-graph (imap/int-set))
         connected (apply max-key count subsets)]
     (transduce (remove connected)
-               (completing route/detach)
+               (completing graph/detach)
                undirected-graph
                (keys undirected-graph))))

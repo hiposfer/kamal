@@ -1,15 +1,13 @@
-(ns hiposfer.kamal.graph.tests
+(ns hiposfer.kamal.network.tests
   (:require [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
             [clojure.test.check.generators :as gen]
             [clojure.test :refer [is deftest]]
-            [hiposfer.kamal.graph.algorithms :as alg]
-            [hiposfer.kamal.graph.protocols :as rp]
-            [hiposfer.kamal.graph.generators :as g]
-            [hiposfer.kamal.directions :as direction]
-            [hiposfer.kamal.graph.core :as route]
-            [clojure.data.int-map :as imap]
-            [hiposfer.kamal.graph.core :as graph]))
+            [hiposfer.kamal.network.algorithms.core :as alg]
+            [hiposfer.kamal.network.algorithms.protocols :as np]
+            [hiposfer.kamal.services.routing.directions :as direction]
+            [hiposfer.kamal.network.generators :as ng]
+            [hiposfer.kamal.network.graph.core :as graph]))
 
 ;; https://rosettacode.org/wiki/Dijkstra%27s_algorithm
 (def rosetta {1 {:outgoing {2 {:src 1 :dst 2 :length 7}
@@ -50,7 +48,7 @@
                                 (fn length [arc _] (:length arc))
                                 #{1})
         traversal (into {} (comp (map first)
-                                 (map (juxt key (comp rp/cost val))))
+                                 (map (juxt key (comp np/cost val))))
                            performer)]
     (is (not (nil? traversal))
         "shortest path not found")
@@ -64,7 +62,7 @@
 ; path(src,dst) = path(src, dst)
 (defspec deterministic
   100; tries
-  (prop/for-all [graph (gen/such-that not-empty (g/graph 10) 1000)]
+  (prop/for-all [graph (gen/such-that not-empty (ng/graph 10) 1000)]
     (let [src  (rand-nth (keys graph))
           dst  (rand-nth (keys graph))
           coll (alg/dijkstra graph
@@ -74,14 +72,14 @@
                     (alg/shortest-path dst coll))]
       (or (every? nil? results)
           (and (apply = (map (comp key first) results))
-               (apply = (map (comp rp/cost val first) results)))))))
+               (apply = (map (comp np/cost val first) results)))))))
 
 ; -------------------------------------------------------------------
 ; The Dijkstra algorithm cost is monotonic (increasing)
 ; https://en.wikipedia.org/wiki/Monotonic_function
 (defspec monotonic
   100; tries
-  (prop/for-all [graph (gen/such-that not-empty (g/graph 10) 1000)]
+  (prop/for-all [graph (gen/such-that not-empty (ng/graph 10) 1000)]
     (let [src    (rand-nth (keys graph))
           dst    (rand-nth (keys graph))
           coll   (alg/dijkstra graph
@@ -89,7 +87,7 @@
                                #{src})
           result (alg/shortest-path dst coll)]
       (is (or (nil? result)
-              (apply >= (concat (map (comp rp/cost val) result)
+              (apply >= (concat (map (comp np/cost val) result)
                                 [0])))
           "returned path is not monotonic"))))
 
@@ -99,7 +97,7 @@
 ; Ddf(P,Q) = 0 if P = Q
 (defspec symmetry
   100; tries
-  (prop/for-all [graph (gen/such-that not-empty (g/graph 10) 1000)]
+  (prop/for-all [graph (gen/such-that not-empty (ng/graph 10) 1000)]
     (let [src  (rand-nth (keys graph))
           coll (alg/dijkstra graph
                              (partial direction/duration graph)
@@ -111,13 +109,13 @@
           "more than one node has to be traverse to reach itself"))))
 
 ; -------------------------------------------------------------------
-; The biggest strongly connected component of a graph must be at most
-; as big as the original graph
+; The biggest strongly connected component of a network must be at most
+; as big as the original network
 (defspec components
   100; tries
-  (prop/for-all [graph (gen/such-that not-empty (g/graph 10) 1000)]
+  (prop/for-all [graph (gen/such-that not-empty (ng/graph 10) 1000)]
     (let [graph2 (alg/biggest-component graph)]
-      (is (route/graph? graph2)
+      (is (graph/graph? graph2)
           "biggest component is not a graph")
       (is (<= (count graph2) (count graph))
           "biggest component is bigger than original graph"))))
@@ -126,11 +124,11 @@
 ; -------------------------------------------------------------------
 ; The removal of a node from a Graph should also eliminate all of its
 ; links. NOTE: The dijkstra below only stops after exploring the complete
-; graph. So if there is any open link, it will throw an exception.
+; network. So if there is any open link, it will throw an exception.
 ; this use to throw an exception so we leave it here for testing purposes :)
 (defspec routable-components
   100; tries
-  (prop/for-all [graph (gen/such-that not-empty (g/graph 10) 1000)]
+  (prop/for-all [graph (gen/such-that not-empty (ng/graph 10) 1000)]
     (let [graph2 (alg/biggest-component graph)
           src    (key (first graph2))
           coll   (alg/dijkstra graph2
