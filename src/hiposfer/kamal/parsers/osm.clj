@@ -1,14 +1,14 @@
 (ns hiposfer.kamal.parsers.osm
   (:require [clojure.data.xml :as xml]
             [clojure.data.int-map :as imap]
-            [hiposfer.kamal.graph.core :as route]
             [clojure.walk :as walk]
             [clojure.java.io :as io]
             [clojure.data.avl :as avl]
             [clojure.set :as set]
             [hiposfer.kamal.libs.geometry :as geometry]
             [hiposfer.kamal.libs.tool :as tool]
-            [hiposfer.kamal.graph.core :as graph])
+            [hiposfer.kamal.network.graph.core :as graph]
+            [hiposfer.kamal.network.core :as network])
   (:import (org.apache.commons.compress.compressors.bzip2 BZip2CompressorInputStream)))
 
 (defn- bz2-reader
@@ -40,8 +40,8 @@
   "takes an OSM node and returns a [id Node-instance]"
   [element] ; returns [id node] for later use in int-map
   [(Long/parseLong (:id  (:attrs element)))
-   (route/->Point (Double/parseDouble (:lon (:attrs element)))
-                  (Double/parseDouble (:lat (:attrs element))))])
+   (network/->Point (Double/parseDouble (:lon (:attrs element)))
+                    (Double/parseDouble (:lat (:attrs element))))])
 
 ; <way id="26659127" user="Masch" uid="55988" visible="true" version="5" changeset="4142606"
       ;timestamp="2010-03-16T11:47:08Z">
@@ -137,15 +137,15 @@
         ;; post-processing nodes
         simple-ways   (simplify ways)
         edges         (mapcat (fn [[way-id nodes]]
-                                (map route/->Edge nodes (rest nodes) (repeat way-id)))
+                                (map network/->Edge nodes (rest nodes) (repeat way-id)))
                               simple-ways)
         points        (apply dissoc points&nodes (mapcat second simple-ways))
         nodes         (apply dissoc points&nodes (keys points))
-        nodes         (into nodes (tool/map-vals route/map->NodeInfo)
+        nodes         (into nodes (tool/map-vals network/map->NodeInfo)
                                   nodes)
-        graph         (reduce graph/connect nodes edges)]
+        g             (reduce graph/connect nodes edges)]
     {:ways  ways
-     :graph graph}))
+     :graph g}))
      ;;TODO enable them later to improve precision
      ;;:points points
 
@@ -153,23 +153,23 @@
 
 (defn complete
   "computes and assocs the neighbours (to allow nearest neighbour search) and
-   bbox (to allow containment testing) into the network"
-  [network]
+   bbox (to allow containment testing) into m"
+  [m]
   (let [neighbours (into (avl/sorted-map-by geometry/geohash)
-                         (set/map-invert (:graph network)))
-        bbox       (geometry/bbox (vals (:graph network)))]
-    (assoc network :neighbours neighbours
+                         (set/map-invert (:graph m)))
+        bbox       (geometry/bbox (vals (:graph m)))]
+    (assoc m :neighbours neighbours
                    :bbox bbox)))
 
 ;(System/gc)
 ;(def network (time (osm->network "resources/osm/saarland.min.osm.bz2")))
-;(take 10 (:graph network))
+;(take 10 (:network network))
 ;(take 10 (:ways network))
 ;(def network nil)
 
 
 ;(count (:points network))
-;(count (:graph network))
+;(count (:network network))
 ;(count (:ways network))
 
 ;; LEARNINGS ----- resources/osm/saarland.osm

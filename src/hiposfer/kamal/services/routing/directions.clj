@@ -1,7 +1,8 @@
 (ns hiposfer.kamal.services.routing.directions
   (:require [hiposfer.kamal.parsers.osm :as osm]
-            [hiposfer.kamal.graph.algorithms :as alg]
-            [hiposfer.kamal.graph.protocols :as rp]
+            [hiposfer.kamal.network.algorithms.core :as alg]
+            [hiposfer.kamal.network.algorithms.protocols :as np]
+            [hiposfer.kamal.network.graph.protocols :as gp]
             [hiposfer.kamal.libs.geometry :as geometry]
             [clojure.data.avl :as avl]))
 
@@ -17,25 +18,25 @@
               300  "slight left"
               340  "straight"))
 
-(def ->coordinates (juxt rp/lon rp/lat))
+(def ->coordinates (juxt np/lon np/lat))
 
 ;; WARNING: we assume that we only traverse outgoing arcs
 ;; and that there is only one arc connecting src & dst
 (defn- link
   "find the link that connects src and dst and returns it"
   [graph src-trace dst-trace]
-  (some #(when (= (key dst-trace) (rp/dst %)) %)
-         (rp/successors (graph (key src-trace)))))
+  (some #(when (= (key dst-trace) (gp/dst %)) %)
+        (gp/successors (graph (key src-trace)))))
 
 
 (defn duration
   "A very simple value computation function for Arcs in a graph.
   Returns the time it takes to go from arc src to dst based on osm/speeds"
   [graph arc _] ;; 1 is a simple value used for test whenever no other value would be suitable
-  (let [src    (graph (rp/src arc))
-        dst    (graph (rp/dst arc))
-        length (geometry/haversine (rp/lon src) (rp/lat src)
-                                   (rp/lon dst) (rp/lat dst))]
+  (let [src    (graph (gp/src arc))
+        dst    (graph (gp/dst arc))
+        length (geometry/haversine (np/lon src) (np/lat src)
+                                   (np/lon dst) (np/lat dst))]
     (/ length osm/walking-speed)))
 
 (defn- linestring
@@ -106,12 +107,12 @@
   (if (= (count trail) 1) ;; a single trace is returned for src = dst
     {:distance 0 :duration 0 :steps [] :summary "" :annotation []}
     (let [way-ids     (sequence (comp (map (partial link graph))
-                                      (map rp/way))
+                                      (map np/way))
                                 trail (rest trail))
           ways&traces (map vector trail (concat way-ids [(last way-ids)]))
           pieces      (partition-by #(:name (ways (second %))) ways&traces)]
       {:distance   (geometry/arc-length (:coordinates (linestring network (map key trail))))
-       :duration   (rp/cost (val (last trail)))
+       :duration   (np/cost (val (last trail)))
        :steps      (route-steps network steps pieces)
        :summary    "" ;; TODO
        :annotation []}))) ;; TODO
@@ -146,7 +147,7 @@
   [{:keys [graph ways neighbours] :as network} & params]
   (let [{:keys [coordinates steps]} params
         start     (avl/nearest neighbours >= (first coordinates)) ;; nil when lat,lon are both greater than
-        dst       (avl/nearest neighbours >= (last coordinates)) ;; any node in the graph
+        dst       (avl/nearest neighbours >= (last coordinates)) ;; any node in the network
        ; both start and dst should be found since we checked that before
         traversal  (alg/dijkstra (:graph network)
                                  #(duration graph %1 %2)
@@ -155,9 +156,9 @@
     (if (some? rtrail)
       {:code "Ok"
        :routes [(route network steps rtrail)]
-       :waypoints [{:name (str (:name (ways (some rp/way (rp/successors (key start))))))
+       :waypoints [{:name (str (:name (ways (some np/way (gp/successors (key start))))))
                     :location (->coordinates (key start))}
-                   {:name (str (:name (ways (some rp/way (rp/successors (key dst))))))
+                   {:name (str (:name (ways (some np/way (gp/successors (key dst))))))
                     :location (->coordinates (key dst))}]}
       {:code "NoRoute"
        :message "There was no route found for the given coordinates. Check for
