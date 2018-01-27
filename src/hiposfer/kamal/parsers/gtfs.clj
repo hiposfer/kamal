@@ -1,4 +1,4 @@
-(ns hiposfer.kamal.gtfs
+(ns hiposfer.kamal.parsers.gtfs
   (:require [clojure.data.csv :as csv]
             [clojure.java.io :as io]
             [clojure.spec.alpha :as s]
@@ -44,6 +44,6 @@
               :let [trimmed (into {} (remove (fn [[_ v]] (empty? v))) row)]]
           (st/conform type trimmed st/string-conforming))))))
 
-;(parse "resources/gtfs/agency.txt")
-;(parse "resources/gtfs/routes.txt")
-;(parse "resources/gtfs/stops.txt")
+;(parse "resources/parsers/agency.txt")
+;(parse "resources/parsers/routes.txt")
+;(parse "resources/parsers/stops.txt")

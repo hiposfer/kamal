@@ -1,8 +1,9 @@
-(ns hiposfer.kamal.directions
-  (:require [hiposfer.kamal.osm :as osm]
-            [hiposfer.kamal.graph.algorithms :as alg]
-            [hiposfer.kamal.graph.protocols :as rp]
-            [hiposfer.kamal.libs.math :as math]
+(ns hiposfer.kamal.services.routing.directions
+  (:require [hiposfer.kamal.parsers.osm :as osm]
+            [hiposfer.kamal.network.algorithms.core :as alg]
+            [hiposfer.kamal.network.algorithms.protocols :as np]
+            [hiposfer.kamal.network.graph.protocols :as gp]
+            [hiposfer.kamal.libs.geometry :as geometry]
             [clojure.data.avl :as avl]))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
@@ -17,25 +18,25 @@
               300  "slight left"
               340  "straight"))
 
-(def ->coordinates (juxt rp/lon rp/lat))
+(def ->coordinates (juxt np/lon np/lat))
 
 ;; WARNING: we assume that we only traverse outgoing arcs
 ;; and that there is only one arc connecting src & dst
 (defn- link
   "find the link that connects src and dst and returns it"
   [graph src-trace dst-trace]
-  (some #(when (= (key dst-trace) (rp/dst %)) %)
-         (rp/successors (graph (key src-trace)))))
+  (some #(when (= (key dst-trace) (gp/dst %)) %)
+        (gp/successors (graph (key src-trace)))))
 
 
 (defn duration
   "A very simple value computation function for Arcs in a graph.
   Returns the time it takes to go from arc src to dst based on osm/speeds"
   [graph arc _] ;; 1 is a simple value used for test whenever no other value would be suitable
-  (let [src    (graph (rp/src arc))
-        dst    (graph (rp/dst arc))
-        length (math/haversine (rp/lon src) (rp/lat src)
-                               (rp/lon dst) (rp/lat dst))]
+  (let [src    (graph (gp/src arc))
+        dst    (graph (gp/dst arc))
+        length (geometry/haversine (np/lon src) (np/lat src)
+                                   (np/lon dst) (np/lat dst))]
     (/ length osm/walking-speed)))
 
 (defn- linestring
@@ -53,10 +54,10 @@
   "returns a step manuever"
   [{:keys [graph ways]} prev-piece  piece next-piece]
   (let [location     (->coordinates (graph (key (first (first piece)))))
-        pre-bearing  (math/bearing (graph (key (first (first prev-piece))))
-                                   (graph (key (first (first piece)))))
-        post-bearing (math/bearing (graph (key (first (first piece))))
-                                   (graph (key (first (first next-piece)))))
+        pre-bearing  (geometry/bearing (graph (key (first (first prev-piece))))
+                                       (graph (key (first (first piece)))))
+        post-bearing (geometry/bearing (graph (key (first (first piece))))
+                                       (graph (key (first (first next-piece)))))
         angle        (mod (+ 360 (- post-bearing pre-bearing)) 360)
         modifier     (val (last (subseq bearing-turns <= angle)))
         way-name     (:name (ways (second (first piece))))
@@ -75,7 +76,7 @@
   "includes one StepManeuver object and travel to the following RouteStep"
   [{:keys [ways] :as network} prev-piece piece next-piece]
   (let [linestring (linestring network (map (comp key first) (concat piece [(first next-piece)])))]
-    {:distance (math/arc-length (:coordinates linestring))
+    {:distance (geometry/arc-length (:coordinates linestring))
      :duration (- (val (first (first next-piece)))
                   (val (first (first piece))))
      :geometry linestring
@@ -106,12 +107,12 @@
   (if (= (count trail) 1) ;; a single trace is returned for src = dst
     {:distance 0 :duration 0 :steps [] :summary "" :annotation []}
     (let [way-ids     (sequence (comp (map (partial link graph))
-                                      (map rp/way))
+                                      (map np/way))
                                 trail (rest trail))
           ways&traces (map vector trail (concat way-ids [(last way-ids)]))
           pieces      (partition-by #(:name (ways (second %))) ways&traces)]
-      {:distance   (math/arc-length (:coordinates (linestring network (map key trail))))
-       :duration   (rp/cost (val (last trail)))
+      {:distance   (geometry/arc-length (:coordinates (linestring network (map key trail))))
+       :duration   (np/cost (val (last trail)))
        :steps      (route-steps network steps pieces)
        :summary    "" ;; TODO
        :annotation []}))) ;; TODO
@@ -144,18 +145,21 @@
    Example:
    (direction network :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
   [{:keys [graph ways neighbours] :as network} & params]
-  (let [{:keys [coordinates steps radiuses alternatives language]} params
+  (let [{:keys [coordinates steps]} params
         start     (avl/nearest neighbours >= (first coordinates)) ;; nil when lat,lon are both greater than
-        dst       (avl/nearest neighbours >= (last coordinates))] ;; any node in the graph
-    (if (or (nil? start) (nil? dst)) {:code "NoSegment"}
-      (let [traversal (alg/dijkstra (:graph network)
-                                    #(duration graph %1 %2)
-                                    #{(val start)})
-            rtrail     (alg/shortest-path (val dst) traversal)]
-        (if (nil? rtrail) {:code "NoRoute"}
-          {:code "Ok"
-           :routes [(route network steps rtrail)]
-           :waypoints [{:name (str (:name (ways (some rp/way (rp/successors (key start))))))
-                        :location (->coordinates (key start))}
-                       {:name (str (:name (ways (some rp/way (rp/successors (key dst))))))
-                        :location (->coordinates (key dst))}]})))))
+        dst       (avl/nearest neighbours >= (last coordinates)) ;; any node in the network
+       ; both start and dst should be found since we checked that before
+        traversal  (alg/dijkstra (:graph network)
+                                 #(duration graph %1 %2)
+                                 #{(val start)})
+        rtrail     (alg/shortest-path (val dst) traversal)]
+    (if (some? rtrail)
+      {:code "Ok"
+       :routes [(route network steps rtrail)]
+       :waypoints [{:name (str (:name (ways (some np/way (gp/successors (key start))))))
+                    :location (->coordinates (key start))}
+                   {:name (str (:name (ways (some np/way (gp/successors (key dst))))))
+                    :location (->coordinates (key dst))}]}
+      {:code "NoRoute"
+       :message "There was no route found for the given coordinates. Check for
+                       impossible routes (e.g. routes over oceans without ferry connections)."})))

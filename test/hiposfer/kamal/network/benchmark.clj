@@ -1,51 +1,49 @@
-(ns hiposfer.kamal.graph.benchmark
+(ns hiposfer.kamal.network.benchmark
   (:require [criterium.core :as c]
             [clojure.test :as test]
             [clojure.spec.gen.alpha :as gen]
-            [hiposfer.kamal.graph.generators :as g]
-            [hiposfer.kamal.graph.algorithms :as alg]
-            [hiposfer.kamal.osm :as osm]
-            [hiposfer.kamal.directions :as direction]
-            [hiposfer.kamal.libs.math :as math]
+            [hiposfer.kamal.network.generators :as ng]
+            [hiposfer.kamal.network.algorithms.core :as alg]
+            [hiposfer.kamal.parsers.osm :as osm]
+            [hiposfer.kamal.services.routing.directions :as directions]
+            [hiposfer.kamal.libs.geometry :as geometry]
             [clojure.data.avl :as avl]
-            [hiposfer.kamal.graph.core :as graph]
-            [hiposfer.kamal.graph.protocols :as rp])
-  (:import (ch.hsr.geohash GeoHash)))
+            [hiposfer.kamal.network.graph.core :as graph]))
 
-;; This is just to show the difference between a randomly generated graph
-;; and a real-world graph. The randomly generated graph does not have a structure
+;; This is just to show the difference between a randomly generated network
+;; and a real-world network. The randomly generated network does not have a structure
 ;; meant to go from one place to the other, thus Dijkstra almost always fails to
 ;; finds a path (really fast)
 (test/deftest ^:benchmark dijkstra-random-graph
-  (let [graph        (gen/generate (g/graph 1000))
+  (let [graph        (gen/generate (ng/graph 1000))
         src          (key (first graph))
         dst          (key (last graph))]
     (println "\n\nDIJKSTRA forward with:" (count graph) "nodes and"
              (count (graph/edges graph)) "edges")
     (println "**random graph")
     (c/quick-bench
-      (let [coll (alg/dijkstra graph (partial direction/duration graph) #{src})]
+      (let [coll (alg/dijkstra graph (partial directions/duration graph) #{src})]
         (alg/shortest-path dst coll))
       :os :runtime :verbose)))
 
 (def networker (-> (osm/network "resources/osm/saarland.min.osm.bz2")
-                   (osm/neighbourhood)
+                   (osm/complete)
                    (delay)))
 
-;(take 10 (:graph @networker)) ;; force read
-;(take 10 (alg/biggest-component (:graph @networker)))
+;(take 10 (:network @networker)) ;; force read
+;(take 10 (alg/biggest-component (:network @networker)))
 
 (test/deftest ^:benchmark dijkstra-saarland-graph
   (let [graph        (:graph @networker) ;; force read
         Cgraph       (alg/biggest-component (:graph @networker))
-        ;; the src and dst might have been removed from the original graph
+        ;; the src and dst might have been removed from the original network
         src          (key (first Cgraph))
         dst          (key (last Cgraph))]
     (println "\n\nDIJKSTRA forward with:" (count graph) "nodes and"
              (count (graph/edges graph)) "edges")
     (println "saarland graph:")
     (c/quick-bench
-      (let [coll (alg/dijkstra graph (partial direction/duration graph) #{src})]
+      (let [coll (alg/dijkstra graph (partial directions/duration graph) #{src})]
         (alg/shortest-path dst coll))
       :os :runtime :verbose)
     (println "--------")
@@ -53,7 +51,7 @@
     (println "with:" (count Cgraph) "nodes and"
              (count (graph/edges Cgraph)) "edges")
     (c/quick-bench
-      (let [coll (alg/dijkstra Cgraph (partial direction/duration Cgraph) #{src})]
+      (let [coll (alg/dijkstra Cgraph (partial directions/duration Cgraph) #{src})]
         (alg/shortest-path dst coll))
       :os :runtime :verbose)))
 
@@ -68,7 +66,7 @@
            (first (:graph network))
            (:graph network)))
   ([network point]
-   (brute-nearest network point math/euclidean-pow2)))
+   (brute-nearest network point geometry/euclidean-pow2)))
 
 ;; note >= search will approximate any point with lat, lon less than point
 ;; to the minimum point in neighbours. <= does the same but approximates to
@@ -85,11 +83,11 @@
     ;; field per key), rank queries (one int) and the rebalancing algorithm
     ;; itself (the final int).
     ;; + 1 due to integer key duplicated
-    (println "accuraccy: " (math/haversine src (first (avl/nearest neighbours >= src))))
+    (println "accuraccy: " (geometry/haversine src (first (avl/nearest neighbours >= src))))
     (c/quick-bench (avl/nearest neighbours >= src)
                    :os :runtime :verbose)
     (println "--------")
     (println "BRUTE force with:" (count graph) "nodes")
-    (println "accuraccy: " (math/haversine src (second (brute-nearest @networker src))))
+    (println "accuraccy: " (geometry/haversine src (second (brute-nearest @networker src))))
     (c/quick-bench (brute-nearest @networker src)
                    :os :runtime :verbose)))
