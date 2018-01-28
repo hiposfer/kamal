@@ -28,6 +28,7 @@
 
 (def networker (-> (osm/network "resources/osm/saarland.min.osm.bz2")
                    (osm/complete)
+                   (time)
                    (delay)))
 
 ;(take 10 (:network @networker)) ;; force read
