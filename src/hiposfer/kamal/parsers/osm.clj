@@ -80,13 +80,9 @@
   "returns a sequence of node ids that join the intersections
   of this way. The first and last id are included as well."
   [intersections nodes]
-  (let [begin (first nodes)
-        end   (last nodes)]
-    (for [node nodes
-          :when (or (= begin node)
-                    (= end   node)
-                    (contains? intersections node))]
-      node)))
+  (concat [(first nodes)]
+          (sequence (filter #(contains? intersections %)) nodes)
+          [(last nodes)]))
 
 (defn- simplify
   "returns a [way-id [connected-node-ids]], i.e. only the nodes that represent
@@ -94,13 +90,15 @@
 
   Uses the ::nodes of each way and counts which nodes appear more than once"
   [ways]
-  (let [point-count   (frequencies (mapcat ::nodes (vals ways)))
-        intersections (apply dissoc point-count
-                            (sequence (comp (remove (fn [[_ v]] (>= v 2)))
-                                            (map first))
-                                      point-count))]
-    (map (fn [[id attr]] [id (strip-points intersections (::nodes attr))])
-         ways)))
+  (let [point-count   (frequencies (sequence (comp (map val)
+                                                   (mapcat ::nodes))
+                                             ways))
+        intersections (into (imap/int-set) (comp (filter #(>= (second %) 2))
+                                                 (map first))
+                                           point-count)]
+    (for [[id attrs] ways]
+      [id (strip-points intersections (::nodes attrs))])))
+
 
 (defn- entries
   "returns a [id node], {id way} or nil otherwise"
@@ -133,20 +131,22 @@
                                  (:content (xml/parse file-rdr))))
         ;; separate ways from nodes
         ways          (into (imap/int-map) (filter map?) nodes&ways)
-        points&nodes  (into (imap/int-map) (filter vector?) nodes&ways)
+        points&nodes  (sequence (filter vector?) nodes&ways)
         ;; post-processing nodes
         simple-ways   (simplify ways)
-        edges         (mapcat (fn [[way-id nodes]]
-                                (map network/->Edge nodes (rest nodes) (repeat way-id)))
-                              simple-ways)
-        points        (apply dissoc points&nodes (mapcat second simple-ways))
-        nodes         (apply dissoc points&nodes (keys points))
-        nodes         (into nodes (tool/map-vals network/map->NodeInfo)
-                                  nodes)
-        g             (reduce graph/connect nodes edges)]
+        edges         (for [[way-id nodes] simple-ways]
+                        (map network/->Edge nodes (rest nodes) (repeat way-id)))
+        node-ids      (into (imap/int-set) (mapcat second) simple-ways)
+        nodes         (into (imap/int-map) (comp (filter #(contains? node-ids (first %)))
+                                                 (tool/map-vals network/map->NodeInfo))
+                                           points&nodes)
+        ;points       (apply dissoc points&nodes (mapcat second simple-ways))
+        g             (reduce graph/connect nodes (sequence cat edges))]
     {:ways  ways
      :graph g}))
      ;;TODO enable them later to improve precision
+     ;; points are basically nodes (in OSM) that are not necessary for routing but that
+     ;; describe the shape of a way
      ;;:points points
 
 (def walking-speed  2.5);; m/s
