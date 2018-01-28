@@ -80,9 +80,13 @@
   "returns a sequence of node ids that join the intersections
   of this way. The first and last id are included as well."
   [intersections nodes]
-  (concat [(first nodes)]
-          (sequence (filter #(contains? intersections %)) nodes)
-          [(last nodes)]))
+  (let [begin (first nodes)
+        end   (last nodes)]
+    (for [node nodes
+          :when (or (= begin node)
+                    (contains? intersections node)
+                    (= end   node))]
+      node)))
 
 (defn- simplify
   "returns a [way-id [connected-node-ids]], i.e. only the nodes that represent
