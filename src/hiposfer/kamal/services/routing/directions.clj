@@ -140,7 +140,7 @@
 (defn direction
   "given a network and a sequence of keywordized parameters according to
    https://www.mapbox.com/api-documentation/#retrieve-directions
-   returns a response object similar to the one from Mapbox directions API
+   returns a directions object similar to the one from Mapbox directions API
 
    Example:
    (direction network :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
