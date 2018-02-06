@@ -48,8 +48,8 @@
 ;; TODO: dirty hack to avoid separating namespaces
 (s/def :mapbox.directions.request/steps boolean?)
 
-(s/def ::args (s/keys :req-un [:hiposfer.geojson.specs.multipoint/coordinates
-                               ::radiuses
+(s/def ::args (s/keys :req-un [:hiposfer.geojson.specs.multipoint/coordinates]
+                      :opt-un [::radiuses
                                :mapbox.directions.request/steps]))
 
 ;; TODO: pull syntax for filtering data before sending response
