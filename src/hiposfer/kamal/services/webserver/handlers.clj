@@ -22,7 +22,7 @@
 (defn- select
   "returns a network whose bounding box contains all points"
   [networks points]
-  (let [net (first networks)]
+  (when-let [net (first networks)]
     (if (every? #(geometry/contains? (:bbox net) %) points) net
       (recur (rest networks) points))))
 
@@ -44,10 +44,9 @@
       (let [error   (validate (:coordinates arguments) (:radiuses arguments))
             regions (sequence available (:networks router))]
         (if (some? error) error
-          (if-let [network (select regions (:coordinates arguments))]
-            (code/ok (dir/direction network arguments))
-            (if (empty? regions)
-              (code/service-unavailable)
+          (if (empty? regions) (code/service-unavailable)
+            (if-let [network (select regions (:coordinates arguments))]
+              (code/ok (dir/direction network arguments))
               (code/ok {:code "NoSegment"
                         :message "No road segment could be matched for coordinates.
                                      Check for coordinates too far away from a road."}))))))
