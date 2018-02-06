@@ -144,7 +144,7 @@
 
    Example:
    (direction network :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
-  [{:keys [graph ways neighbours] :as network} & params]
+  [{:keys [graph ways neighbours] :as network} params]
   (let [{:keys [coordinates steps]} params
         start     (avl/nearest neighbours >= (first coordinates)) ;; nil when lat,lon are both greater than
         dst       (avl/nearest neighbours >= (last coordinates)) ;; any node in the network
