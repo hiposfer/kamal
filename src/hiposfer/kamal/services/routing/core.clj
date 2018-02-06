@@ -19,13 +19,13 @@
 (defrecord Router [config networks]
   component/Lifecycle
   (start [this]
-    (if (:networks this) this
+    (if (not-empty (:networks this)) this
       (do (println "-- starting Router with" (:networks config))
           (newline)
-          (assoc this :networks (start! config)))))
+          (assoc this :networks (doall (start! config))))))
   (stop [this]
     (println "-- stopping Router")
-    (->Router (:config this) nil)))
+    (assoc this :networks nil)))
 
 (defn service
   "returns a Router record that will contain the config
