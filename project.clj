@@ -19,10 +19,10 @@
                  [org.clojure/data.csv "0.1.4"]
                  [ch.hsr/geohash "1.3.0"]]
   :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
-                                  [expound "0.1.1"]
+                                  [expound "0.4.0"]
                                   [io.aviso/pretty "0.1.34"]
                                   [org.clojure/tools.namespace "0.2.11"]]
-                   :plugins [[jonase/eastwood "0.2.3"]
+                   :plugins [[jonase/eastwood "0.2.5"]
                              [io.aviso/pretty "0.1.34"]]}
              :uberjar {:aot [hiposfer.kamal.core] ;; compile the entry point and all of its dependencies}
                        :main hiposfer.kamal.core
