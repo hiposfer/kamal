@@ -17,7 +17,7 @@
        :message "The same amount of radiuses and coordinates must be provided"})))
 
 (def available "xform - returns the networks that are available for computation"
-  (comp (map val) (map deref) (remove nil?)))
+  (comp (map deref) (remove nil?)))
 
 (defn- select
   "returns a network whose bounding box contains all points"
@@ -52,3 +52,7 @@
                                      Check for coordinates too far away from a road."}))))))
     (sweet/undocumented ;; returns a 404 when nothing matched
       (route/not-found (code/not-found "we couldnt find what you were looking for")))))
+
+
+;{"arguments":
+; {"coordinates": [[6.905707,49.398459],[6.705707,49.58459]]}}
