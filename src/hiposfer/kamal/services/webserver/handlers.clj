@@ -4,7 +4,6 @@
             [compojure.route :as route]
             [hiposfer.kamal.specs.mapbox.directions :as mapbox]
             [hiposfer.kamal.services.routing.directions :as dir]
-            [clojure.string :as str]
             [hiposfer.kamal.libs.geometry :as geometry]))
 
 (defn- validate
