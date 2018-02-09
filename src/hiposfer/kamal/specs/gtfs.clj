@@ -38,8 +38,7 @@
 (s/def ::trip_id some?)
 (s/def ::arrival_time (s/and string? time?))
 (s/def ::departure_time (s/and string? time?))
-(s/def ::stop_sequence (s/and (s/coll-of (s/and int? pos?))
-                              #(apply < %)))
+(s/def ::stop_sequence some?)
 (s/def ::stop_time (s/keys :req-un [::trip_id ::arrival_time ::departure_time
                                     ::stop_id ::stop_sequence]))
 
@@ -47,16 +46,17 @@
 ;; AAAAMMDD
 (defn date? [text] (re-matches #"\d{8}" text))
 
-(s/def ::monday boolean?)
-(s/def ::tuesday boolean?)
-(s/def ::wednesday boolean?)
-(s/def ::thursday boolean?)
-(s/def ::friday boolean?)
-(s/def ::saturday boolean?)
-(s/def ::sunday boolean?)
+(s/def ::day #{"0" "1"})
+(s/def ::monday ::day)
+(s/def ::tuesday ::day)
+(s/def ::wednesday ::day)
+(s/def ::thursday ::day)
+(s/def ::friday ::day)
+(s/def ::saturday ::day)
+(s/def ::sunday ::day)
 (s/def ::start_date (s/and string? date?))
-(s/def ::stop_date (s/and string? date?))
+(s/def ::end_date (s/and string? date?))
 (s/def ::calendar (s/keys :req-un [::service_id ::monday ::tuesday
                                    ::wednesday ::thursday ::friday
                                    ::saturday ::sunday ::start_date
-                                   ::stop_date]))
+                                   ::end_date]))

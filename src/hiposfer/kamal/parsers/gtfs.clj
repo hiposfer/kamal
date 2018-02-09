@@ -28,12 +28,36 @@
 (s/def ::trip_id spec/integer?)
 (s/def ::trip (s/keys :req-un [::gtfs/route_id ::gtfs/service_id ::trip_id]))
 
+;; stop_times
+;; HH:MM:SS
+(defn time? [text] (re-matches #"\d{2}:\d{2}:\d{2}" text))
+
+(s/def ::trip_id spec/integer?)
+(s/def ::stop_sequence spec/integer?)
+(s/def ::stop_time (s/keys :req-un [::trip_id ::gtfs/arrival_time ::gtfs/departure_time
+                                    ::stop_id ::stop_sequence]))
+
+;; calendar
+;; little hack to transform string integer into booleans
+(s/def ::day  (s/and spec/integer? (s/conformer pos?)))
+(s/def ::monday    ::day)
+(s/def ::tuesday   ::day)
+(s/def ::wednesday ::day)
+(s/def ::thursday  ::day)
+(s/def ::friday    ::day)
+(s/def ::saturday  ::day)
+(s/def ::sunday    ::day)
+(s/def ::calendar (s/keys :req-un [::gtfs/service_id ::monday ::tuesday
+                                   ::wednesday ::thursday ::friday
+                                   ::saturday ::sunday ::gtfs/start_date
+                                   ::gtfs/end_date]))
+
 (def types ;; not all filename correspond to a type so we map them here
   {"agency.txt"   ::agency
-   "calendar.txt" ::gtfs/calendar
+   "calendar.txt" ::calendar
    "routes.txt"   ::route
    ;;"shapes.txt" ::gtfs/shapes ;;TODO
-   "stop_times.txt" ::gtfs/stop_time
+   "stop_times.txt" ::stop_time
    "stops.txt"    ::stop
    "trips.txt"    ::trip})
 
@@ -62,4 +86,11 @@
 ;(parse "resources/gtfs/trips.txt")
 ;(parsedir "resources/gtfs/")
 
+(defn fuse
+  [network gtfs]
+  (let [stops (:stops gtfs)]
+    stops))
+
+(fuse @(first (:networks (:router hiposfer.kamal.dev/system)))
+       (parsedir "resources/gtfs/"))
 ;(take 3 (:graph @(first (:networks (:router hiposfer.kamal.dev/system)))))
