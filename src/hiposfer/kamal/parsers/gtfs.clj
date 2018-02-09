@@ -28,7 +28,7 @@
 
 ;; trips
 (s/def ::trip_id spec/integer?)
-(s/def ::trip (s/keys :req-un [::gtfs/route_id ::gtfs/service_id ::trip_id]))
+(s/def ::trip (s/keys :req-un [::route_id ::gtfs/service_id ::trip_id]))
 
 ;; stop_times
 ;; HH:MM:SS
@@ -103,4 +103,32 @@
         nodes (map node-entry stops)]
     (assoc network :graph (into (:graph network) nodes))))
 
+;(fuse @(first (:networks (:router hiposfer.kamal.dev/system)))
+;       (parsedir "resources/gtfs/"))))
+
+;(take 5 (:stops (parsedir "resources/gtfs/")))
 ;(take 3 (:graph @(first (:networks (:router hiposfer.kamal.dev/system)))))
+
+;; detailed diagram of files relations
+;; http://tommaps.com/wp-content/uploads/2016/09/gtfs-feed-diagram.png
+
+;; NOTES
+;; - A route is a group of trips that are displayed to riders as a single service.
+;; - A trip is a sequence of two or more stops that occurs at specific tim
+;; - a Stop_times entry is a time entry that a vehicle arrives at and departs
+;;   from individual stops for each trip
+;; - a Stop is an Individual locations where vehicles pick up or drop off passengers
+
+;; Base on the previous information the fusion of network and gtfs can be done as
+;; follows:
+;; - map the stop ID to node ID
+;; - create a :gtfs/routes entry in the network to contain the metadata
+;; - for each consecutive stops_id in a trip
+;;   - create a time dependent arc (this represents the trip between two stops)
+;;   - gather all trips departing from the src node
+;;     - create a function that given a time will return the time until the
+;;       next stop, the route id and the trip id
+;; - for each stop_sequence 0 on a trip
+;;   - create a time dependent arc (This is a fake/transition arc)
+;;   - create a function that given a time will compute the time to wait
+;;     until the next vehicle
