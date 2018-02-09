@@ -5,7 +5,9 @@
             [spec-tools.spec :as spec]
             [spec-tools.core :as st]
             [clojure.string :as str]
-            [hiposfer.kamal.specs.gtfs :as gtfs]))
+            [hiposfer.kamal.specs.gtfs :as gtfs]
+            [hiposfer.kamal.network.core :as network]
+            [hiposfer.kamal.network.graph.core :as graph]))
 
 ;; agencies
 (s/def ::agency_id spec/integer?)
@@ -86,11 +88,19 @@
 ;(parse "resources/gtfs/trips.txt")
 ;(parsedir "resources/gtfs/")
 
-(defn fuse
-  [network gtfs]
-  (let [stops (:stops gtfs)]
-    stops))
+(defn- node-entry
+  "convert a gtfs stop into a node"
+  [stop]
+  [(:stop_id stop)
+   (network/map->NodeInfo {:lon (:stop_lon stop) :lat (:stop_lat stop)
+                           :outgoing nil :incoming nil
+                           :name (:stop_name stop)})])
 
-;(fuse @(first (:networks (:router hiposfer.kamal.dev/system)))
-;       (parsedir "resources/gtfs/")))
+(defn fuse
+  "fuses the content of the gtfs data with the network"
+  [network gtfs]
+  (let [stops (:stops gtfs)
+        nodes (map node-entry stops)]
+    (assoc network :graph (into (:graph network) nodes))))
+
 ;(take 3 (:graph @(first (:networks (:router hiposfer.kamal.dev/system)))))
