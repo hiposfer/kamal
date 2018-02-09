@@ -50,4 +50,4 @@
 ;(set! *print-length* 50)
 ;(take 10 (:network @(:network (:grid system))))
 
-;(:networks (:router system))
+;(type (:networks (:router system)))
