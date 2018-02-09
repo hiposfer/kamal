@@ -53,11 +53,11 @@
 (defn- maneuver
   "returns a step manuever"
   [{:keys [graph ways]} prev-piece  piece next-piece]
-  (let [location     (->coordinates (graph (key (first (first piece)))))
-        pre-bearing  (geometry/bearing (graph (key (first (first prev-piece))))
-                                       (graph (key (first (first piece)))))
-        post-bearing (geometry/bearing (graph (key (first (first piece))))
-                                       (graph (key (first (first next-piece)))))
+  (let [location     (->coordinates (graph (key (ffirst piece))))
+        pre-bearing  (geometry/bearing (graph (key (ffirst prev-piece)))
+                                       (graph (key (ffirst piece))))
+        post-bearing (geometry/bearing (graph (key (ffirst piece)))
+                                       (graph (key (ffirst next-piece))))
         angle        (mod (+ 360 (- post-bearing pre-bearing)) 360)
         modifier     (val (last (subseq bearing-turns <= angle)))
         way-name     (:name (ways (second (first piece))))
@@ -75,10 +75,11 @@
 (defn- step ;; piece => [[trace way] ...]
   "includes one StepManeuver object and travel to the following RouteStep"
   [{:keys [ways] :as network} prev-piece piece next-piece]
-  (let [linestring (linestring network (map (comp key first) (concat piece [(first next-piece)])))]
+  (let [linestring (linestring network (map (comp key first)
+                                            (concat piece [(first next-piece)])))]
     {:distance (geometry/arc-length (:coordinates linestring))
-     :duration (- (val (first (first next-piece)))
-                  (val (first (first piece))))
+     :duration (- (val (ffirst next-piece))
+                  (val (ffirst piece)))
      :geometry linestring
      :name     (str (:name (ways (second (first piece)))))
      :mode     "walking" ;;TODO this should not be hardcoded
