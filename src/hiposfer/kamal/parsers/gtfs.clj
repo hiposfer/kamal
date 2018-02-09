@@ -91,6 +91,6 @@
   (let [stops (:stops gtfs)]
     stops))
 
-(fuse @(first (:networks (:router hiposfer.kamal.dev/system)))
-       (parsedir "resources/gtfs/"))
+;(fuse @(first (:networks (:router hiposfer.kamal.dev/system)))
+;       (parsedir "resources/gtfs/")))
 ;(take 3 (:graph @(first (:networks (:router hiposfer.kamal.dev/system)))))
