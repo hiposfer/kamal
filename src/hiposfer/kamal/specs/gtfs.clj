@@ -40,8 +40,8 @@
 (s/def ::departure_time (s/and string? time?))
 (s/def ::stop_sequence (s/and (s/coll-of (s/and int? pos?))
                               #(apply < %)))
-(s/def ::stop (s/keys :req-un [::trip_id ::arrival_time ::departure_time
-                               ::stop_id ::stop_sequence]))
+(s/def ::stop_time (s/keys :req-un [::trip_id ::arrival_time ::departure_time
+                                    ::stop_id ::stop_sequence]))
 
 ;; calendar
 ;; AAAAMMDD
