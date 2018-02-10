@@ -3,8 +3,7 @@
             [spec-tools.spec :as spec]
             [hiposfer.geojson.specs :as geojson]))
 
-(def coordinate-regex #"(-?\d+(\.\d+)?),(-?\d+(\.\d+)?)(;(-?\d+(\.\d+)?),(-?\d+(\.\d+)?))+")
-(def rads-regex #"((\d+(\.\d+)?)|unlimited)(;((\d+(\.\d+)?)|unlimited))*")
+;;;;;;;;;;;;;;;;;;;;;;;;;; RESPONSE
 
 (defn natural? "positive or zero number" [number] (or (pos? number) (zero? number)))
 
@@ -40,9 +39,17 @@
 (s/def ::route       (s/keys :req-un [::geometry ::duration    ::distance
                                       ::weight   ::weight_name ::legs]))
 (s/def ::routes      (s/coll-of ::route :kind sequential?))
-(s/def ::direction   (s/keys :req-un [::code] :opt-un [::waypoints ::routes]))
+(s/def ::response   (s/keys :req-un [::code] :opt-un [::waypoints ::routes]))
 
-(s/def ::raw-coordinates (s/and string? #(re-matches coordinate-regex %)))
+;;;;;;;;;;;;;;;;;;;;; REQUEST
 
 (s/def ::radiuses (s/coll-of #(or (= "unlimited" %) (pos? %))))
-(s/def ::raw-radiuses (s/and string? #(re-matches rads-regex %)))
+(s/def ::language string?)
+;; TODO: dirty hack to avoid separating namespaces
+(s/def :mapbox.directions.request/steps boolean?)
+
+(s/def ::args (s/keys :req-un [:hiposfer.geojson.specs.multipoint/coordinates]
+                      :opt-un [::radiuses
+                               :mapbox.directions.request/steps]))
+
+;; TODO: pull syntax for filtering data before sending response

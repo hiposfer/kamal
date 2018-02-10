@@ -53,11 +53,11 @@
 (defn- maneuver
   "returns a step manuever"
   [{:keys [graph ways]} prev-piece  piece next-piece]
-  (let [location     (->coordinates (graph (key (first (first piece)))))
-        pre-bearing  (geometry/bearing (graph (key (first (first prev-piece))))
-                                       (graph (key (first (first piece)))))
-        post-bearing (geometry/bearing (graph (key (first (first piece))))
-                                       (graph (key (first (first next-piece)))))
+  (let [location     (->coordinates (graph (key (ffirst piece))))
+        pre-bearing  (geometry/bearing (graph (key (ffirst prev-piece)))
+                                       (graph (key (ffirst piece))))
+        post-bearing (geometry/bearing (graph (key (ffirst piece)))
+                                       (graph (key (ffirst next-piece))))
         angle        (mod (+ 360 (- post-bearing pre-bearing)) 360)
         modifier     (val (last (subseq bearing-turns <= angle)))
         way-name     (:name (ways (second (first piece))))
@@ -75,10 +75,11 @@
 (defn- step ;; piece => [[trace way] ...]
   "includes one StepManeuver object and travel to the following RouteStep"
   [{:keys [ways] :as network} prev-piece piece next-piece]
-  (let [linestring (linestring network (map (comp key first) (concat piece [(first next-piece)])))]
+  (let [linestring (linestring network (map (comp key first)
+                                            (concat piece [(first next-piece)])))]
     {:distance (geometry/arc-length (:coordinates linestring))
-     :duration (- (val (first (first next-piece)))
-                  (val (first (first piece))))
+     :duration (- (val (ffirst next-piece))
+                  (val (ffirst piece)))
      :geometry linestring
      :name     (str (:name (ways (second (first piece)))))
      :mode     "walking" ;;TODO this should not be hardcoded
@@ -140,11 +141,11 @@
 (defn direction
   "given a network and a sequence of keywordized parameters according to
    https://www.mapbox.com/api-documentation/#retrieve-directions
-   returns a response object similar to the one from Mapbox directions API
+   returns a directions object similar to the one from Mapbox directions API
 
    Example:
    (direction network :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
-  [{:keys [graph ways neighbours] :as network} & params]
+  [{:keys [graph ways neighbours] :as network} params]
   (let [{:keys [coordinates steps]} params
         start     (avl/nearest neighbours >= (first coordinates)) ;; nil when lat,lon are both greater than
         dst       (avl/nearest neighbours >= (last coordinates)) ;; any node in the network
