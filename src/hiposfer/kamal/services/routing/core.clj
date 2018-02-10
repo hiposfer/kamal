@@ -10,24 +10,22 @@
 
 (defn start!
   [config]
-  (let [result (zipmap (keys (:networks config))
-                       (map agent (repeat (count (:networks config)) nil)))
-        exec   (if (:dev config) #(time (fake-network (:size %2)))
-                                 #(time (network (:osm %2))))]
-    (run! (fn [[k cf]] (send-off (k result) exec cf))
-          (:networks config))
-    result))
+  (let [exec   (if (:dev config)
+                 #(time (fake-network (:size %2)))
+                 #(time (network (:osm %2))))]
+    (for [region (:networks config)]
+      (send-off (agent nil) exec region))))
 
 (defrecord Router [config networks]
   component/Lifecycle
   (start [this]
-    (if (:networks this) this
-      (do (println "-- starting Router with" (keys (:networks config)))
+    (if (not-empty (:networks this)) this
+      (do (println "-- starting Router with" (:networks config))
           (newline)
-          (assoc this :networks (start! config)))))
+          (assoc this :networks (doall (start! config))))))
   (stop [this]
     (println "-- stopping Router")
-    (->Router (:config this) nil)))
+    (assoc this :networks nil)))
 
 (defn service
   "returns a Router record that will contain the config
