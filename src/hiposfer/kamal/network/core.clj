@@ -1,4 +1,6 @@
 (ns hiposfer.kamal.network.core
+  "An implementation of the Graph protocols oriented towards
+  Road Networks. See Graph namespace for more information"
   (:require [hiposfer.kamal.network.graph.protocols :as gp]
             [hiposfer.kamal.network.algorithms.protocols :as np]
             [hiposfer.kamal.network.graph.core :as graph])
@@ -8,6 +10,9 @@
 ; network is an {id node}
 ; NodeInfo is a {:lon :lat :links {node-id arc}}
 ; Arc is a {:src :dst :way-id}
+
+;; A bidirectional Arc. The bidirectionality is represented
+;; through a mirror Arc, which is created as requested at runtime
 (defrecord Edge [^long src ^long dst ^long way]
   gp/Link
   (src [_] src)
@@ -21,7 +26,7 @@
       (map->Edge {:src dst :dst src :way way :mirror? true})))
   (mirror? [this] (:mirror? this)))
 
-
+;; A directed arc with an associated way; as per Open Street Maps
 (defrecord Arc [^long src ^long dst ^long way]
   gp/Link
   (src [_] src)
@@ -29,7 +34,9 @@
   np/Passage
   (way [_] way))
 
-;; This implementation of NodeInfo only accepts one Link per src/dst node
+;; A node of a graph with a corresponding position using the World Geodesic
+;; System. This implementation only accepts one Link per src/dst node.
+;; Edges are stored alongside Arcs according to their src/dst value
 (defrecord NodeInfo [^double lon ^double lat outgoing incoming]
   gp/Context
   (predecessors [this] (concat (sequence (comp (filter graph/edge?)
@@ -55,20 +62,22 @@
         (update :incoming dissoc (gp/src arc-or-edge)))))
 
 ;; a Point is a simple longitude, latitude pair used to
-;; represent the geometry of a way
+;; represent the geometry of a way in Open Street Maps
 (defrecord Point [^double lon ^double lat]
   np/GeoCoordinate
   (lat [_] lat)
   (lon [_] lon))
 
-;; useful for geojson coordinates manipulation
+;; A vector of two numbers can be interpreted as a Point
+;; according to the GeoJson standard
 (extend-type IPersistentVector
   np/GeoCoordinate
   (lat [this] (second this))
   (lon [this] (first this)))
 
-;; this is specially useful for generative testing: there we use generated
-;; nodes and arcs
+;; A map can be used to represent Nodes of a graph, such that it avoids
+;; using specialized implementations. This is specially useful for
+;; generative testing: there we use generated nodes and arcs
 (extend-type APersistentMap
   gp/Context
   (predecessors [this] (concat (sequence (comp (filter graph/edge?)
@@ -98,7 +107,8 @@
   np/Passage
   (way [this] (:way this)))
 
-;; the simplest way to represent the Cost in a network traversal
+;; A Number is the simplest way to represent the cost of traversing an Arc
+;; in a Graph. Useful for Dijkstra and similar algorithms
 (extend-type Number
   np/Valuable
   (cost [this] this)
