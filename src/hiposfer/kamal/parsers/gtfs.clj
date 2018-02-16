@@ -7,7 +7,9 @@
             [clojure.string :as str]
             [hiposfer.kamal.specs.gtfs :as gtfs]
             [hiposfer.kamal.network.core :as network]
-            [hiposfer.kamal.network.graph.core :as graph]))
+            [java-time :as jt]))
+
+;(System/getProperty "java.version")
 
 ;; agencies
 (s/def ::agency_id spec/integer?)
@@ -36,7 +38,9 @@
 
 (s/def ::trip_id spec/integer?)
 (s/def ::stop_sequence spec/integer?)
-(s/def ::stop_time (s/keys :req-un [::trip_id ::gtfs/arrival_time ::gtfs/departure_time
+(s/def ::arrival_time (s/conformer jt/local-time))
+(s/def ::departure_time (s/conformer jt/local-time))
+(s/def ::stop_time (s/keys :req-un [::trip_id ::arrival_time ::departure_time
                                     ::stop_id ::stop_sequence]))
 
 ;; calendar
@@ -86,7 +90,9 @@
                             (parse (str dirname name))]))
            (keys types)))
 ;(parse "resources/gtfs/trips.txt")
-;(keys (parsedir "resources/gtfs/"))
+;(def foo (parsedir "resources/gtfs/"))
+;(take 10 (:stop_times foo))
+;(take 5 (:trips foo))
 
 (defn- node-entry
   "convert a gtfs stop into a node"
@@ -117,7 +123,7 @@
 
 ;; NOTES
 ;; - A route is a group of trips that are displayed to riders as a single service.
-;; - A trip is a sequence of two or more stops that occurs at specific tim
+;; - A trip is a sequence of two or more stops that occurs at specific time
 ;; - a Stop_times entry is a time entry that a vehicle arrives at and departs
 ;;   from individual stops for each trip
 ;; - a Stop is an Individual locations where vehicles pick up or drop off passengers
@@ -135,3 +141,5 @@
 ;;   - create a time dependent arc (This is a fake/transition arc)
 ;;   - create a function that given a time will compute the time to wait
 ;;     until the next vehicle
+
+;(jt/local-time "05:00:00")
