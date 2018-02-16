@@ -83,9 +83,10 @@
    [entity-keyword content] for the supported types"
   [dirname]
   (into {} (map (fn [name] [(keyword (first (str/split name #"\.")))
-                            (parse (str dirname name))]))))
+                            (parse (str dirname name))]))
+           (keys types)))
 ;(parse "resources/gtfs/trips.txt")
-;(parsedir "resources/gtfs/")
+;(keys (parsedir "resources/gtfs/"))
 
 (defn- node-entry
   "convert a gtfs stop into a node"
@@ -109,6 +110,10 @@
 
 ;; detailed diagram of files relations
 ;; http://tommaps.com/wp-content/uploads/2016/09/gtfs-feed-diagram.png
+
+;; Route Planning in Transportation Networks
+;; Overview of the different algorithms and models used
+;; https://arxiv.org/pdf/1504.05140.pdf
 
 ;; NOTES
 ;; - A route is a group of trips that are displayed to riders as a single service.
