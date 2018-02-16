@@ -64,7 +64,9 @@
    "trips.txt"    ::trip})
 
 (defn parse
-  "takes a filename and parses its content if supported by this parser"
+  "takes a filename and parses its content if supported by this parser.
+   Entries that do not conform to the gtfs spec are removed. Returns
+   a vector of conformed entries"
   [filename]
   (with-open [file (io/reader filename)]
     (let [type    (get types (last (str/split filename #"/")))
@@ -80,11 +82,8 @@
   "takes a directory name ending in / and returns a map of
    [entity-keyword content] for the supported types"
   [dirname]
-  (into {}
-    (for [name (keys types)
-          :let [keyname (keyword (first (str/split name #"\.")))]]
-      [keyname (parse (str dirname name))])))
-
+  (into {} (map (fn [name] [(keyword (first (str/split name #"\.")))
+                            (parse (str dirname name))]))))
 ;(parse "resources/gtfs/trips.txt")
 ;(parsedir "resources/gtfs/")
 
@@ -93,7 +92,6 @@
   [stop]
   [(:stop_id stop)
    (network/map->NodeInfo {:lon (:stop_lon stop) :lat (:stop_lat stop)
-                           :outgoing nil :incoming nil
                            :name (:stop_name stop)})])
 
 (defn fuse
