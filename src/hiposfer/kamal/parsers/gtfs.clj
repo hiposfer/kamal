@@ -7,9 +7,16 @@
             [clojure.string :as str]
             [hiposfer.kamal.specs.gtfs :as gtfs]
             [hiposfer.kamal.network.core :as network]
-            [java-time :as jt]))
+            [java-time :as jt])
+  (:import (java.time DayOfWeek)))
 
-;(System/getProperty "java.version")
+;; NOTE: In general I like the API of clj-time more
+;; However after trying both of them for parsing the date/time
+;; in the GTFS files, the clj-time parsing was 10 times slower
+;; than the one in java-time. Since the server needs to provide
+;; very fast time-dependent routing I will stick with java-time :)
+
+;(System/getProperty "java.version") > 8
 
 ;; agencies
 (s/def ::agency_id spec/integer?)
@@ -44,6 +51,33 @@
                                     ::stop_id ::stop_sequence]))
 
 ;; calendar
+;; represents a service instance using Java 8 Time
+(defrecord Service [period days])
+
+(defn- local-date [text] (jt/local-date "yyyyMMDD" text))
+
+(def days {:monday    DayOfWeek/MONDAY
+           :tuesday   DayOfWeek/TUESDAY
+           :wednesday DayOfWeek/WEDNESDAY
+           :thursday  DayOfWeek/THURSDAY
+           :friday    DayOfWeek/FRIDAY
+           :saturday  DayOfWeek/SATURDAY
+           :sunday    DayOfWeek/SUNDAY})
+
+(defn service
+  "transforms a calendar entry into a [id Service], where
+  Service contains the period and set of days that applies.
+  Preferable representation to speed up comparisons"
+  [calendar]
+  [(:service_id calendar)
+   (->Service (jt/period (:start_date calendar) (:end_date calendar))
+              (reduce-kv (fn [r k v] (if (true? v) (conj r (k days)) r))
+                         #{}
+                         (select-keys calendar (keys days))))])
+
+;(contains? (:days (second (service (second (:calendar foo)))))
+;           (jt/day-of-week (jt/local-date)))])
+
 ;; little hack to transform string integer into booleans
 (s/def ::day  (s/and spec/integer? (s/conformer pos?)))
 (s/def ::monday    ::day)
@@ -53,12 +87,15 @@
 (s/def ::friday    ::day)
 (s/def ::saturday  ::day)
 (s/def ::sunday    ::day)
+(s/def ::start_date (s/conformer local-date))
+(s/def ::end_date (s/conformer local-date))
 (s/def ::calendar (s/keys :req-un [::gtfs/service_id ::monday ::tuesday
                                    ::wednesday ::thursday ::friday
-                                   ::saturday ::sunday ::gtfs/start_date
-                                   ::gtfs/end_date]))
+                                   ::saturday ::sunday ::start_date
+                                   ::end_date]))
 
-(def types ;; not all filename correspond to a type so we map them here
+;; not all filename correspond to a type so we map them here
+(def conformers
   {"agency.txt"   ::agency
    "calendar.txt" ::calendar
    "routes.txt"   ::route
@@ -73,7 +110,7 @@
    a vector of conformed entries"
   [filename]
   (with-open [file (io/reader filename)]
-    (let [type    (get types (last (str/split filename #"/")))
+    (let [type    (get conformers (last (str/split filename #"/")))
           raw     (csv/read-csv file)
           head    (map keyword (first raw))
           content (map zipmap (repeat head) (rest raw))]
@@ -88,11 +125,12 @@
   [dirname]
   (into {} (map (fn [name] [(keyword (first (str/split name #"\.")))
                             (parse (str dirname name))]))
-           (keys types)))
+        (keys conformers)))
+
 ;(parse "resources/gtfs/trips.txt")
-;(def foo (parsedir "resources/gtfs/"))
-;(take 10 (:stop_times foo))
-;(take 5 (:trips foo))
+;(def foo (time (parsedir "resources/gtfs/")))
+;(take 2 (group-by :trip_id (:stop_times foo)))
+;(take 5 (group-by :route_id (:trips foo)))
 
 (defn- node-entry
   "convert a gtfs stop into a node"
@@ -104,8 +142,9 @@
 (defn fuse
   "fuses the content of the gtfs data with the network"
   [network gtfs]
-  (let [stops (:stops gtfs)
-        nodes (map node-entry stops)]
+  (let [stops    (:stops gtfs)
+        nodes    (map node-entry stops)
+        calendar (into {} (map service) (:calendar gtfs))]
     (assoc network :graph (into (:graph network) nodes))))
 
 ;(fuse @(first (:networks (:router hiposfer.kamal.dev/system)))
@@ -141,5 +180,3 @@
 ;;   - create a time dependent arc (This is a fake/transition arc)
 ;;   - create a function that given a time will compute the time to wait
 ;;     until the next vehicle
-
-;(jt/local-time "05:00:00")
