@@ -17,7 +17,8 @@
                  [org.clojure/data.avl "0.0.17"]
                  [org.teneighty/java-heaps "1.0.0"]
                  [org.clojure/data.csv "0.1.4"]
-                 [ch.hsr/geohash "1.3.0"]]
+                 [ch.hsr/geohash "1.3.0"]
+                 [clojure.java-time "0.3.1"]]
   :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
                                   [expound "0.4.0"]
                                   [io.aviso/pretty "0.1.34"]
