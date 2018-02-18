@@ -18,6 +18,38 @@
 
 ;(System/getProperty "java.version") > 8
 
+;; FOOD FOR THOUGHT
+;;  After some experimentation with the Clojure Java Time I have come
+;; to actually hate having a wrapper around the Java Api. It seems to me
+;; that the Java API has a great design and that wrapping it in functions
+;; just for the sake of it is a mistake !
+;; I think that a proper wrapper of such a library such use Clojure's
+;; protocols and avoid re-designing the date/time library, while leveraging
+;; Clojure Polymorphism and dynamic typing
+;; A way to achieve that might be
+;; (date {:month 12 :day 3 :offset 3}) => ZonedDate
+;; (:day (date {:year 1970 :month 12 :offset {:hours 3})) => 1 ;; default
+;; (cons instant interval) => interval
+;; (cons instant instant) => interval
+;; (conj local-date local-time) => duration
+;; (reverse interval) => swap start-end
+;; (reverse duration) => length negated
+;; (native {:hour 3 :second 2}) => local-time
+;; (:year (native {:hour 3 :second 2}) => nil => dont throw
+;; -
+;; As you can see from the previous examples, it is possible to represent most of
+;; the concepts of Java Time with Clojure data structures. That however requires a
+;; careful interconnection between Clojure's protocol and Java's API. I believe
+;; such interconnection is not only possible but IDEAL.
+;; If that were to be defined it would only look as a couple of functions
+;; - native => create a native Java Time instance based on Clojure Map/Record
+;; - cons => add instant/duration to the beginning
+;; - conj => adds instant/duration to the end
+;; - reverse => reverse the interval/duration
+;; - lookUp => returns the requested key of a native Java Time (keyword lookup)
+;; - minus, plus, multiply, divide => polymorphic methods to add dates and times
+
+
 ;; agencies
 (s/def ::agency_id spec/integer?)
 (s/def ::agency_timezone (s/and ::gtfs/agency_timezone
@@ -168,7 +200,7 @@
 
 ;; Route Planning in Transportation Networks
 ;; Overview of the different algorithms and models used
-;; https://arxiv.org/pdf/1504.05140.pdf
+;; - https://arxiv.org/pdf/1504.05140.pdf
 
 ;; NOTES
 ;; - A route is a group of trips that are displayed to riders as a single service.
@@ -181,12 +213,14 @@
 ;; follows:
 ;; - map the stop ID to node ID
 ;; - create a :gtfs/routes entry in the network to contain the metadata
+;; - group the stop_times by trip_id
 ;; - for each consecutive stops_id in a trip
-;;   - create a time dependent arc (this represents the trip between two stops)
-;;   - gather all trips departing from the src node
-;;     - create a function that given a time will return the time until the
-;;       next stop, the route id and the trip id
-;; - for each stop_sequence 0 on a trip
-;;   - create a time dependent arc (This is a fake/transition arc)
-;;   - create a function that given a time will compute the time to wait
-;;     until the next vehicle
+;;   - create a [src dst] tuple
+;;   - group them by src node
+;;     - group those by route_id
+;;     - combine/reduce the tuple into a single connection
+;;       - this will behave as a time-dependent arc
+;;       - it will contain a sorted set with the :src/arrival_time as key
+;;       - while traversing a simple (avl/nearest > ...) should be enough
+;;         to get the corresponding connection
+;;       - neither the stop_id nor the stop_sequence are needed inside the connection
