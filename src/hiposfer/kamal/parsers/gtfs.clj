@@ -20,7 +20,9 @@
 
 ;; agencies
 (s/def ::agency_id spec/integer?)
-(s/def ::agency (s/keys :req-un [::gtfs/agency_name ::gtfs/agency_timezone]
+(s/def ::agency_timezone (s/and ::gtfs/agency_timezone
+                                (s/conformer jt/zone-id)))
+(s/def ::agency (s/keys :req-un [::gtfs/agency_name ::agency_timezone]
                         :opt-un [::agency_id]))
 
 ;; routes
@@ -45,16 +47,36 @@
 
 (s/def ::trip_id spec/integer?)
 (s/def ::stop_sequence spec/integer?)
-(s/def ::arrival_time (s/conformer jt/local-time))
-(s/def ::departure_time (s/conformer jt/local-time))
+(s/def ::arrival_time (s/and ::gtfs/arrival_time
+                             (s/conformer jt/local-time)))
+(s/def ::departure_time (s/and ::gtfs/departure_time
+                               (s/conformer jt/local-time)))
 (s/def ::stop_time (s/keys :req-un [::trip_id ::arrival_time ::departure_time
                                     ::stop_id ::stop_sequence]))
 
 ;; calendar
-;; represents a service instance using Java 8 Time
-(defrecord Service [period days])
 
 (defn- local-date [text] (jt/local-date "yyyyMMDD" text))
+;; little hack to transform string integer into booleans
+(s/def ::day  (s/and spec/integer? (s/conformer pos?)))
+(s/def ::monday    ::day)
+(s/def ::tuesday   ::day)
+(s/def ::wednesday ::day)
+(s/def ::thursday  ::day)
+(s/def ::friday    ::day)
+(s/def ::saturday  ::day)
+(s/def ::sunday    ::day)
+(s/def ::start_date (s/and ::gtfs/start_date
+                           (s/conformer local-date)))
+(s/def ::end_date (s/and ::gtfs/end_date
+                         (s/conformer local-date)))
+(s/def ::calendar (s/keys :req-un [::gtfs/service_id ::monday ::tuesday
+                                   ::wednesday ::thursday ::friday
+                                   ::saturday ::sunday ::start_date
+                                   ::end_date]))
+
+;; represents a service instance using Java 8 Time
+(defrecord Service [interval days])
 
 (def days {:monday    DayOfWeek/MONDAY
            :tuesday   DayOfWeek/TUESDAY
@@ -69,31 +91,16 @@
   Service contains the period and set of days that applies.
   Preferable representation to speed up comparisons"
   [calendar zone]
-  [(:service_id calendar)
-   (->Service (jt/interval (jt/offset-date-time (:start_date calendar) zone)
-                           (jt/offset-date-time (:end_date calendar) zone))
-              (reduce-kv (fn [r k v] (if (true? v) (conj r (k days)) r))
-                         #{}
-                         (select-keys calendar (keys days))))])
+  (let [interval (jt/interval (jt/offset-date-time (:start_date calendar) zone)
+                              (jt/offset-date-time (:end_date calendar) zone))
+        rf       (fn [r k v] (if (true? v) (conj r (k days)) r))]
+    [(:service_id calendar)
+     (->Service interval
+                (reduce-kv rf #{} (select-keys calendar (keys days))))]))
 
+;; -----------------------------------------------------------------
 ;(jt/contains? (:period (second (service (second (:calendar foo)))))
 ;              (jt/local-date)
-
-;; little hack to transform string integer into booleans
-(s/def ::day  (s/and spec/integer? (s/conformer pos?)))
-(s/def ::monday    ::day)
-(s/def ::tuesday   ::day)
-(s/def ::wednesday ::day)
-(s/def ::thursday  ::day)
-(s/def ::friday    ::day)
-(s/def ::saturday  ::day)
-(s/def ::sunday    ::day)
-(s/def ::start_date (s/conformer local-date))
-(s/def ::end_date (s/conformer local-date))
-(s/def ::calendar (s/keys :req-un [::gtfs/service_id ::monday ::tuesday
-                                   ::wednesday ::thursday ::friday
-                                   ::saturday ::sunday ::start_date
-                                   ::end_date]))
 
 ;; not all filename correspond to a type so we map them here
 (def conformers
@@ -128,11 +135,9 @@
                             (parse (str dirname name))]))
         (keys conformers)))
 
-;(parse "resources/gtfs/trips.txt")
 ;(def foo (time (parsedir "resources/gtfs/")))
 
-;(into {} (map service (:calendar foo)
-;                      (repeat (jt/zone-id)))));(take 1 (group-by :trip_id (:stop_times foo)))
+;(take 1 (group-by :trip_id (:stop_times foo)))
 ;(take 1 (group-by :route_id (:trips foo)))
 
 (defn- node-entry
@@ -147,9 +152,9 @@
   [network gtfs]
   (let [stops    (:stops gtfs)
         nodes    (map node-entry stops)
-        timezone (::agency_timezone (first (:agency gtfs)))
+        zone     (:agency_timezone (first (:agency gtfs)))
         calendar (into {} (map service (:calendar gtfs)
-                                       (repeat timezone)))]
+                                       (repeat zone)))]
     (assoc network :graph (into (:graph network) nodes))))
 
 ;(fuse @(first (:networks (:router hiposfer.kamal.dev/system)))
