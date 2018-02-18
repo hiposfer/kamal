@@ -68,15 +68,16 @@
   "transforms a calendar entry into a [id Service], where
   Service contains the period and set of days that applies.
   Preferable representation to speed up comparisons"
-  [calendar]
+  [calendar zone]
   [(:service_id calendar)
-   (->Service (jt/period (:start_date calendar) (:end_date calendar))
+   (->Service (jt/interval (jt/offset-date-time (:start_date calendar) zone)
+                           (jt/offset-date-time (:end_date calendar) zone))
               (reduce-kv (fn [r k v] (if (true? v) (conj r (k days)) r))
                          #{}
                          (select-keys calendar (keys days))))])
 
-;(contains? (:days (second (service (second (:calendar foo)))))
-;           (jt/day-of-week (jt/local-date)))])
+;(jt/contains? (:period (second (service (second (:calendar foo)))))
+;              (jt/local-date)
 
 ;; little hack to transform string integer into booleans
 (s/def ::day  (s/and spec/integer? (s/conformer pos?)))
@@ -129,8 +130,10 @@
 
 ;(parse "resources/gtfs/trips.txt")
 ;(def foo (time (parsedir "resources/gtfs/")))
-;(take 2 (group-by :trip_id (:stop_times foo)))
-;(take 5 (group-by :route_id (:trips foo)))
+
+;(into {} (map service (:calendar foo)
+;                      (repeat (jt/zone-id)))));(take 1 (group-by :trip_id (:stop_times foo)))
+;(take 1 (group-by :route_id (:trips foo)))
 
 (defn- node-entry
   "convert a gtfs stop into a node"
@@ -144,7 +147,9 @@
   [network gtfs]
   (let [stops    (:stops gtfs)
         nodes    (map node-entry stops)
-        calendar (into {} (map service) (:calendar gtfs))]
+        timezone (::agency_timezone (first (:agency gtfs)))
+        calendar (into {} (map service (:calendar gtfs)
+                                       (repeat timezone)))]
     (assoc network :graph (into (:graph network) nodes))))
 
 ;(fuse @(first (:networks (:router hiposfer.kamal.dev/system)))
