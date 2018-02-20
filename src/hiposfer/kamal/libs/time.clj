@@ -133,3 +133,6 @@
 ;; invert the key-value relation. For example
 ;; (time/data {:year 1970 :month 2 :day 3}) => LocalDate
 ;; (time/data {2 :years 3 :months 7 :days}) => Period
+
+;TODO: what is the best way to query for dayOfWeek, dayOfYear
+;      -> (:month/day data), (:year/day data)
