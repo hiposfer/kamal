@@ -127,3 +127,9 @@
 ;; wrapping the value inside a type allows us to both implement all java.time and clojure.lang interfaces
 ;; however, this comes with a price. Inner complexity !! It would be a giant monolithic implementation
 ;; containing everything inside. It might be possible to mitigate this by reusing the inner java.time classes
+
+;; NOTE:
+;; a way to avoid typos when defining date/times instead of Amounts would be to
+;; invert the key-value relation. For example
+;; (time/data {:year 1970 :month 2 :day 3}) => LocalDate
+;; (time/data {2 :years 3 :months 7 :days}) => Period
