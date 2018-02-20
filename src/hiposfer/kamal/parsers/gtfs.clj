@@ -18,38 +18,6 @@
 
 ;(System/getProperty "java.version") > 8
 
-;; FOOD FOR THOUGHT
-;;  After some experimentation with the Clojure Java Time I have come
-;; to actually hate having a wrapper around the Java Api. It seems to me
-;; that the Java API has a great design and that wrapping it in functions
-;; just for the sake of it is a mistake !
-;; I think that a proper wrapper of such a library such use Clojure's
-;; protocols and avoid re-designing the date/time library, while leveraging
-;; Clojure Polymorphism and dynamic typing
-;; A way to achieve that might be
-;; (date {:month 12 :day 3 :offset 3}) => ZonedDate
-;; (:day (date {:year 1970 :month 12 :offset {:hours 3})) => 1 ;; default
-;; (cons instant interval) => interval
-;; (cons instant instant) => interval
-;; (conj local-date local-time) => duration
-;; (reverse interval) => swap start-end
-;; (reverse duration) => length negated
-;; (native {:hour 3 :second 2}) => local-time
-;; (:year (native {:hour 3 :second 2}) => nil => dont throw
-;; -
-;; As you can see from the previous examples, it is possible to represent most of
-;; the concepts of Java Time with Clojure data structures. That however requires a
-;; careful interconnection between Clojure's protocol and Java's API. I believe
-;; such interconnection is not only possible but IDEAL.
-;; If that were to be defined it would only look as a couple of functions
-;; - native => create a native Java Time instance based on Clojure Map/Record
-;; - cons => add instant/duration to the beginning
-;; - conj => adds instant/duration to the end
-;; - reverse => reverse the interval/duration
-;; - lookUp => returns the requested key of a native Java Time (keyword lookup)
-;; - minus, plus, multiply, divide => polymorphic methods to add dates and times
-
-
 ;; agencies
 (s/def ::agency_id spec/integer?)
 (s/def ::agency_timezone (s/and ::gtfs/agency_timezone
