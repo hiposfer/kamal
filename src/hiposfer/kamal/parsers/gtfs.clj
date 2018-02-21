@@ -130,7 +130,7 @@
                             (parse (str dirname name))]))
         (keys conformers)))
 
-(def foo (time (parsedir "resources/gtfs/")))
+;(def foo (time (parsedir "resources/gtfs/")))
 
 ;(:calendar foo)
 ;(take 1 (group-by :trip_id (:stop_times foo)))
