@@ -132,8 +132,14 @@
 
 ;(def foo (time (parsedir "resources/gtfs/")))
 
+;(let [stop-pairs (sequence (comp (mapcat (fn [[_ stops]] (partition 2 1 stops)))
+;                                 (take 10))
+;                           (group-by :trip_id (:stop_times foo)))]
+;  (group-by (comp :stop_id first) stop-pairs))
+
+(defrecord Connection [^Long src ^Long dst route-id trips])
+
 ;(:calendar foo)
-;(take 1 (group-by :trip_id (:stop_times foo)))
 ;(take 1 (group-by :route_id (:trips foo)))
 
 (defn- node-entry
@@ -146,11 +152,12 @@
 (defn fuse
   "fuses the content of the gtfs data with the network"
   [network gtfs]
-  (let [stops    (:stops gtfs)
-        nodes    (map node-entry stops)
-        zone     (:agency_timezone (first (:agency gtfs)))
-        calendar (into {} (map service (:calendar gtfs)
-                                       (repeat zone)))]
+  (let [stops      (:stops gtfs)
+        nodes      (map node-entry stops)
+        calendar   (into {} (map service (:calendar gtfs)))
+        stop-pairs (sequence (comp (mapcat (fn [[_ stops]] (partition 2 1 stops)))
+                                   (take 10))
+                             (group-by :trip_id (:stop_times gtfs)))]
     (assoc network :graph (into (:graph network) nodes))))
 
 ;(fuse @(first (:networks (:router hiposfer.kamal.dev/system)))
