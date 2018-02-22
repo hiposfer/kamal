@@ -6,9 +6,9 @@
             [spec-tools.core :as st]
             [clojure.string :as str]
             [hiposfer.kamal.specs.gtfs :as gtfs]
-            [hiposfer.kamal.network.core :as network]
-            [java-time :as jt])
-  (:import (java.time DayOfWeek)))
+            [hiposfer.kamal.network.core :as network])
+  (:import (java.time DayOfWeek LocalTime LocalDate ZoneId)
+           (java.time.format DateTimeFormatter)))
 
 ;; NOTE: In general I like the API of clj-time more
 ;; However after trying both of them for parsing the date/time
@@ -18,42 +18,10 @@
 
 ;(System/getProperty "java.version") > 8
 
-;; FOOD FOR THOUGHT
-;;  After some experimentation with the Clojure Java Time I have come
-;; to actually hate having a wrapper around the Java Api. It seems to me
-;; that the Java API has a great design and that wrapping it in functions
-;; just for the sake of it is a mistake !
-;; I think that a proper wrapper of such a library such use Clojure's
-;; protocols and avoid re-designing the date/time library, while leveraging
-;; Clojure Polymorphism and dynamic typing
-;; A way to achieve that might be
-;; (date {:month 12 :day 3 :offset 3}) => ZonedDate
-;; (:day (date {:year 1970 :month 12 :offset {:hours 3})) => 1 ;; default
-;; (cons instant interval) => interval
-;; (cons instant instant) => interval
-;; (conj local-date local-time) => duration
-;; (reverse interval) => swap start-end
-;; (reverse duration) => length negated
-;; (native {:hour 3 :second 2}) => local-time
-;; (:year (native {:hour 3 :second 2}) => nil => dont throw
-;; -
-;; As you can see from the previous examples, it is possible to represent most of
-;; the concepts of Java Time with Clojure data structures. That however requires a
-;; careful interconnection between Clojure's protocol and Java's API. I believe
-;; such interconnection is not only possible but IDEAL.
-;; If that were to be defined it would only look as a couple of functions
-;; - native => create a native Java Time instance based on Clojure Map/Record
-;; - cons => add instant/duration to the beginning
-;; - conj => adds instant/duration to the end
-;; - reverse => reverse the interval/duration
-;; - lookUp => returns the requested key of a native Java Time (keyword lookup)
-;; - minus, plus, multiply, divide => polymorphic methods to add dates and times
-
-
 ;; agencies
 (s/def ::agency_id spec/integer?)
 (s/def ::agency_timezone (s/and ::gtfs/agency_timezone
-                                (s/conformer jt/zone-id)))
+                                (s/conformer #(ZoneId/of %))))
 (s/def ::agency (s/keys :req-un [::gtfs/agency_name ::agency_timezone]
                         :opt-un [::agency_id]))
 
@@ -74,21 +42,18 @@
 (s/def ::trip (s/keys :req-un [::route_id ::gtfs/service_id ::trip_id]))
 
 ;; stop_times
-;; HH:MM:SS
-(defn time? [text] (re-matches #"\d{2}:\d{2}:\d{2}" text))
-
 (s/def ::trip_id spec/integer?)
 (s/def ::stop_sequence spec/integer?)
 (s/def ::arrival_time (s/and ::gtfs/arrival_time
-                             (s/conformer jt/local-time)))
+                             (s/conformer #(LocalTime/parse %))))
 (s/def ::departure_time (s/and ::gtfs/departure_time
-                               (s/conformer jt/local-time)))
+                               (s/conformer #(LocalTime/parse %))))
 (s/def ::stop_time (s/keys :req-un [::trip_id ::arrival_time ::departure_time
                                     ::stop_id ::stop_sequence]))
 
 ;; calendar
-
-(defn- local-date [text] (jt/local-date "yyyyMMDD" text))
+(def date-format (DateTimeFormatter/ofPattern "uuuuMMdd"))
+(defn- local-date [text] (LocalDate/parse text date-format))
 ;; little hack to transform string integer into booleans
 (s/def ::day  (s/and spec/integer? (s/conformer pos?)))
 (s/def ::monday    ::day)
@@ -108,7 +73,7 @@
                                    ::end_date]))
 
 ;; represents a service instance using Java 8 Time
-(defrecord Service [interval days])
+(defrecord Service [start_date end_date days])
 
 (def days {:monday    DayOfWeek/MONDAY
            :tuesday   DayOfWeek/TUESDAY
@@ -122,17 +87,15 @@
   "transforms a calendar entry into a [id Service], where
   Service contains the period and set of days that applies.
   Preferable representation to speed up comparisons"
-  [calendar zone]
-  (let [interval (jt/interval (jt/offset-date-time (:start_date calendar) zone)
-                              (jt/offset-date-time (:end_date calendar) zone))
-        rf       (fn [r k v] (if (true? v) (conj r (k days)) r))]
+  [calendar]
+  (let [rf       (fn [r k v] (if (true? v) (conj r (k days)) r))]
     [(:service_id calendar)
-     (->Service interval
+     (->Service (:start_date calendar)
+                (:end_date calendar)
                 (reduce-kv rf #{} (select-keys calendar (keys days))))]))
 
 ;; -----------------------------------------------------------------
-;(jt/contains? (:period (second (service (second (:calendar foo)))))
-;              (jt/local-date)
+;(service (second (:calendar foo)))
 
 ;; not all filename correspond to a type so we map them here
 (def conformers
@@ -169,6 +132,7 @@
 
 ;(def foo (time (parsedir "resources/gtfs/")))
 
+;(:calendar foo)
 ;(take 1 (group-by :trip_id (:stop_times foo)))
 ;(take 1 (group-by :route_id (:trips foo)))
 
