@@ -7,7 +7,7 @@
             [clojure.string :as str]
             [hiposfer.kamal.specs.gtfs :as gtfs]
             [hiposfer.kamal.network.core :as network])
-  (:import (java.time DayOfWeek LocalTime LocalDate ZoneId)
+  (:import (java.time DayOfWeek LocalTime LocalDate ZoneId Duration)
            (java.time.format DateTimeFormatter)))
 
 ;; NOTE: In general I like the API of clj-time more
@@ -42,12 +42,24 @@
 (s/def ::trip (s/keys :req-un [::route_id ::gtfs/service_id ::trip_id]))
 
 ;; stop_times
+(defn- duration
+  "parse the arrival and departure time into Duration instances. This is
+  due to GTFS allowing times greater than 23:59:59 which is the biggest
+  Java Local Time. A Trip real arrival time can then be calculated as the
+  start time + duration at each stop"
+  [text]
+  (let [[_ & values] (re-matches gtfs/re-time text)
+        [hh mm ss] (map #(Long/parseLong %) values)]
+    (reduce (fn [^Duration res v] (.plus res v))
+            (Duration/ofHours hh)
+            [(Duration/ofMinutes mm) (Duration/ofSeconds ss)])))
+
 (s/def ::trip_id spec/integer?)
 (s/def ::stop_sequence spec/integer?)
 (s/def ::arrival_time (s/and ::gtfs/arrival_time
-                             (s/conformer #(LocalTime/parse %))))
+                             (s/conformer duration)))
 (s/def ::departure_time (s/and ::gtfs/departure_time
-                               (s/conformer #(LocalTime/parse %))))
+                               (s/conformer duration)))
 (s/def ::stop_time (s/keys :req-un [::trip_id ::arrival_time ::departure_time
                                     ::stop_id ::stop_sequence]))
 
@@ -130,17 +142,7 @@
                             (parse (str dirname name))]))
         (keys conformers)))
 
-;(def foo (time (parsedir "resources/gtfs/")))
-
-;(let [stop-pairs (sequence (comp (mapcat (fn [[_ stops]] (partition 2 1 stops)))
-;                                 (take 10))
-;                           (group-by :trip_id (:stop_times foo)))]
-;  (group-by (comp :stop_id first) stop-pairs))
-
 (defrecord Connection [^Long src ^Long dst route-id trips])
-
-;(:calendar foo)
-;(take 1 (group-by :route_id (:trips foo)))
 
 (defn- node-entry
   "convert a gtfs stop into a node"
@@ -195,3 +197,15 @@
 ;;       - while traversing a simple (avl/nearest > ...) should be enough
 ;;         to get the corresponding connection
 ;;       - neither the stop_id nor the stop_sequence are needed inside the connection
+
+
+;(def foo (time (parsedir "resources/gtfs/")))
+
+;(let [trips (group-by :trip_id (:stop_times foo))
+;      stop-pairs (sequence (comp (mapcat (fn [[_ stops]] (partition 2 1 stops)))
+;                                 (take 10))
+;                           trips)]
+;  (group-by (comp :stop_id first) stop-pairs))
+
+;(:calendar foo)
+;(take 1 (group-by :route_id (:trips foo)))

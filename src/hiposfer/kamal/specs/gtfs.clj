@@ -33,7 +33,9 @@
 
 ;; stop_times
 ;; HH:MM:SS
-(defn time? [text] (re-matches #"\d{2}:\d{2}:\d{2}" text))
+(def re-time "regex expression for gtfs time declarations"
+             #"(\d{2}):(\d{2}):(\d{2})")
+(defn time? [text] (re-matches re-time text))
 
 (s/def ::trip_id some?)
 (s/def ::arrival_time (s/and string? time?))
