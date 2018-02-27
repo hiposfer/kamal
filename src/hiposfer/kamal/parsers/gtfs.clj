@@ -84,9 +84,6 @@
                                    ::saturday ::sunday ::start_date
                                    ::end_date]))
 
-;; represents a service instance using Java 8 Time
-(defrecord Service [start_date end_date days])
-
 (def days {:monday    DayOfWeek/MONDAY
            :tuesday   DayOfWeek/TUESDAY
            :wednesday DayOfWeek/WEDNESDAY
@@ -101,10 +98,8 @@
   Preferable representation to speed up comparisons"
   [calendar]
   (let [rf       (fn [r k v] (if (true? v) (conj r (k days)) r))]
-    [(:service_id calendar)
-     (->Service (:start_date calendar)
-                (:end_date calendar)
-                (reduce-kv rf #{} (select-keys calendar (keys days))))]))
+    (merge (select-keys calendar [:start_date :end_date :service_id])
+           {:days (reduce-kv rf #{} (select-keys calendar (keys days)))})))
 
 ;; -----------------------------------------------------------------
 ;(service (second (:calendar foo)))
@@ -142,13 +137,12 @@
                             (parse (str dirname name))]))
         (keys conformers)))
 
-(defrecord Connection [^Long src ^Long dst route-id trips])
-
 (defn- node-entry
   "convert a gtfs stop into a node"
   [stop]
   [(:stop_id stop)
-   (network/map->NodeInfo {:lon (:stop_lon stop) :lat (:stop_lat stop)
+   (network/map->NodeInfo {:lon (:stop_lon stop)
+                           :lat (:stop_lat stop)
                            :name (:stop_name stop)})])
 
 (defn fuse
@@ -198,14 +192,34 @@
 ;;         to get the corresponding connection
 ;;       - neither the stop_id nor the stop_sequence are needed inside the connection
 
-
 ;(def foo (time (parsedir "resources/gtfs/")))
 
-;(let [trips (group-by :trip_id (:stop_times foo))
-;      stop-pairs (sequence (comp (mapcat (fn [[_ stops]] (partition 2 1 stops)))
-;                                 (take 10))
-;                           trips)]
-;  (group-by (comp :stop_id first) stop-pairs))
+(defn start-time
+  "computes the start time of a trip based on the Duration instances
+  of stop_times"
+  [stop_times]
+  (let [first_arrive ^Duration (:arrival_time (first stop_times))
+        hh           (.toHours first_arrive)
+        mm           (.toMinutes (.minusHours first_arrive hh))
+        ss           (.getSeconds (.minusMinutes (.minusHours first_arrive hh)
+                                                 mm))]
+    (LocalTime/of hh mm ss)))
+
+(defrecord Connection [^Long src ^Long dst route-id trips])
+
+(defn rebase-time
+  "re-computes the arrival and departure time of each stop_time based
+  on the first stop"
+  [stop_times]
+  (let [begin (:arrival_time (first stop_times))]
+    (for [stop-time stop_times]
+      (assoc stop-time :arrival_time (.minus (:arrival_time stop-time) begin)
+                       :departure_time (.minus (:departure_time stop-time) begin)))))
+
+;(let [trips (group-by :trip_id (:stop_times foo))]
+;  (for [[id trip] (take 10 trips)]
+;    (let [start (start-time trip)]
+;      {:trip_id id :start_time start})))
 
 ;(:calendar foo)
 ;(take 1 (group-by :route_id (:trips foo)))
