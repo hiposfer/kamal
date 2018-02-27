@@ -225,8 +225,22 @@
 ;(take 1 (group-by :route_id (:trips foo)))
 
 
+(comment for a connection store a set of
+  {:trip_id 1
+   :arrival_wait "duration until the vehicle arrives to this stop for this trip"
+   :duration "the time it takes to arrive at the next stop"
+   :stop_wait "duration that the vehicle stays in the stop"})
 
+(comment for a trip store
+         {:route_id 1
+          :start_time "LocalTime: time at which this trip starts"})
 
+(comment
+  - if a traversal comes with no trip:
+    find the next coming trip for the current LocalDateTime
+    return the {:duration :trip_id}
+  - if a traversal comes with a trip_id
+    find the trip with that id and return the duration)
 
 ;(start-time (second (first (group-by :trip_id (:stop_times foo)))))
 ;
