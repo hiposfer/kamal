@@ -7,7 +7,7 @@
             [clojure.string :as str]
             [hiposfer.kamal.specs.gtfs :as gtfs]
             [hiposfer.kamal.network.core :as network])
-  (:import (java.time DayOfWeek LocalTime LocalDate ZoneId Duration)
+  (:import (java.time DayOfWeek LocalTime LocalDate ZoneId Duration Instant LocalDateTime)
            (java.time.format DateTimeFormatter)))
 
 ;; NOTE: In general I like the API of clj-time more
@@ -224,3 +224,16 @@
 ;(:calendar foo)
 ;(take 1 (group-by :route_id (:trips foo)))
 
+
+
+
+
+;(start-time (second (first (group-by :trip_id (:stop_times foo)))))
+;
+;(.with (LocalDateTime/now)
+;       (start-time (second (first (group-by :trip_id (:stop_times foo))))))
+;
+;(.plus (.with (LocalDateTime/now)
+;              (start-time (second (first (group-by :trip_id (:stop_times foo))))))
+;       (Duration/ofHours 16))
+;
