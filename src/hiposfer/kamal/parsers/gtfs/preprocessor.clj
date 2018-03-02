@@ -43,10 +43,11 @@
   start time + duration at each stop"
   [text]
   (let [[_ & values] (re-matches gtfs/re-time text)
-        [hh mm ss] (map #(Long/parseLong %) values)]
-    (reduce (fn [^Duration res v] (.plus res v))
-            (Duration/ofHours hh)
-            [(Duration/ofMinutes mm) (Duration/ofSeconds ss)])))
+        [hh mm ss] (map #(Long/parseLong %) values)
+        [hh mm ss] [(Duration/ofHours hh)
+                    (Duration/ofMinutes mm)
+                    (Duration/ofSeconds ss)]]
+    (.getSeconds (reduce (fn [^Duration res v] (.plus res v)) hh [mm ss]))))
 
 (s/def ::trip_id spec/double?)
 (s/def ::stop_sequence spec/integer?)
