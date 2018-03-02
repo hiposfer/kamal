@@ -38,12 +38,7 @@
   "computes the start LocalTime of a trip based on the Duration instances
   of stop_times"
   [stop_times]
-  (let [first_arrive ^Duration (:arrival_time (first stop_times))
-        hh           (.toHours first_arrive)
-        mm           (.toMinutes (.minusHours first_arrive hh))
-        ss           (.getSeconds (.minusMinutes (.minusHours first_arrive hh)
-                                                 mm))]
-    (LocalTime/of hh mm ss)))
+  (LocalTime/ofSecondOfDay (:arrival_time (first stop_times))))
 
 ;; trips is a map of trip_id to a map of
 ;- :src/arrival_time -> the time it takes the vehicle to arrive this stop
@@ -68,9 +63,9 @@
              {:src (:stop_id s1)
               :dst (:stop_id s2)
               :trips {(:trip_id s1)
-                      {:src/arrival_time   (.minus (:arrival_time s1) begin)
-                       :src/departure_time (.minus (:departure_time s1) begin)
-                       :dst/arrival_time   (.minus (:arrival_time s2) begin)}}}))
+                      {:src/arrival_time   (- (:arrival_time s1) begin)
+                       :src/departure_time (- (:departure_time s1) begin)
+                       :dst/arrival_time   (- (:arrival_time s2) begin)}}}))
          stop_times (rest stop_times))))
 
 (defn- route-for-conn
@@ -123,10 +118,14 @@
 
 (comment
   - if a traversal comes with no trip
-  find the next coming trip for the current LocalDateTime
-  return the {:duration :trip_id}
+    for every trip in the connection
+      compute :src/departure_time + :trip/start_time
+      if current_time < total_time
+        take that trip -> return the {:duration :trip_id}
+    otherwise
+      there is no trip -> Double/POSITIVE_INFINITY
   - if a traversal comes with a trip_id
-  find the trip with that id and return the duration)
+    find the trip with that id and return the duration)
 
 
 ;; NOTES
@@ -155,7 +154,7 @@
 (defn fuse
   "fuses the content of the gtfs data with the network"
   [network hashed-gtfs]
-  (let [conns (connections hashed-gtfs)
+  (let [conns (into {} (connections hashed-gtfs))
         trips (group-by :trip_id (:stop_times hashed-gtfs))]
     (take 10 trips)))
 
