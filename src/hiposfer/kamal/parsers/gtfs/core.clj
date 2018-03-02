@@ -3,7 +3,8 @@
             [hiposfer.kamal.libs.tool :as tool]
             [hiposfer.kamal.network.graph.protocols :as gp]
             [clojure.data.int-map :as imap]
-            [hiposfer.kamal.parsers.gtfs.preprocessor :as pregtfs])
+            [hiposfer.kamal.parsers.gtfs.preprocessor :as pregtfs]
+            [clojure.data.priority-map :as mprio])
   (:import (java.time DayOfWeek LocalTime Duration LocalDateTime)))
 
 (def days {:monday    DayOfWeek/MONDAY
@@ -62,10 +63,11 @@
            (map->Connection
              {:src (:stop_id s1)
               :dst (:stop_id s2)
-              :trips {(:trip_id s1)
-                      {:src/arrival_time   (- (:arrival_time s1) begin)
-                       :src/departure_time (- (:departure_time s1) begin)
-                       :dst/arrival_time   (- (:arrival_time s2) begin)}}}))
+              :trips (mprio/priority-map-keyfn :src/departure_time
+                       (:trip_id s1)
+                       {:src/arrival_time   (- (:arrival_time s1) begin)
+                        :src/departure_time (- (:departure_time s1) begin)
+                        :dst/arrival_time   (- (:arrival_time s2) begin)})}))
          stop_times (rest stop_times))))
 
 (defn- route-for-conn
@@ -87,6 +89,7 @@
           [route conns] (group-by #(route-for-conn % gtfs) sconns)]
       [stop [route (apply merge-with connector conns)]])))
 
+
 (defn- mapize [k] (map #(vector (k %) (dissoc % k))))
 (defn- xnode [stop] (network/map->NodeInfo {:lon (:stop_lon stop)
                                             :lat (:stop_lat stop)
@@ -102,7 +105,7 @@
                        (:stops gtfs))
         trips    (into {} (mapize :trip_id) (:trips gtfs))
         routes   (into (imap/int-map) (mapize :route_id) (:routes gtfs))
-        calendar (into {} (map service (:calendar gtfs)))]
+        calendar (into {} (map service) (:calendar gtfs))]
     (assoc gtfs :stops nodes :trips trips
                 :routes routes :calendar calendar)))
 
