@@ -9,7 +9,7 @@
                  [org.clojure/data.int-map "0.2.4"] ; fast integers-map
                  [org.clojure/test.check "0.9.0"] ;; generators
                  [metosin/compojure-api "2.0.0-alpha18"]
-                 [metosin/spec-tools "0.5.1"]
+                 [metosin/spec-tools "0.5.1"] ;;coercion
                  [hiposfer/geojson.specs "0.2.0"]
                  [ring/ring-jetty-adapter "1.6.3"]
                  [com.stuartsierra/component "0.3.2"]
@@ -18,6 +18,7 @@
                  [org.teneighty/java-heaps "1.0.0"]
                  [org.clojure/data.csv "0.1.4"]
                  [ch.hsr/geohash "1.3.0"]
+                 [org.clojure/data.priority-map "0.0.7"]
                  [datascript "0.16.3"]]
   :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
                                   [expound "0.4.0"]
