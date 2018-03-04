@@ -106,15 +106,3 @@
     (into {} (map link m (repeat (k file-keys))))))
 
 ;(def foo (time (datomize "resources/gtfs/")))
-
-;(take-last 5 (data/datoms @conn :eavt))
-;(data/entity @conn [:trip_id 406014.151])
-
-;(let [a (data/transact! conn foo)]
-;  (take-last 5 (data/datoms @conn :eavt)))
-
-;(time (data/q '[:find (pull ?route [*]) .
-;                :where [?route :route/id 450854]]
-;               @conn))
-
-;(take-last 10 (data/datoms @conn :eavt))
