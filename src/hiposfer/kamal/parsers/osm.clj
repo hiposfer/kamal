@@ -31,7 +31,7 @@
 ;; name_1=* Street Name (Alternate). Also reg_name / loc_name / old_name
 ;; ref=*    Route network and number, but information from parent Route Relations has priority,
 ;;          see below. Also int_ref=* / nat_ref=* / reg_ref=* / loc_ref=* / old_ref=*
-(def way-attrs #{"name"}) ;:name_1 :ref}})
+(def way-attrs #{"name" "id" "nodes"}) ;:name_1 :ref}})
 
 ;; <node id="298884269" lat="54.0901746" lon="12.2482632" user="SvenHRO"
 ;;      uid="46882" visible="true" version="1" changeset="676636"
@@ -39,9 +39,9 @@
 (defn- point-entry
   "takes an OSM node and returns a [id Node-instance]"
   [element] ; returns [id node] for later use in int-map
-  [(Long/parseLong (:id  (:attrs element)))
-   (network/->Point (Double/parseDouble (:lon (:attrs element)))
-                    (Double/parseDouble (:lat (:attrs element))))])
+  {:node/id  (Long/parseLong (:id  (:attrs element)))
+   :node/lon (Double/parseDouble (:lon (:attrs element)))
+   :node/lat (Double/parseDouble (:lat (:attrs element)))})
 
 ; <way id="26659127" user="Masch" uid="55988" visible="true" version="5" changeset="4142606"
       ;timestamp="2010-03-16T11:47:08Z">
@@ -63,30 +63,26 @@
                              (map (comp :ref :attrs))
                              (map #(Long/parseLong %)))
                        (:content element))]
-    [(Long/parseLong (:id (:attrs element)))
-     (assoc attrs ::nodes nodes)]))
+    (merge attrs
+      {"id" (Long/parseLong (:id (:attrs element)))
+       "nodes" nodes})))
 
+;; we ignore the oneway tag since we only care about pedestrian routing. See
+;; https://wiki.openstreetmap.org/wiki/OSM_tags_for_routing/Telenav
 (defn- postprocess
   "return a {id way} pair with all unnecessary attributes removed with the
    exception of ::nodes. Reverse nodes if necessary"
-  [[id attrs]]
-  (let [new-attrs (walk/keywordize-keys
-                    (select-keys attrs (conj way-attrs ::nodes)))]
-    (if (= "-1" (get attrs "oneway"))
-      {id (update new-attrs ::nodes rseq)}
-      {id new-attrs})))
+  [way]
+  (into {} (map (fn [[k v]] [(keyword "way" k) v])
+                (select-keys way way-attrs))))
 
 (defn- strip-points
   "returns a sequence of node ids that join the intersections
   of this way. The first and last id are included as well."
-  [intersections nodes]
-  (let [begin (first nodes)
-        end   (last nodes)]
-    (for [node nodes
-          :when (or (= begin node)
-                    (contains? intersections node)
-                    (= end   node))]
-      node)))
+  [intersections way]
+  (let [intersections (conj intersections (first (:way/nodes way))
+                                          (last  (:way/nodes way)))]
+    (assoc way :way/nodes (filter intersections (:way/nodes way)))))
 
 (defn- simplify
   "returns a [way-id [connected-node-ids]], i.e. only the nodes that represent
@@ -94,15 +90,11 @@
 
   Uses the ::nodes of each way and counts which nodes appear more than once"
   [ways]
-  (let [point-count   (frequencies (sequence (comp (map val)
-                                                   (mapcat ::nodes))
-                                             ways))
+  (let [point-count   (frequencies (mapcat :way/nodes ways))
         intersections (into (imap/int-set) (comp (filter #(>= (second %) 2))
                                                  (map first))
                                            point-count)]
-    (for [[id attrs] ways]
-      [id (strip-points intersections (::nodes attrs))])))
-
+    (map #(strip-points intersections %) ways)))
 
 (defn- entries
   "returns a [id node], {id way} or nil otherwise"
@@ -123,7 +115,7 @@
 ;; that preprocessing the files was already performed and that only the useful
 ;; data is part of the OSM file. See README
 
-(defn network
+(defn datomize
   "read an OSM file and transforms it into a network of {:graph :ways :points},
    such that the graph represent only the connected nodes, the points represent
    the shape of the connection and the ways are the metadata associated with
@@ -132,49 +124,20 @@
   (let [nodes&ways    (with-open [file-rdr (bz2-reader filename)]
                         (into [] (comp (map entries)
                                        (remove nil?))
-                                 (:content (xml/parse file-rdr))))
+                              (:content (xml/parse file-rdr))))
         ;; separate ways from nodes
-        ways          (into (imap/int-map) (filter map?) nodes&ways)
-        points&nodes  (sequence (filter vector?) nodes&ways)
+        ways          (simplify (filter :way/id nodes&ways))
         ;; post-processing nodes
-        simple-ways   (simplify ways)
-        edges         (for [[way-id nodes] simple-ways]
-                        (map network/->Edge nodes (rest nodes) (repeat way-id)))
-        node-ids      (into (imap/int-set) (mapcat second) simple-ways)
-        nodes         (into (imap/int-map) (comp (filter #(contains? node-ids (first %)))
-                                                 (tool/map-vals network/map->NodeInfo))
-                                           points&nodes)
-        ;points       (apply dissoc points&nodes (mapcat second simple-ways))
-        g             (reduce graph/connect nodes (sequence cat edges))]
-    {:ways  ways
-     :graph g}))
-     ;;TODO enable them later to improve precision
-     ;; points are basically nodes (in OSM) that are not necessary for routing but that
-     ;; describe the shape of a way
-     ;;:points points
+        ids           (into (imap/int-set) (mapcat :way/nodes) ways)
+        nodes         (sequence (comp (filter :node/id)
+                                      (filter #(contains? ids (:node/id %))))
+                                nodes&ways)
+        data-ways     (for [way ways]
+                        (assoc way :way/nodes
+                                   (map #(vector :node/id %) (:way/nodes way))))]
+    (concat nodes data-ways)))
 
 (def walking-speed  2.5);; m/s
-
-(defn complete
-  "computes and assocs the neighbours (to allow nearest neighbour search) and
-   bbox (to allow containment testing) into m"
-  [m]
-  (let [neighbours (into (avl/sorted-map-by geometry/geohash)
-                         (set/map-invert (:graph m)))
-        bbox       (geometry/bbox (vals (:graph m)))]
-    (assoc m :neighbours neighbours
-                   :bbox bbox)))
-
-;(System/gc)
-;(def network (time (osm->network "resources/osm/saarland.min.osm.bz2")))
-;(take 10 (:network network))
-;(take 10 (:ways network))
-;(def network nil)
-
-
-;(count (:points network))
-;(count (:network network))
-;(count (:ways network))
 
 ;; LEARNINGS ----- resources/osm/saarland.osm
 ;; way count
