@@ -35,7 +35,8 @@
   :test-selectors {:default (complement :benchmark)
                    :benchmark :benchmark}
   :main hiposfer.kamal.core
-  :global-vars {*warn-on-reflection* true}
+  :global-vars {*warn-on-reflection* true
+                *print-length* 100}
   ;;FIXME: https://github.com/technomancy/leiningen/issues/2173
   :monkeypatch-clojure-test false
   :jvm-opts ["-Xmx1g" "-XX:-OmitStackTraceInFastThrow"]

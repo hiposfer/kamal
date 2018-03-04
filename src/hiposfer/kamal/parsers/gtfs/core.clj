@@ -4,7 +4,11 @@
             [hiposfer.kamal.network.graph.protocols :as gp]
             [clojure.data.int-map :as imap]
             [clojure.data.priority-map :as mprio]
-            [hiposfer.kamal.network.graph.core :as graph])
+            [hiposfer.kamal.parsers.gtfs.preprocessor :as pregtfs]
+            [hiposfer.kamal.network.graph.core :as graph]
+            [datascript.core :as data]
+            [clojure.string :as str]
+            [clojure.data.avl :as avl])
   (:import (java.time DayOfWeek)))
 
 (def days {:monday    DayOfWeek/MONDAY
@@ -165,20 +169,83 @@
     ;; TODO: link nodes with routes
     (map second conns)))
 
-;(def foo (time (gtfs-by-id (pregtfs/parsedir "resources/gtfs/"))))
-;(keys foo)
-;(def network (keys @(first (:networks (:router hiposfer.kamal.dev/system)))))
+(def ns-keys #{:agency :service :route :stop :trip})
+(def links (into #{} (map #(keyword (name %) "id") ns-keys)))
+(def file-keys {:agency     :agency
+                :calendar   :service
+                :routes     :route
+                :stop_times :stop.times
+                :stops      :stop
+                :trips      :trip}) ;; TODO shape
 
+(defn respace
+  "takes a keyword and a set of keywords and attempts to convert it into a
+  namespaced keyword using the set posibilities. Returns a qualified keyword
+  with the matched ns or default-ns otherwise"
+  [k]
+  (let [nk (name k)]
+    (when-let [kt (first (filter #(str/starts-with? nk (name %)) ns-keys))]
+      (let [nsk (name kt)]
+        (keyword nsk (str/replace-first nk (re-pattern (str nsk "_")) ""))))))
+;(respace :stop_id ns-keys)
+
+(defn link
+  "transforms a [k v] pair into a namespaced version with a possible reference
+  to another model. The returned pair is suitable to use in a Datalog
+  transaction. Returns the key with the base as namespace otherwise
+
+  Example: (link [:trip_id 123] :trip) => [:trip/id 123]
+           (link [:route_id 456] :trip) => [:trip/route [:route/id 456]]"
+  [[k v] base]
+  (let [nk    (or (respace k) k)
+        sbase (name base)]
+    (cond
+      (= (namespace nk) sbase) [nk v]
+      (contains? links nk) [(keyword sbase (namespace nk)) [nk v]]
+      :else [(keyword sbase (name nk)) v])))
+
+(def schema {:trip/id {:db.unique :db.unique/identity}
+             :trip/route {:db/type :db.type/ref}
+             :trip/service {:db/type :db.type/ref}
+
+             :agency/id {:db.unique :db.unique/identity}
+
+             :service/id {:db.unique :db.unique/identity}
+
+             :route/id {:db.unique :db.unique/identity}
+             :route/agency {:db/type :db.type/ref}
+
+             :stop.time/trip {:db/type :db.type/ref}
+             :stop.time/stop {:db/type :db.type/ref}})
+
+(defn datomize
+  "takes a map of gtfs key-name -> content and returns a sequence
+  of maps ready to be used for transact"
+  [gtfs]
+  (for [[k content] gtfs
+        m content]
+    (into {} (map link m (repeat (k file-keys))))))
+
+;(def foo (time (pregtfs/parsedir "resources/gtfs/")))
+
+;(def conn (data/create-conn schema));(data/transact! conn (:trips foo))
+;(data/transact! conn (:stop_times foo))
+;(take-last 5 (data/datoms @conn :eavt))
+;(data/entity @conn [:trip_id 406014.151])
+
+;(keys foo)
+;(take 5 (:trips foo))
+
+;(def network (keys @(first (:networks (:router hiposfer.kamal.dev/system)))))
 ;(take 2 (fuse network foo))
 
 ;(fuse @(first (:networks (:router hiposfer.kamal.dev/system)))
 ;       (parsedir "resources/gtfs/"))))
 
-;(prepare-connections (second (first (group-by :trip_id (:stop_times foo)))))
+;(data/transact! conn (datomize foo))
 
-;(.with (LocalDateTime/now)
-;       (start-time (second (first (group-by :trip_id (:stop_times foo))))))
+;(time (data/q '[:find (pull ?route [*]) .
+;                :where [?route :route/id 450854]]
+;               @conn))
 
-;(.plus (.with (LocalDateTime/now)
-;              (start-time (second (first (group-by :trip_id (:stop_times foo))))))
-;       (Duration/ofHours 16))
+;(take-last 10 (data/datoms @conn :eavt))
