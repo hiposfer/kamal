@@ -4,15 +4,38 @@
             [clojure.test.check.generators :as gen]
             [com.stuartsierra.component :as component]))
 
-(def network (comp osm/complete osm/network))
+;(def fake-network (comp osm/complete ng/with-ways gen/generate ng/graph))
 
-(def fake-network (comp osm/complete ng/with-ways gen/generate ng/graph))
+(def schema {:node/id        {:db.unique :db.unique/identity}
+             :node/lat       {:db/index true}
+             :node/lon       {:db/index true}
+             :way/id         {:db.unique :db.unique/identity}
+             :way/nodes      {:db.type :db.type/ref
+                              :db.cardinality :db.cardinality/many}
+
+             :trip/id        {:db.unique :db.unique/identity}
+             :trip/route     {:db/type :db.type/ref}
+             :trip/service   {:db/type :db.type/ref}
+
+             :agency/id      {:db.unique :db.unique/identity}
+
+             :service/id     {:db.unique :db.unique/identity}
+
+             :route/id       {:db.unique :db.unique/identity}
+             :route/agency   {:db/type :db.type/ref}
+
+             :stop/id        {:db.unique :db.unique/identity}
+             :stop/lat       {:db/index true}
+             :stop/lon       {:db/index true}
+
+             :stop.time/trip {:db/type :db.type/ref}
+             :stop.time/stop {:db/type :db.type/ref}})
 
 (defn start!
   [config]
   (let [exec   (if (:dev config)
-                 #(time (fake-network (:size %2)))
-                 #(time (network (:osm %2))))]
+                 ;#(time (fake-network (:size %2)))
+                 #(time (osm/datomize (:osm %2))))]
     (for [region (:networks config)]
       (send-off (agent nil) exec region))))
 
@@ -31,3 +54,8 @@
   "returns a Router record that will contain the config
    of and all the networks of the system as agents"
   [] (map->Router {}))
+
+;(def network (time (osm/datomize "resources/osm/saarland.min.osm.bz2")))
+
+
+;(take-last 10 network)
