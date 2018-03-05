@@ -1,7 +1,6 @@
 (ns hiposfer.kamal.libs.geometry
   (:refer-clojure :rename {contains? contains?!})
-  (:require [hiposfer.kamal.network.algorithms.protocols :as np])
-  (:import (ch.hsr.geohash GeoHash BoundingBox WGS84Point)))
+  (:require [hiposfer.kamal.network.algorithms.protocols :as np]))
 
 ;; Note in these scripts, I generally use
 ;; - latitude, longitude in degrees
@@ -74,38 +73,38 @@
          360)));
 
 ;; http://www.bigfastblog.com/geohash-intro
-(defn geohash
-  "comparator function to order nodes in a graph
-  WARNING: this assumes that two points cannot occupy the same
-  space. e.g. no 3D points since two point with different height
-  but equal lat, lon would collide"
-  [x y]
-  (compare (GeoHash/withBitPrecision (np/lat x) (np/lon x) 64)
-           (GeoHash/withBitPrecision (np/lat y) (np/lon y) 64)))
-
-(defn bbox
-  "takes a sequence of GeoCoordinates and returns a mutable BoundingBox
-  for them"
-  [coordinates]
-  (let [even?   (= 0 (rem (count coordinates) 2))
-        [c1 c2] (take 2 coordinates)
-        init    (if even?
-                  (BoundingBox. (np/lat c1) (np/lat c2) (np/lon c1) (np/lon c2))
-                  (BoundingBox. (np/lat c1) (np/lat c1) (np/lon c1) (np/lon c1)))
-        amount  (if even? 2 1)]
-    (transduce (comp (drop amount)
-                     (partition-all 2)
-                     (map (fn [[p1 p2]] (BoundingBox. (np/lat p1) (np/lat p2)
-                                                      (np/lon p1) (np/lon p2)))))
-               (completing #(.expandToInclude ^BoundingBox init %2))
-               init
-               coordinates)
-    init))
-
-(defn contains?
-  "checks if point is contained in bbox"
-  [^BoundingBox bbox point]
-  (.contains bbox (WGS84Point. (np/lat point) (np/lon point))))
+;(defn geohash
+;  "comparator function to order nodes in a graph
+;  WARNING: this assumes that two points cannot occupy the same
+;  space. e.g. no 3D points since two point with different height
+;  but equal lat, lon would collide"
+;  [x y]
+;  (compare (GeoHash/withBitPrecision (np/lat x) (np/lon x) 64)
+;           (GeoHash/withBitPrecision (np/lat y) (np/lon y) 64)))
+;
+;(defn bbox
+;  "takes a sequence of GeoCoordinates and returns a mutable BoundingBox
+;  for them"
+;  [coordinates]
+;  (let [even?   (= 0 (rem (count coordinates) 2))
+;        [c1 c2] (take 2 coordinates)
+;        init    (if even?
+;                  (BoundingBox. (np/lat c1) (np/lat c2) (np/lon c1) (np/lon c2))
+;                  (BoundingBox. (np/lat c1) (np/lat c1) (np/lon c1) (np/lon c1)))
+;        amount  (if even? 2 1)]
+;    (transduce (comp (drop amount)
+;                     (partition-all 2)
+;                     (map (fn [[p1 p2]] (BoundingBox. (np/lat p1) (np/lat p2)
+;                                                      (np/lon p1) (np/lon p2)))))
+;               (completing #(.expandToInclude ^BoundingBox init %2))
+;               init
+;               coordinates)
+;    init))
+;
+;(defn contains?
+;  "checks if point is contained in bbox"
+;  [^BoundingBox bbox point]
+;  (.contains bbox (WGS84Point. (np/lat point) (np/lon point))))
 
 
 ;(contains? (:bbox @(:saarland (:networks (:router hiposfer.kamal.dev/system))))

@@ -17,8 +17,6 @@
   gp/Link
   (src [_] src)
   (dst [_] dst)
-  np/Passage
-  (way [_] way)
   gp/Bidirectional
   (mirror [this]
     (if (:mirror? this)
@@ -27,12 +25,10 @@
   (mirror? [this] (:mirror? this)))
 
 ;; A directed arc with an associated way; as per Open Street Maps
-(defrecord Arc [^long src ^long dst ^long way]
+(defrecord Arc [^long src ^long dst]
   gp/Link
   (src [_] src)
-  (dst [_] dst)
-  np/Passage
-  (way [_] way))
+  (dst [_] dst))
 
 ;; A node of a graph with a corresponding position using the World Geodesic
 ;; System. This implementation only accepts one Link per src/dst node.
@@ -103,9 +99,7 @@
   ;; arc representation
   gp/Link
   (src [this] (:src this))
-  (dst [this] (:dst this))
-  np/Passage
-  (way [this] (:way this)))
+  (dst [this] (:dst this)))
 
 ;; A Number is the simplest way to represent the cost of traversing an Arc
 ;; in a Graph. Useful for Dijkstra and similar algorithms

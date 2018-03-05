@@ -1,4 +1,10 @@
-(ns hiposfer.kamal.network.graph.protocols)
+(ns hiposfer.kamal.network.graph.protocols
+  "
+
+  DEPRECATED !!!
+
+
+  Since the use of Datascript this namespace is not required anymore")
 
 ;; ------------------- design constrainst --------------------------------;
 ; we are only interested in graphs that can be represented as a mapping of

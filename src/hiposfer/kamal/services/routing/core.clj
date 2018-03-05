@@ -3,7 +3,8 @@
             [hiposfer.kamal.network.generators :as ng]
             [clojure.test.check.generators :as gen]
             [datascript.core :as data]
-            [com.stuartsierra.component :as component]))
+            [com.stuartsierra.component :as component])
+  (:import (ch.hsr.geohash GeoHash)))
 
 ;(def fake-network (comp osm/complete ng/with-ways gen/generate ng/graph))
 
