@@ -115,6 +115,8 @@
 ;; that preprocessing the files was already performed and that only the useful
 ;; data is part of the OSM file. See README
 
+;; TODO: deduplicate strings in ways name
+
 (defn datomize
   "read an OSM file and transforms it into a network of {:graph :ways :points},
    such that the graph represent only the connected nodes, the points represent
@@ -132,10 +134,16 @@
         nodes         (sequence (comp (filter :node/id)
                                       (filter #(contains? ids (:node/id %))))
                                 nodes&ways)
-        data-ways     (for [way ways]
-                        (assoc way :way/nodes
-                                   (map #(vector :node/id %) (:way/nodes way))))]
-    (concat nodes data-ways)))
+        neighbours    (for [way ways]
+                        (mapcat (fn [from to]
+                                  [{:node/id from
+                                    :node/neighbours #{[:node/id to]}}
+                                   {:node/id to
+                                    :node/neighbours #{[:node/id from]}}])
+                             (:way/nodes way)
+                             (rest (:way/nodes way))))]
+    (concat nodes (map #(dissoc % :way/nodes) ways)
+                  (sequence cat neighbours))))
 
 (def walking-speed  2.5);; m/s
 

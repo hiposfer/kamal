@@ -97,6 +97,7 @@
         trips    (map #(dissoc % :shape_id) (:shapes gtfs))]
     (assoc gtfs :calendar calendar :routes routes :trips trips)))
 
+;; TODO: deduplicate strings
 (defn datomize
   "takes a map of gtfs key-name -> content and returns a sequence
   of maps ready to be used for transact"

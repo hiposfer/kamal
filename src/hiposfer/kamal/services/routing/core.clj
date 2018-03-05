@@ -2,17 +2,26 @@
   (:require [hiposfer.kamal.parsers.osm :as osm]
             [hiposfer.kamal.network.generators :as ng]
             [clojure.test.check.generators :as gen]
+            [datascript.core :as data]
             [com.stuartsierra.component :as component]))
 
 ;(def fake-network (comp osm/complete ng/with-ways gen/generate ng/graph))
 
-(def schema {:node/id        {:db.unique :db.unique/identity}
-             :node/lat       {:db/index true}
-             :node/lon       {:db/index true}
-             :way/id         {:db.unique :db.unique/identity}
-             :way/nodes      {:db.type :db.type/ref
-                              :db.cardinality :db.cardinality/many}
+;; NOTE: we only model outgoing links of the graph. If you are interested
+;; in the incoming ones, use a query to find those. It wont be as performant
+;; a direct lookup but I guess that if you are using incoming links, you must
+;; know what you are doing ;)
 
+(def schema {;; Open Street Map - entities
+             :node/id         {:db.unique :db.unique/identity}
+             :node/lat        {:db/index true}
+             :node/lon        {:db/index true}
+             :node/neighbours {:db.type        :db.type/ref
+                               :db.cardinality :db.cardinality/many}
+
+             :way/id         {:db.unique :db.unique/identity}
+
+             ;; General Transfer Feed Specification - entities
              :trip/id        {:db.unique :db.unique/identity}
              :trip/route     {:db/type :db.type/ref}
              :trip/service   {:db/type :db.type/ref}
@@ -57,12 +66,15 @@
 
 ;(def network (time (osm/datomize "resources/osm/saarland.min.osm.bz2")))
 
+;(def conn (data/create-conn schema))
 
 ;(take-last 5 (data/datoms @conn :eavt))
 ;(data/entity @conn [:trip_id 406014.151])
 
-;(let [a (data/transact! conn foo)]
+;(let [a (time (data/transact! conn network))]
 ;  (take-last 5 (data/datoms @conn :eavt)))
+
+;(take 10 (data/datoms @conn :eavt))
 
 ;(time (data/q '[:find (pull ?route [*]) .
 ;                :where [?route :route/id 450854]]
