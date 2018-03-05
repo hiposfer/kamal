@@ -3,10 +3,7 @@
             [hiposfer.kamal.network.generators :as ng]
             [clojure.test.check.generators :as gen]
             [datascript.core :as data]
-            [com.stuartsierra.component :as component])
-  (:import (ch.hsr.geohash GeoHash)))
-
-;(def fake-network (comp osm/complete ng/with-ways gen/generate ng/graph))
+            [com.stuartsierra.component :as component]))
 
 ;; NOTE: we only model outgoing links of the graph. If you are interested
 ;; in the incoming ones, use a query to find those. It wont be as performant
@@ -41,23 +38,29 @@
              :stop.time/trip {:db/type :db.type/ref}
              :stop.time/stop {:db/type :db.type/ref}})
 
-(defn start!
-  [config]
-  (let [exec   (if (:dev config)
-                 ;#(time (fake-network (:size %2)))
-                 #(time (osm/datomize (:osm %2))))]
-    (for [region (:networks config)]
-      (send-off (agent nil) exec region))))
+;; TODO: gtfs integration
+(defn exec!
+  "builds a datascript in-memory db and conj's it into the passed agent"
+  [ag area dev]
+  (let [data  (if (true? dev)
+                (concat (gen/generate (ng/graph (:size area)))
+                        (gen/generate (ng/ways (:size area))))
+                (osm/datomize (:osm area)))
+        conn  (data/create-conn schema)]
+    (println "-- starting area router:" area)
+    (data/transact! conn data)
+    (conj ag conn)))
 
 (defrecord Router [config networks]
   component/Lifecycle
   (start [this]
     (if (not-empty (:networks this)) this
-      (do (println "-- starting Router with" (:networks config))
-          (newline)
-          (assoc this :networks (doall (start! config))))))
+      (let [ag (agent #{})]
+        (run! #(send-off ag exec! % (:dev config))
+               (:networks config))
+        (assoc this :networks ag))))
   (stop [this]
-    (println "-- stopping Router")
+    (println "-- stopping router")
     (assoc this :networks nil)))
 
 (defn service
