@@ -1,14 +1,6 @@
 (ns hiposfer.kamal.parsers.osm
   (:require [clojure.data.xml :as xml]
-            [clojure.data.int-map :as imap]
-            [clojure.walk :as walk]
-            [clojure.java.io :as io]
-            [clojure.data.avl :as avl]
-            [clojure.set :as set]
-            [hiposfer.kamal.libs.geometry :as geometry]
-            [hiposfer.kamal.libs.tool :as tool]
-            [hiposfer.kamal.network.graph.core :as graph]
-            [hiposfer.kamal.network.core :as network])
+            [clojure.java.io :as io])
   (:import (org.apache.commons.compress.compressors.bzip2 BZip2CompressorInputStream)))
 
 (defn- bz2-reader
@@ -91,9 +83,9 @@
   Uses the ::nodes of each way and counts which nodes appear more than once"
   [ways]
   (let [point-count   (frequencies (mapcat :way/nodes ways))
-        intersections (into (imap/int-set) (comp (filter #(>= (second %) 2))
-                                                 (map first))
-                                           point-count)]
+        intersections (into #{} (comp (filter #(>= (second %) 2))
+                                      (map first))
+                                point-count)]
     (map #(strip-points intersections %) ways)))
 
 (defn- entries
@@ -116,7 +108,6 @@
 ;; data is part of the OSM file. See README
 
 ;; TODO: deduplicate strings in ways name
-
 (defn datomize
   "read an OSM file and transforms it into a network of {:graph :ways :points},
    such that the graph represent only the connected nodes, the points represent
@@ -130,7 +121,7 @@
         ;; separate ways from nodes
         ways          (simplify (filter :way/id nodes&ways))
         ;; post-processing nodes
-        ids           (into (imap/int-set) (mapcat :way/nodes) ways)
+        ids           (into #{} (mapcat :way/nodes) ways)
         nodes         (sequence (comp (filter :node/id)
                                       (filter #(contains? ids (:node/id %))))
                                 nodes&ways)

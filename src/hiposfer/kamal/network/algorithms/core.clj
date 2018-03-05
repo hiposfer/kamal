@@ -1,8 +1,8 @@
 (ns hiposfer.kamal.network.algorithms.core
   (:require [hiposfer.kamal.network.graph.protocols :as gp]
             [hiposfer.kamal.network.algorithms.dijkstra :as djk]
-            [clojure.data.int-map :as imap]
-            [hiposfer.kamal.network.graph.core :as graph]))
+            [hiposfer.kamal.network.graph.core :as graph]
+            [clojure.set :as set]))
 
 (def movement
   "mapping of direction to protocol functions for Link and Nodes"
@@ -47,11 +47,10 @@
    component of an undirected graph"
   [graph settled]
   (if (= (count graph) (count settled)) (list)
-   (let [start     (some #(and (not (settled %)) %) (keys graph))
-         connected (into (imap/int-set)
-                         (comp (map first) (map key))
-                         (breath-first graph start))]
-     (cons connected (lazy-seq (components graph (imap/union settled connected)))))))
+    (let [start     (some #(and (not (settled %)) %) (keys graph))
+          connected (into #{} (comp (map first) (map key))
+                              (breath-first graph start))]
+      (cons connected (lazy-seq (components graph (set/union settled connected)))))))
 
 ;; note for specs: the biggest component of a biggest component should
 ;; be the passed network (= network (bc network)) => true for all
@@ -59,7 +58,7 @@
   "returns a subset of the original graph containing only the elements
   of the biggest strongly connected components"
   [undirected-graph]
-  (let [subsets   (components undirected-graph (imap/int-set))
+  (let [subsets   (components undirected-graph #{})
         connected (apply max-key count subsets)]
     (transduce (remove connected)
                (completing graph/detach)

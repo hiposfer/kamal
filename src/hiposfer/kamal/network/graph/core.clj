@@ -1,4 +1,14 @@
 (ns hiposfer.kamal.network.graph.core
+  "
+
+  DEPRECATED !!
+
+
+  Since the use of Datascript this namespace is not needed anymore
+
+  But I am just too sad to delete it since I spent so much time designing the API
+
+  I think that this is a pretty good Graph api though"
   (:require [hiposfer.kamal.network.graph.protocols :as rp]))
 
 ;; ----- utility functions
