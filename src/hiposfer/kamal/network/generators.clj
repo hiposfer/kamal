@@ -49,4 +49,4 @@
   (gen/fmap wayver (gen/set (gen/resize (* 3 size) gen/nat)
                             {:min-elements size})))
 ;; example usage
-(gen/generate (ways 10))
+;(gen/generate (ways 10))
