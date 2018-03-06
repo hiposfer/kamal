@@ -72,16 +72,6 @@
     (rem (+ (Math/toDegrees (Math/atan2 y x)) 360)
          360)));
 
-;; http://www.bigfastblog.com/geohash-intro
-;(defn geohash
-;  "comparator function to order nodes in a graph
-;  WARNING: this assumes that two points cannot occupy the same
-;  space. e.g. no 3D points since two point with different height
-;  but equal lat, lon would collide"
-;  [x y]
-;  (compare (GeoHash/withBitPrecision (np/lat x) (np/lon x) 64)
-;           (GeoHash/withBitPrecision (np/lat y) (np/lon y) 64)))
-;
 ;(defn bbox
 ;  "takes a sequence of GeoCoordinates and returns a mutable BoundingBox
 ;  for them"
