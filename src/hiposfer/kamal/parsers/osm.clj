@@ -1,5 +1,6 @@
 (ns hiposfer.kamal.parsers.osm
   (:require [clojure.data.xml :as xml]
+            [hiposfer.kamal.network.core :as network]
             [clojure.java.io :as io])
   (:import (org.apache.commons.compress.compressors.bzip2 BZip2CompressorInputStream)))
 
@@ -32,8 +33,8 @@
   "takes an OSM node and returns a [id Node-instance]"
   [element] ; returns [id node] for later use in int-map
   {:node/id  (Long/parseLong (:id  (:attrs element)))
-   :node/lon (Double/parseDouble (:lon (:attrs element)))
-   :node/lat (Double/parseDouble (:lat (:attrs element)))})
+   :node/location (network/->Location (Double/parseDouble (:lon (:attrs element)))
+                                      (Double/parseDouble (:lat (:attrs element))))})
 
 ; <way id="26659127" user="Masch" uid="55988" visible="true" version="5" changeset="4142606"
       ;timestamp="2010-03-16T11:47:08Z">
@@ -127,13 +128,14 @@
                                 nodes&ways)
         neighbours    (for [way ways]
                         (mapcat (fn [from to]
-                                  [{:node/id from
-                                    :node/neighbours #{[:node/id to]}}
-                                   {:node/id to
-                                    :node/neighbours #{[:node/id from]}}])
-                             (:way/nodes way)
-                             (rest (:way/nodes way))))]
-    (concat nodes (map #(dissoc % :way/nodes) ways)
+                                  [{:node/id         from
+                                    :node/successors #{[:node/id to]}}
+                                   {:node/id         to
+                                    :node/successors #{[:node/id from]}}])
+                                (:way/nodes way)
+                                (rest (:way/nodes way))))]
+    (concat nodes (for [way ways]
+                    (assoc way :way/nodes (map #(vector :node/id %) (:way/nodes way))))
                   (sequence cat neighbours))))
 
 (def walking-speed  2.5);; m/s
