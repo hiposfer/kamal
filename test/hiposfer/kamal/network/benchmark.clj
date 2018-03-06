@@ -7,17 +7,20 @@
             [hiposfer.kamal.parsers.osm :as osm]
             [hiposfer.kamal.services.routing.directions :as directions]
             [hiposfer.kamal.libs.geometry :as geometry]
-            [clojure.data.avl :as avl]
-            [hiposfer.kamal.network.graph.core :as graph]))
+            [hiposfer.kamal.network.graph.core :as graph]
+            [hiposfer.kamal.services.routing.core :as router]
+            [datascript.core :as data]))
 
 ;; This is just to show the difference between a randomly generated network
 ;; and a real-world network. The randomly generated network does not have a structure
 ;; meant to go from one place to the other, thus Dijkstra almost always fails to
 ;; finds a path (really fast)
 (test/deftest ^:benchmark dijkstra-random-graph
-  (let [graph        (gen/generate (ng/graph 1000))
-        src          (key (first graph))
-        dst          (key (last graph))]
+  (let [graph  (gen/generate (ng/graph 1000))
+        ;conn   (data/create-conn router/schema) TODO
+        ;(take-last 5 (data/datoms @conn :aevt :node/id))
+        src    (key (first graph))
+        dst    (key (last graph))]
     (println "\n\nDIJKSTRA forward with:" (count graph) "nodes and"
              (count (graph/edges graph)) "edges")
     (println "**random graph")
@@ -26,10 +29,13 @@
         (alg/shortest-path dst coll))
       :os :runtime :verbose)))
 
-(def networker (-> (osm/network "resources/osm/saarland.min.osm.bz2")
-                   (osm/complete)
-                   (time)
-                   (delay)))
+(def networker (delay
+                 (time
+                   (let [data (osm/datomize "resources/osm/saarland.min.osm.bz2")
+                         conn (data/create-conn router/schema)]
+                     (data/transact! conn data)
+                     @conn)))) ;; dont allow transact anymore
+
 
 ;(take 10 (:network @networker)) ;; force read
 ;(take 10 (alg/biggest-component (:network @networker)))
@@ -73,22 +79,15 @@
 ;; to the minimum point in neighbours. <= does the same but approximates to
 ;; the maximum.
 (test/deftest ^:benchmark nearest-neighbour-search
-  (let [neighbours (:neighbours @networker)
-        graph      (:graph @networker)
-        src        [7.038535 49.345088]]
+  (let [src   [7.038535 49.345088]
+        point (:v (first (data/index-range @networker :node/location src nil)))]
     (println "\n\nsaarland graph: nearest neighbour search with random src/dst")
-    (println "AVL tree with:" (count graph) "nodes")
-    ;; https://github.com/clojure/data.avl
-    ;; They add some memory overhead -- a reference and two ints per key. The
-    ;; additional node fields are used to support transients (one reference
-    ;; field per key), rank queries (one int) and the rebalancing algorithm
-    ;; itself (the final int).
-    ;; + 1 due to integer key duplicated
-    (println "accuraccy: " (geometry/haversine src (first (avl/nearest neighbours >= src))))
-    (c/quick-bench (avl/nearest neighbours >= src)
+    (println "B+ tree with:" (count (data/datoms @networker :eavt)) "nodes")
+    (println "accuraccy: " (geometry/haversine src point))
+    (c/quick-bench (first (data/index-range @networker :node/location src nil))
                    :os :runtime :verbose)
     (println "--------")
-    (println "BRUTE force with:" (count graph) "nodes")
+    (println "BRUTE force with:" (count (data/datoms @networker :eavt)) "nodes")
     (println "accuraccy: " (geometry/haversine src (second (brute-nearest @networker src))))
     (c/quick-bench (brute-nearest @networker src)
                    :os :runtime :verbose)))

@@ -88,7 +88,7 @@
 
 ;(def conn (data/create-conn schema))
 
-;(time (take 5 (data/index-range @conn :node/location [6.9513 49.318267] nil)))
+;(time (map :v (take 5 (data/index-range @conn :node/location [6.9513 49.318267] nil))))
 
 ;(let [a (time (data/transact! conn network))]
-;  (take-last 5 (data/datoms @conn :eavt)))
+ ; (take-last 5 (data/datoms @conn :eavt)))

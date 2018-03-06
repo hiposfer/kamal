@@ -1,5 +1,6 @@
 (ns hiposfer.kamal.network.algorithms.dijkstra
-  (:require [hiposfer.kamal.network.algorithms.protocols :as np])
+  (:require [hiposfer.kamal.network.algorithms.protocols :as np]
+            [datascript.core :as data])
   (:import (java.util HashMap Map AbstractMap$SimpleImmutableEntry)
            (clojure.lang Seqable IReduceInit IReduce Sequential)
            (org.teneighty.heap FibonacciHeap Heap Heap$Entry)))
@@ -32,15 +33,14 @@
 (defn- relax!
   "calculate the weight of traversing arc and updates it if already in
   the queue or adds it otherwise"
-  [value f ^Map settled ^Map unsettled ^Heap$Entry entry ^Heap queue trail node-arcs]
-  (if (empty? node-arcs) nil
-    (if (.containsKey settled (f (first node-arcs)))
-      (recur value f settled unsettled entry queue trail (rest node-arcs))
-      (let [arc     (first node-arcs)
+  [value ^Map settled ^Map unsettled ^Heap$Entry entry ^Heap queue trail node-successors]
+  (if (empty? node-successors) nil
+    (if (.containsKey settled (first node-successors))
+      (recur value settled unsettled entry queue trail (rest node-successors))
+      (let [id      (first node-successors)
             prev-id (key (.getValue entry))
-            weight  (np/sum (value arc trail)
+            weight  (np/sum (value id trail)
                             (.getKey entry))
-            id      (f arc)
             trace2  (trace id prev-id)
             old-entry ^Heap$Entry (.get unsettled id)]
         (if (nil? old-entry)
@@ -48,19 +48,21 @@
           (when (< weight (.getKey old-entry))
             (.setValue old-entry trace2)
             (.decreaseKey queue old-entry weight)))
-        (recur value f settled unsettled entry queue trail (rest node-arcs))))))
+        (recur value settled unsettled entry queue
+               trail (rest node-successors))))))
 
 (defn- produce!
   "returns a lazy sequence of traces by sequentially mutating the
    queue and always returning the path from the latest min priority
    node"
-  [graph value arcs f ^Heap queue ^Map settled ^Map unsettled]
+  [graph value successors ^Heap queue ^Map settled ^Map unsettled]
   (let [entry  (.extractMinimum queue)
         id     (key (.getValue entry))
         _      (.put settled id entry)
         _      (.remove unsettled id)
         trail  (path settled id)]
-    (relax! value f settled unsettled entry queue trail (arcs (graph id)))
+    (relax! value settled unsettled entry queue
+            trail (successors (data/entity graph id)))
     trail))
 
 ; inspired by http://insideclojure.org/2015/01/18/reducible-generators/
@@ -96,7 +98,7 @@
 ; - value: a function of current-arc, current-trace -> Valuable implementation
 ; - arcs: a function of node -> [arc]. Used to get either the incoming or outgoing arcs of a node
 ; - f: a function of Arc -> id. Used to get the id of the src or dst of an Arc
-(deftype Dijkstra [graph ids value arcs f]
+(deftype Dijkstra [graph ids value successors]
   Seqable
   (seq [_]
     (let [settled   (new HashMap) ;{id {weight {id prev}}}
@@ -104,7 +106,7 @@
           unsettled (new HashMap); {id {weight {id prev}}}
           trailer!  (fn trailer! []
                       (if (.isEmpty queue) (list)
-                        (cons (produce! graph value arcs f queue settled unsettled)
+                        (cons (produce! graph value successors queue settled unsettled)
                               (lazy-seq (trailer!)))))]
       (trailer!)))
   ;; ------
@@ -118,11 +120,11 @@
           queue     (init! ids settled); [Heap.Entry]
           unsettled (new HashMap)]; {id Heap.Entry}
       (loop [ret init
-             trail (produce! graph value arcs f queue settled unsettled)]
+             trail (produce! graph value successors queue settled unsettled)]
         (let [rr (rf ret trail)]
           (if (reduced? rr) @rr
             (if (.isEmpty queue) rr
-              (recur rr (produce! graph value arcs f queue settled unsettled))))))))
+              (recur rr (produce! graph value successors queue settled unsettled))))))))
   ;; ------
   IReduce
   (reduce [this rf] (.reduce ^IReduceInit this rf (rf)))
