@@ -2,4 +2,4 @@
  :dev false ;; use parsed OSM networks
  :join? true ;; block the main thread
  :networks #{{:osm "resources/osm/saarland.min.osm.bz2"
-              :gtfs ""}}} ;; TODO
+              :gtfs "resources/gtfs/"}}}
