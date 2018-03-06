@@ -11,7 +11,7 @@
   (let [pick     #(rand-nth (seq ids))
         lat-gen   (partial gen/generate (s/gen ::geojson/lat))
         lon-gen   (partial gen/generate (s/gen ::geojson/lon))
-        arcer    #(hash-map :node/id (pick) :node/neighbours #{(pick)})
+        arcer    #(hash-map :node/id (pick) :node/successors #{(pick)})
         ;; create 3 times as many edges as node IDs
         edges     (distinct (repeatedly (* 3 (count ids)) arcer))
         ;; first create nodes to store the edges
