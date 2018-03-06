@@ -62,9 +62,8 @@
         (alg/shortest-path dst coll))
       :os :runtime :verbose)))
 
-;; note >= search will approximate any point with lat, lon less than point
-;; to the minimum point in neighbours. <= does the same but approximates to
-;; the maximum.
+;; note src nil search will search for points greater or equal to src
+;; I think nil src then search points less than src
 (test/deftest ^:benchmark nearest-neighbour-search
   (let [src   [7.038535 49.345088]
         point (:v (first (data/index-range @networker :node/location src nil)))]
