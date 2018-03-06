@@ -10,33 +10,46 @@
 ;; a direct lookup but I guess that if you are using incoming links, you must
 ;; know what you are doing ;)
 
+;; NOTE: we actually have double side relations in the database. Meaning that
+;; if there is a bidirectional connection between a and b then both of them will
+;; have their neighbours id stored in the db. This is due to speed. A single
+;; entity lookup takes around 200 microseconds, while a query for those takes
+;; around 50 milliseconds. For graph traversals that is unacceptable !!
+;; This however goes against Datomic best practices :(
+
+;; NOTE: we use a node/location instead of lat, lon separate to avoid creating
+;; so many datoms and to have a single entity that we can apply protocols against.
+;; This is a hack !! but it works :)
+;; Thanks datascript
+
 (def schema {;; Open Street Map - entities
              :node/id         {:db.unique :db.unique/identity}
-             :node/lat        {:db/index true}
-             :node/lon        {:db/index true}
-             :node/neighbours {:db.type        :db.type/ref
+             :node/location   {:db/index true}
+             :node/successors {:db.type        :db.type/ref
                                :db.cardinality :db.cardinality/many}
 
-             :way/id         {:db.unique :db.unique/identity}
+             :way/id          {:db.unique :db.unique/identity}
+             :way/nodes       {:db.type        :db.type/ref
+                               :db.cardinality :db.cardinality/many}
 
              ;; General Transfer Feed Specification - entities
-             :trip/id        {:db.unique :db.unique/identity}
-             :trip/route     {:db/type :db.type/ref}
-             :trip/service   {:db/type :db.type/ref}
+             :trip/id         {:db.unique :db.unique/identity}
+             :trip/route      {:db/type :db.type/ref}
+             :trip/service    {:db/type :db.type/ref}
 
-             :agency/id      {:db.unique :db.unique/identity}
+             :agency/id       {:db.unique :db.unique/identity}
 
-             :service/id     {:db.unique :db.unique/identity}
+             :service/id      {:db.unique :db.unique/identity}
 
-             :route/id       {:db.unique :db.unique/identity}
-             :route/agency   {:db/type :db.type/ref}
+             :route/id        {:db.unique :db.unique/identity}
+             :route/agency    {:db/type :db.type/ref}
 
-             :stop/id        {:db.unique :db.unique/identity}
-             :stop/lat       {:db/index true}
-             :stop/lon       {:db/index true}
+             :stop/id         {:db.unique :db.unique/identity}
+             :stop/lat        {:db/index true}
+             :stop/lon        {:db/index true}
 
-             :stop.time/trip {:db/type :db.type/ref}
-             :stop.time/stop {:db/type :db.type/ref}})
+             :stop.time/trip  {:db/type :db.type/ref}
+             :stop.time/stop  {:db/type :db.type/ref}})
 
 ;; TODO: gtfs integration
 (defn exec!
@@ -68,12 +81,22 @@
    of and all the networks of the system as agents"
   [] (map->Router {}))
 
-;(def network (time (osm/datomize "resources/osm/saarland.min.osm.bz2")))
+(def network (time (osm/datomize "resources/osm/saarland.min.osm.bz2")))
 
 ;(def conn (data/create-conn schema))
 
-;(take-last 5 (data/datoms @conn :eavt))
-;(data/entity @conn [:trip_id 406014.151])
+;(count (data/datoms @conn :eavt))
+
+;(time (take 5 (data/index-range @conn :node/location [6.9513 49.318267] nil)))
+
+;(time
+;  (data/q '[:find  [(min ?dist) (pull ?node [*])]
+;            :where [?node :node/lat ?lat]
+;                   [?node :node/lon ?lon]
+;                   [(< 49.308267 ?lat 50)]
+;                   [(< 6.951238 ?lon 8)]
+;                   [(geo/haversine 6.9513 49.318267 ?lon ?lat) ?dist]]
+;          @conn))
 
 ;(let [a (time (data/transact! conn network))]
 ;  (take-last 5 (data/datoms @conn :eavt)))

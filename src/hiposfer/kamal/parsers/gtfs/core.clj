@@ -1,15 +1,8 @@
 (ns hiposfer.kamal.parsers.gtfs.core
   (:require [hiposfer.kamal.parsers.gtfs.preprocessor :as pregtfs]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [hiposfer.kamal.network.core :as network])
   (:import (java.time DayOfWeek)))
-
-;; -------------------
-;; NOTES
-;; - A route is a group of trips that are displayed to riders as a single service.
-;; - A trip is a sequence of two or more stops that occurs at specific time
-;; - a Stop_times entry is a time entry that a vehicle arrives at and departs
-;;   from individual stops for each trip
-;; - a Stop is an Individual locations where vehicles pick up or drop off passengers
 
 ;; detailed diagram of files relations
 ;; http://tommaps.com/wp-content/uploads/2016/09/gtfs-feed-diagram.png
@@ -22,17 +15,8 @@
 ;; - https://www.ceid.upatras.gr/webpages/faculty/zaro/pub/jou/J23-TTI-Springer.pdf
 
 ;; -------------------
-;; NOTE:
-;; we wont model the vehicle stations as mini-graph as is proposed in most
-;; articles. Although it makes the model clearer from a graph theory perspective
-;; it also makes it more difficult to maintain, specially considering real-time
-;; updates. For example: to change the transfer time between two routes at a
-;; specific station, you would have to find out that station, then find out
-;; the arc connecting those and update it. As if that wasnt enough, you need to
-;; create fake nodes for the route stops (which id do you use? how do you ensure
-;; that it is unique or that no collisions will occur in the future?)
 
-;; Instead of that we will simply have a base penalty whenever you transfer from
+;; We will simply have a base penalty whenever you transfer from
 ;; a route to another. If there is a special connection between two routes then
 ;; it can be stored in a :gtfs/transfers structure which can be easily lookup
 
@@ -94,8 +78,14 @@
   [gtfs]
   (let [calendar (map service (:calendar gtfs))
         routes   (map #(dissoc % :route_url) (:routes gtfs))
-        trips    (map #(dissoc % :shape_id) (:shapes gtfs))]
-    (assoc gtfs :calendar calendar :routes routes :trips trips)))
+        trips    (map #(dissoc % :shape_id) (:shapes gtfs))
+        stops    (for [stop (:stops gtfs)]
+                   (let [ks (disj (into #{} (keys stop)) :stop_lat :stop_lon)]
+                     (assoc (select-keys stop ks)
+                       :stop_location (network/->Location (:stop_lon stop)
+                                                          (:stop_lat stop)))))]
+    (assoc gtfs :calendar calendar :routes routes :trips trips
+                :stops stops)))
 
 ;; TODO: deduplicate strings
 (defn datomize
