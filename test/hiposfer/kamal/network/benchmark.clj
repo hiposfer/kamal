@@ -62,19 +62,6 @@
         (alg/shortest-path dst coll))
       :os :runtime :verbose)))
 
-(defn- brute-nearest
-  "search the nearest node in network to point using the distance function f.
-  f defaults to the euclidean distance squared"
-  ([network point f]
-   (reduce (fn [best entry] (if (< (f point (second entry))
-                                   (f point (second best)))
-                              entry
-                              best))
-           (first (:graph network))
-           (:graph network)))
-  ([network point]
-   (brute-nearest network point geometry/euclidean-pow2)))
-
 ;; note >= search will approximate any point with lat, lon less than point
 ;; to the minimum point in neighbours. <= does the same but approximates to
 ;; the maximum.
@@ -85,9 +72,4 @@
     (println "B+ tree with:" (count (data/datoms @networker :eavt)) "nodes")
     (println "accuraccy: " (geometry/haversine src point))
     (c/quick-bench (first (data/index-range @networker :node/location src nil))
-                   :os :runtime :verbose)
-    (println "--------")
-    (println "BRUTE force with:" (count (data/datoms @networker :eavt)) "nodes")
-    (println "accuraccy: " (geometry/haversine src (second (brute-nearest @networker src))))
-    (c/quick-bench (brute-nearest @networker src)
                    :os :runtime :verbose)))
