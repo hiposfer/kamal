@@ -2,6 +2,7 @@
   (:require [hiposfer.kamal.parsers.osm :as osm]
             [hiposfer.kamal.network.generators :as ng]
             [clojure.test.check.generators :as gen]
+            [hiposfer.kamal.parsers.gtfs.core :as gtfs]
             [datascript.core :as data]
             [com.stuartsierra.component :as component]))
 
@@ -51,17 +52,19 @@
              :stop.time/trip  {:db/type :db.type/ref}
              :stop.time/stop  {:db/type :db.type/ref}})
 
-;; TODO: gtfs integration
+;; TODO: link OSM nodes with GTFS stops
 (defn exec!
   "builds a datascript in-memory db and conj's it into the passed agent"
   [ag area dev]
-  (let [data  (if (true? dev)
-                (concat (gen/generate (ng/graph (:size area)))
-                        (gen/generate (ng/ways (:size area))))
-                (osm/datomize (:osm area)))
+  (println "-- starting area router:" area)
+  (let [vehicle     (when (and (not dev) (:gtfs area))
+                      (future (gtfs/datomize (:gtfs area))))
+        pedestrian  (if (true? dev)
+                      (concat (gen/generate (ng/graph (:size area)))
+                              (gen/generate (ng/ways (:size area))))
+                      (osm/datomize (:osm area)))
         conn  (data/create-conn schema)]
-    (println "-- starting area router:" area)
-    (data/transact! conn data)
+    (data/transact! conn (concat pedestrian @vehicle))
     (conj ag conn)))
 
 (defrecord Router [config networks]
@@ -81,32 +84,11 @@
    of and all the networks of the system as agents"
   [] (map->Router {}))
 
-(def network (time (osm/datomize "resources/osm/saarland.min.osm.bz2")))
+;(def network (time (osm/datomize "resources/osm/saarland.min.osm.bz2")))
 
 ;(def conn (data/create-conn schema))
 
-;(count (data/datoms @conn :eavt))
-
 ;(time (take 5 (data/index-range @conn :node/location [6.9513 49.318267] nil)))
-
-;(time
-;  (data/q '[:find  [(min ?dist) (pull ?node [*])]
-;            :where [?node :node/lat ?lat]
-;                   [?node :node/lon ?lon]
-;                   [(< 49.308267 ?lat 50)]
-;                   [(< 6.951238 ?lon 8)]
-;                   [(geo/haversine 6.9513 49.318267 ?lon ?lat) ?dist]]
-;          @conn))
 
 ;(let [a (time (data/transact! conn network))]
 ;  (take-last 5 (data/datoms @conn :eavt)))
-
-;(take 10 (data/datoms @conn :eavt))
-
-;(time (data/q '[:find (pull ?route [*]) .
-;                :where [?route :route/id 450854]]
-;               @conn))
-
-;(take-last 10 (data/datoms @conn :eavt))
-
-;(take-last 10 network)
