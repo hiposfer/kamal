@@ -1,13 +1,7 @@
 (ns hiposfer.kamal.network.algorithms.core
-  (:require [hiposfer.kamal.network.graph.protocols :as gp]
-            [hiposfer.kamal.network.algorithms.dijkstra :as djk]
+  (:require [hiposfer.kamal.network.algorithms.dijkstra :as djk]
             [hiposfer.kamal.network.graph.core :as graph]
             [clojure.set :as set]))
-
-(def movement
-  "mapping of direction to protocol functions for Link and Nodes"
-  {::forward  [gp/dst gp/successors]
-   ::backward [gp/src gp/predecessors]})
 
 (defn dijkstra
   "returns a sequence of traversal-paths taken to reach each node. Each path is
@@ -16,14 +10,9 @@
   Parameters:
    - value-by is a function that takes an Arc and a Trace
                and returns a Valuable from src to dst
-   - start-from is a set of node ids to start searching from
-   - direction is one of ::forward or ::backward and determines whether
-     to use the outgoing or incoming arcs of each node"
-  ([graph value-by start-from]
-   (dijkstra graph ::forward value-by start-from))
-  ([graph direction value-by start-from]
-   (let [[f arcs] (movement direction)]
-     (djk/->Dijkstra graph start-from value-by arcs f))))
+   - start-from is a set of node ids to start searching from"
+  [graph value-by successors start-from]
+  (djk/->Dijkstra graph start-from value-by successors))
 
 (defn breath-first
   "returns a sequence of traversal-paths taken to reach each node in the same

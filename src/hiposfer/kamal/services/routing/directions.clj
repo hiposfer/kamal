@@ -3,8 +3,7 @@
             [hiposfer.kamal.network.algorithms.core :as alg]
             [hiposfer.kamal.network.algorithms.protocols :as np]
             [hiposfer.kamal.network.graph.protocols :as gp]
-            [hiposfer.kamal.libs.geometry :as geometry]
-            [clojure.data.avl :as avl]))
+            [hiposfer.kamal.libs.geometry :as geometry]))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
 (def bearing-turns
