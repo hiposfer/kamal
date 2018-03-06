@@ -15,7 +15,8 @@
                  [org.apache.commons/commons-compress "1.4"] ;;bz2 files read
                  [org.teneighty/java-heaps "1.0.0"]
                  [org.clojure/data.csv "0.1.4"]
-                 [datascript "0.16.3"]]
+                 [datascript "0.16.3"]
+                 [ch.hsr/geohash "1.3.0"]]
   :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
                                   [expound "0.4.0"]
                                   [io.aviso/pretty "0.1.34"]
