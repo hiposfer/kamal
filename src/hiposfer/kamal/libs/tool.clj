@@ -1,6 +1,7 @@
 (ns hiposfer.kamal.libs.tool
   "useful functions that have not found a proper place yet"
-  (:refer-clojure :rename {some some*}))
+  (:refer-clojure :rename {some some*})
+  (:require [datascript.core :as data]))
 
 
 (defn unique-by
@@ -47,3 +48,14 @@
   (reduce (fn [_ value] (when (pred? value) (reduced value)))
           nil
           coll))
+
+(defn by-foot
+  "takes a dereferenced Datascript connection and an entity id and returns
+  the successors of that entity. Only valid for OSM nodes"
+  [conn id]
+  (:node/successors (data/entity conn id)))
+
+(defn nearest-node
+  "returns the nearest node/location datom to point"
+  [graph point]
+  (first (data/index-range graph :node/location point nil)))

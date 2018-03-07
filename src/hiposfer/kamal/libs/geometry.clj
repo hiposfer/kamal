@@ -25,10 +25,8 @@
                   (Math/cos φ1)))]
      (* RADIOUS 2 (Math/asin (Math/sqrt a)))))
   ([p1 p2]
-   (if (and (seq? p1) (seq? p2))
-     (apply haversine (concat p1 p2))
-     (haversine (np/lon p1) (np/lat p1)
-                (np/lon p2) (np/lat p2)))))
+   (haversine (np/lon p1) (np/lat p1)
+              (np/lon p2) (np/lat p2))))
 
 ;; (frepos/distance [-86.67 36.12] [-118.40 33.94])
 ;=> 2887.2599506071106 km
