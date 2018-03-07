@@ -5,9 +5,9 @@
             [hiposfer.kamal.network.generators :as ng]
             [hiposfer.kamal.network.algorithms.core :as alg]
             [hiposfer.kamal.parsers.osm :as osm]
+            [hiposfer.kamal.libs.tool :as tool]
             [hiposfer.kamal.services.routing.directions :as directions]
             [hiposfer.kamal.libs.geometry :as geometry]
-            [hiposfer.kamal.network.graph.core :as graph]
             [hiposfer.kamal.services.routing.core :as router]
             [datascript.core :as data]))
 
@@ -16,16 +16,17 @@
 ;; meant to go from one place to the other, thus Dijkstra almost always fails to
 ;; finds a path (really fast)
 (test/deftest ^:benchmark dijkstra-random-graph
-  (let [graph  (gen/generate (ng/graph 1000))
-        ;conn   (data/create-conn router/schema) TODO
-        ;(take-last 5 (data/datoms @conn :aevt :node/id))
-        src    (key (first graph))
-        dst    (key (last graph))]
-    (println "\n\nDIJKSTRA forward with:" (count graph) "nodes and"
-             (count (graph/edges graph)) "edges")
+  (let [dt     (gen/generate (ng/graph 1000))
+        conn   (data/create-conn router/schema)
+        _      (data/transact! conn dt)
+        src    (rand-nth (alg/node-ids @conn))
+        dst    (rand-nth (alg/node-ids @conn))]
+    (println "\n\nDIJKSTRA forward with:" (count (alg/node-ids @conn)) "nodes")
     (println "**random graph")
     (c/quick-bench
-      (let [coll (alg/dijkstra graph (partial directions/duration graph) #{src})]
+      (let [coll (alg/dijkstra @conn #(directions/duration @conn %1 %2)
+                                      tool/by-foot
+                                      #{src})]
         (alg/shortest-path dst coll))
       :os :runtime :verbose)))
 
@@ -41,24 +42,16 @@
 ;(take 10 (alg/biggest-component (:network @networker)))
 
 (test/deftest ^:benchmark dijkstra-saarland-graph
-  (let [graph        (:graph @networker) ;; force read
-        Cgraph       (alg/biggest-component (:graph @networker))
+  (let [graph   @networker ;; force read
         ;; the src and dst might have been removed from the original network
-        src          (key (first Cgraph))
-        dst          (key (last Cgraph))]
-    (println "\n\nDIJKSTRA forward with:" (count graph) "nodes and"
-             (count (graph/edges graph)) "edges")
+        src     (rand-nth (alg/node-ids graph))
+        dst     (rand-nth (alg/node-ids graph))]
+    (println "\n\nDIJKSTRA forward with:" (count (alg/node-ids graph)) "nodes")
     (println "saarland graph:")
     (c/quick-bench
-      (let [coll (alg/dijkstra graph (partial directions/duration graph) #{src})]
-        (alg/shortest-path dst coll))
-      :os :runtime :verbose)
-    (println "--------")
-    (println "using only strongly connected components of the original graph")
-    (println "with:" (count Cgraph) "nodes and"
-             (count (graph/edges Cgraph)) "edges")
-    (c/quick-bench
-      (let [coll (alg/dijkstra Cgraph (partial directions/duration Cgraph) #{src})]
+      (let [coll (alg/dijkstra graph #(directions/duration graph %1 %2)
+                                      tool/by-foot
+                                      #{src})]
         (alg/shortest-path dst coll))
       :os :runtime :verbose)))
 
@@ -66,9 +59,9 @@
 ;; I think nil src then search points less than src
 (test/deftest ^:benchmark nearest-neighbour-search
   (let [src   [7.038535 49.345088]
-        point (:v (first (data/index-range @networker :node/location src nil)))]
+        point (:v (tool/nearest-node @networker src))]
     (println "\n\nsaarland graph: nearest neighbour search with random src/dst")
     (println "B+ tree with:" (count (data/datoms @networker :eavt)) "nodes")
     (println "accuraccy: " (geometry/haversine src point))
-    (c/quick-bench (first (data/index-range @networker :node/location src nil))
+    (c/quick-bench (:v (tool/nearest-node @networker src))
                    :os :runtime :verbose)))
