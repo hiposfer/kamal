@@ -3,7 +3,8 @@
             [hiposfer.kamal.network.algorithms.core :as alg]
             [hiposfer.kamal.network.algorithms.protocols :as np]
             [hiposfer.kamal.network.graph.protocols :as gp]
-            [hiposfer.kamal.libs.geometry :as geometry]))
+            [hiposfer.kamal.libs.geometry :as geometry]
+            [datascript.core :as data]))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
 (def bearing-turns
@@ -31,11 +32,10 @@
 (defn duration
   "A very simple value computation function for Arcs in a graph.
   Returns the time it takes to go from arc src to dst based on osm/speeds"
-  [graph arc _] ;; 1 is a simple value used for test whenever no other value would be suitable
-  (let [src    (graph (gp/src arc))
-        dst    (graph (gp/dst arc))
-        length (geometry/haversine (np/lon src) (np/lat src)
-                                   (np/lon dst) (np/lat dst))]
+  [graph next-id trail] ;; 1 is a simple value used for test whenever no other value would be suitable
+  (let [src    (data/entity graph (key (first trail)))
+        dst    (data/entity graph next-id)
+        length (geometry/haversine (:node/location src) (:node/location dst))]
     (/ length osm/walking-speed)))
 
 (defn- linestring
