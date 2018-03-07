@@ -32,21 +32,13 @@
   "Generate alpha strings"
   (gen/fmap str/join (gen/vector gen/char-alpha)))
 
-(defn- wayver
-  "returns a network with a fake ways element to conform to the generated graph"
+(defn ways
+  "returns a sequence of way objects ready to be used in a Datascript transaction"
   [ids]
   (let [;; An string 90% of the time, nil 10%
         namer (gen/frequency [[1 (gen/return nil)]
                               [9 (gen/fmap str/capitalize string-alpha)]])]
     (for [id ids]
       {:way/id id
-       :way/name (gen/generate namer)})))
-
-(defn ways
-  "returns a graph generator with node's id between 0 and 3*size.
-  The generator creates a minimum of size elements"
-  [size]
-  (gen/fmap wayver (gen/set (gen/resize (* 3 size) gen/nat)
-                            {:min-elements size})))
-;; example usage
-;(gen/generate (ways 10))
+       :way/name (gen/generate namer)
+       :way/nodes (random-sample 0.2 ids)})))

@@ -1,6 +1,5 @@
 (ns hiposfer.kamal.network.algorithms.dijkstra
-  (:require [hiposfer.kamal.network.algorithms.protocols :as np]
-            [datascript.core :as data])
+  (:require [hiposfer.kamal.network.algorithms.protocols :as np])
   (:import (java.util HashMap Map AbstractMap$SimpleImmutableEntry)
            (clojure.lang Seqable IReduceInit IReduce Sequential)
            (org.teneighty.heap FibonacciHeap Heap Heap$Entry)))
@@ -62,7 +61,7 @@
         _      (.remove unsettled id)
         trail  (path settled id)]
     (relax! value settled unsettled entry queue
-            trail (successors (data/entity graph id)))
+            trail (successors graph id))
     trail))
 
 ; inspired by http://insideclojure.org/2015/01/18/reducible-generators/
@@ -93,11 +92,11 @@
 ; - shortest path with timeout
 ;
 ; the elements necessary to initialize a Dijkstra collection are
-; - network: a {id node} mapping
+; - graph: an collection of nodes over which the traversal will happen
 ; - ids: a #{ids}
-; - value: a function of current-arc, current-trace -> Valuable implementation
-; - arcs: a function of node -> [arc]. Used to get either the incoming or outgoing arcs of a node
-; - f: a function of Arc -> id. Used to get the id of the src or dst of an Arc
+; - value: a function of next-node, current-trace -> Valuable implementation
+; - successors: a function of id -> [ id ]. Used to get either the outgoing
+;               arcs of a node
 (deftype Dijkstra [graph ids value successors]
   Seqable
   (seq [_]
