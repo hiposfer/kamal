@@ -54,7 +54,7 @@
    Only valid for OSM nodes. Assumes bidirectional links i.e. nodes with
    back-references to id are also returned"
   [network id]
-  (concat (:node/successors (data/entity network id))
+  (concat (map :db/id (:node/successors (data/entity network id)))
           (map :e (take-while #(= (:v %) id)
                               (data/index-range network :node/successors id nil)))))
 

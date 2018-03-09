@@ -2,7 +2,8 @@
   (:require [clojure.test.check.generators :as gen]
             [hiposfer.geojson.specs :as geojson]
             [clojure.string :as str]
-            [clojure.spec.alpha :as s]))
+            [clojure.spec.alpha :as s]
+            [hiposfer.kamal.network.core :as network]))
 
 (defn- grapher
   "returns a graph based on the provided node ids. Random latitude and longitudes
@@ -16,7 +17,8 @@
         edges     (distinct (repeatedly (* 3 (count ids)) arcer))
         ;; first create nodes to store the edges
         nodes     (for [id ids]
-                    {:node/id id :node/lat (lat-gen) :node/lon (lon-gen)})]
+                    {:node/id id
+                     :node/location (network/->Location (lon-gen) (lat-gen))})]
     (concat nodes edges)))     ;; now connect the nodes
 
 (defn graph
