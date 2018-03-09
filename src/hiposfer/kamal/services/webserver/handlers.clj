@@ -24,8 +24,8 @@
   (when-let [net  (first networks)]
     (let [distances (map #(geometry/haversine (:node/location (tool/nearest-node @net %)) %)
                           points)]
-      (if (every? #(< max-distance %) distances)) @net
-        (recur (rest networks) points))))
+      (if (every? #(< max-distance %) distances) @net
+        (recur (rest networks) points)))))
 
 ;; ring handlers are matched in order
 (defn create
