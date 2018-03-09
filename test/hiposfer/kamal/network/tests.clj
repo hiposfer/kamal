@@ -14,7 +14,13 @@
 ;; Example taken from
 ;; https://rosettacode.org/wiki/Dijkstra%27s_algorithm
 ;; we assume bidirectional links
-(def rosetta [{:node/id 1
+(def rosetta [{:node/id 1}
+              {:node/id 2}
+              {:node/id 3}
+              {:node/id 4}
+              {:node/id 5}
+              {:node/id 6}
+              {:node/id 1
                :node/successors #{[:node/id 2] [:node/id 3] [:node/id 6]}}
               {:node/id 2
                :node/successors #{[:node/id 3] [:node/id 4]}}
@@ -23,9 +29,15 @@
               {:node/id 4
                :node/successors #{[:node/id 5]}}
               {:node/id 5
-               :node/successors #{[:node/successors 6]}}
+               :node/successors #{[:node/id 6]}}
               {:node/id 6
                :node/successors #{}}])
+
+(defn successors
+  "returns only the successors of id. Assuming that all of them are under
+  node/successors"
+  [network id]
+  (map :db/id (:node/successors (data/entity network id))))
 
 ;; hack. It shouldnt be like this but I am not going to modify the schema just
 ;; to make it pretty
@@ -40,15 +52,18 @@
 
 (defn- length
   [network dst trail]
-  (let [src    (data/entity network (key (first trail)))
-        dst    (data/entity network dst)]
+  (let [src    (:node/id (data/entity network (key (first trail))))
+        dst    (:node/id (data/entity network dst))]
+    ;(println src dst (get-in lengths [src dst]) trail)
     (get-in lengths [src dst])))
 
 (deftest shortest-path
   (let [dst       5
-        performer (alg/dijkstra rosetta
-                                #(length rosetta %1 %2)
-                                tool/node-successors
+        network   (data/create-conn router/schema)
+        _         (data/transact! network rosetta)
+        performer (alg/dijkstra @network
+                                #(length @network %1 %2)
+                                successors
                                 #{1})
         traversal (alg/shortest-path dst performer)]
     (is (not (empty? traversal))
@@ -57,9 +72,11 @@
         "shortest path doesnt traverse expected nodes")))
 
 (deftest all-paths
-  (let [performer (alg/dijkstra rosetta
-                                #(length rosetta %1 %2)
-                                tool/node-successors
+  (let [network   (data/create-conn router/schema)
+        _         (data/transact! network rosetta)
+        performer (alg/dijkstra @network
+                                #(length @network %1 %2)
+                                successors
                                 #{1})
         traversal (into {} (comp (map first)
                                  (map (juxt key (comp np/cost val))))
