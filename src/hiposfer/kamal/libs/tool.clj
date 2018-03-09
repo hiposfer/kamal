@@ -51,11 +51,20 @@
 
 (defn by-foot
   "takes a dereferenced Datascript connection and an entity id and returns
-  the successors of that entity. Only valid for OSM nodes"
-  [conn id]
-  (:node/successors (data/entity conn id)))
+  the successors of that entity. Only valid for OSM nodes. Assumes bidirectional
+  links"
+  [network id]
+  (concat (:node/successors (data/entity network id))
+          (map :e (take-while #(= (:v %) id)
+                              (data/index-range network :node/successors id nil)))))
 
 (defn nearest-node
   "returns the nearest node/location datom to point"
-  [graph point]
-  (first (data/index-range graph :node/location point nil)))
+  [network point]
+  (first (data/index-range network :node/location point nil)))
+
+(defn node-ways
+  "takes a dereferenced Datascript connection and an entity id and returns
+  the OSM ways that reference it. Only valid for OSM node ids"
+  [network id]
+  (take-while #(= (:v %) id) (data/index-range network :way/nodes id nil)))

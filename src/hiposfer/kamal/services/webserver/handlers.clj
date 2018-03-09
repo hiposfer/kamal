@@ -4,7 +4,8 @@
             [compojure.route :as route]
             [hiposfer.kamal.specs.mapbox.directions :as mapbox]
             [hiposfer.kamal.services.routing.directions :as dir]
-            [hiposfer.kamal.libs.geometry :as geometry]))
+            [hiposfer.kamal.libs.geometry :as geometry]
+            [hiposfer.kamal.libs.tool :as tool]))
 
 (defn- validate
   "validates that the coordinates and the radiuses conform to the mapbox specification.
@@ -15,17 +16,18 @@
       {:code "InvalidInput"
        :message "The same amount of radiuses and coordinates must be provided"})))
 
-(def available "xform - returns the networks that are available for computation"
-  (comp (map deref) (remove nil?)))
+(def max-distance 1000) ;; meters
 
 (defn- select
   "returns a network whose bounding box contains all points"
   [networks points]
-  (when-let [net (first networks)]
-    (if (every? #(geometry/contains? (:bbox net) %) points) net
-      (recur (rest networks) points))))
+  (when-let [net  (first networks)]
+    (let [distances (map #(geometry/haversine (:node/location (tool/nearest-node @net %)) %)
+                          points)]
+      (if (every? #(< max-distance %) distances)) @net
+        (recur (rest networks) points))))
 
-  ;; ring handlers are matched in order
+;; ring handlers are matched in order
 (defn create
   "creates an API handler with a closure around the router"
   [router]
@@ -41,7 +43,7 @@
                     ;; TODO: pull filter
       :return ::mapbox/response
       (let [error   (validate (:coordinates arguments) (:radiuses arguments))
-            regions (sequence available (:networks router))]
+            regions @(:networks router)]
         (if (some? error) error
           (if (empty? regions) (code/service-unavailable)
             (if-let [network (select regions (:coordinates arguments))]
