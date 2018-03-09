@@ -152,7 +152,7 @@
        ; both start and dst should be found since we checked that before
         traversal  (alg/dijkstra network
                                  #(duration network %1 %2)
-                                 tool/by-foot
+                                 tool/node-successors
                                  #{(:e start)})
         rtrail     (alg/shortest-path (:e dst) traversal)]
     (if (some? rtrail)
