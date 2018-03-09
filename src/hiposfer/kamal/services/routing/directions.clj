@@ -54,7 +54,7 @@
 (defn- maneuver
   "returns a step manuever"
   [network prev-piece  piece next-piece]
-  (let [location     (location network (key (ffirst piece)))
+  (let [position     (location network (key (ffirst piece)))
         pre-bearing  (geometry/bearing (location network (key (ffirst prev-piece)))
                                        (location network (key (ffirst piece))))
         post-bearing (geometry/bearing (location network (key (ffirst piece)))
@@ -63,7 +63,7 @@
         modifier     (val (last (subseq bearing-turns <= angle)))
         way-name     (:way/name (data/entity network (second (first piece))))
         instruction  (str "Take " modifier (when way-name (str " on " way-name)))]
-    {:location (->coordinates  location)
+    {:location (->coordinates  position)
      ;; todo: implement maneuver type
      ;https://www.mapbox.com/api-documentation/#maneuver-types
      :type     "turn"
