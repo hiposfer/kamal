@@ -45,13 +45,13 @@
    component of a undirected graph
 
    NOTE: only relevant for pedestrian routing"
-  [graph settled]
-  (if (= (count graph) (count settled)) (list)
+  [network settled]
+  (if (= (count (node-ids network)) (count settled)) (list)
     (let [start     (some #(and (not (settled %)) %)
-                          (node-ids graph))
+                          (node-ids network))
           connected (into #{} (comp (map first) (map key))
-                          (breath-first graph tool/node-successors start))]
-      (cons connected (lazy-seq (components graph (set/union settled connected)))))))
+                          (breath-first network tool/node-successors start))]
+      (cons connected (lazy-seq (components network (set/union settled connected)))))))
 
 ;; note for specs: the looner of the looner should be empty
 (defn looners
@@ -59,7 +59,7 @@
   because they are not part of the strongest connected component
 
   NOTE: only relevant for pedestrian routing"
-  [graph]
-  (let [subsets   (components graph #{})
+  [network]
+  (let [subsets   (components network #{})
         connected (apply max-key count subsets)]
-    (remove #(contains? connected %) (node-ids graph))))
+    (remove #(contains? connected %) (node-ids network))))

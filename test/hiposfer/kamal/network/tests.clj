@@ -173,6 +173,8 @@
   (prop/for-all [graph (gen/such-that not-empty (ng/graph 10) 1000)]
     (let [network (data/create-conn router/schema)
           _ (data/transact! network graph)
+          r1      (alg/looners @network)
+          _ (data/transact! network (map #(vector :db.fn/retractEntity %) r1))
           src  (rand-nth (alg/node-ids @network))
           coll (alg/dijkstra @network
                              #(direction/duration @network %1 %2)
