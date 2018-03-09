@@ -12,7 +12,7 @@
   Parameters:
    - graph: an collection of nodes over which the traversal will happen.
             Expected to be a Datascript db but need not be
-   - value-by is a function that takes a (tempting) node-entity id and Trail
+   - value-by is a function that takes a (tempting) node-entity id and a Trail
               and returns a Valuable implementation representing the weigth of traversing
               from the current node to the tempting one
    - successors: a function of id -> [ id ]. Used to get the id of the next nodes
@@ -50,7 +50,7 @@
     (let [start     (some #(and (not (settled %)) %)
                           (node-ids graph))
           connected (into #{} (comp (map first) (map key))
-                              (breath-first graph tool/by-foot start))]
+                          (breath-first graph tool/node-successors start))]
       (cons connected (lazy-seq (components graph (set/union settled connected)))))))
 
 ;; note for specs: the looner of the looner should be empty

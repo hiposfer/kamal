@@ -81,18 +81,18 @@
    of and all the networks of the system as agents"
   [] (map->Router {}))
 
-(def network (time (osm/datomize "resources/osm/saarland.min.osm.bz2")))
-(def network nil)
+;(def network (time (osm/datomize "resources/osm/saarland.min.osm.bz2")))
+;(def network nil)
 
-(def conn (data/create-conn schema))
+;(def conn (data/create-conn schema))
 
 ;(time (map :v (take 5 (data/index-range @conn :node/location [6.9513 49.318267] nil))))
 
-(let [a (time (data/transact! conn network))]
-  (take-last 5 (data/datoms @conn :eavt)))
+;(let [a (time (data/transact! conn network))]
+;  (take-last 5 (data/datoms @conn :eavt)))
 
-(time (into {} (data/entity @conn 202982)))
+;(time (into {} (data/entity @conn 202982)))
 
-(take 5 (data/datoms @conn :eavt))
-(time ; aevt
-  (take-while #(= (:v %) 1) (data/index-range @conn :way/nodes 1 nil)))
+;(take 5 (data/datoms @conn :eavt))
+;(time ; aevt
+;  (take-while #(= (:v %) 1) (data/index-range @conn :way/nodes 1 nil)))
