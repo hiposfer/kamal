@@ -43,7 +43,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;; REQUEST
 
-(s/def ::radiuses (s/coll-of #(or (= "unlimited" %) (pos? %))))
+(s/def ::radiuses (s/coll-of (s/or :string #{"unlimited"} :number (s/and int? pos?))))
 (s/def ::language string?)
 ;; TODO: dirty hack to avoid separating namespaces
 (s/def :mapbox.directions.request/steps boolean?)
