@@ -55,13 +55,13 @@
   [ag area dev]
   (println "-- starting area router:" area)
   (let [vehicle     (when (and (not dev) (:gtfs area))
-                      (future (time (gtfs/datomize (:gtfs area)))))
+                      (time (gtfs/datomize (:gtfs area))))
         pedestrian  (if (true? dev)
                       (let [graph (gen/generate (ng/graph (:size area)))]
                         (concat graph (ng/ways (alg/node-ids graph))))
                       (time (osm/datomize (:osm area))))
         conn  (data/create-conn schema)]
-    (time (data/transact! conn (concat pedestrian @vehicle)))
+    (time (data/transact! conn (concat pedestrian vehicle)))
     (conj ag conn)))
 
 (defrecord Router [config networks]
