@@ -7,7 +7,6 @@
             [hiposfer.kamal.network.algorithms.protocols :as np]
             [hiposfer.kamal.services.routing.directions :as direction]
             [hiposfer.kamal.network.generators :as ng]
-            [hiposfer.kamal.network.graph.core :as graph]
             [hiposfer.kamal.libs.tool :as tool]
             [datascript.core :as data]
             [hiposfer.kamal.services.routing.core :as router]))
