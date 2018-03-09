@@ -5,7 +5,8 @@
             [hiposfer.kamal.parsers.gtfs.core :as gtfs]
             [datascript.core :as data]
             [com.stuartsierra.component :as component]
-            [hiposfer.kamal.network.algorithms.core :as alg]))
+            [hiposfer.kamal.network.algorithms.core :as alg]
+            [hiposfer.kamal.libs.tool :as tool]))
 
 ;; NOTE: we use :db/index true to replace the lack of :VAET index in datascript
 ;; This is for performance. In lots of cases we want to lookup back-references
@@ -49,6 +50,31 @@
              :stop.time/trip  {:db/type :db.type/ref}
              :stop.time/stop  {:db/type :db.type/ref}})
 
+(def pair-stops '[:find ?stop ?node
+                  :in $
+                  :where [?stop :stop/id]
+                  [?stop :stop/location ?loc]
+                  [(tool/nearest-node $ ?loc) ?node]])
+
+(defn link-stops
+  "takes a network, looks up the nearest node for each stop and returns
+  a transaction that will link those"
+  [network]
+  (let [stop-dnode (data/q pair-stops network)]
+    (for [[stop dnode] stop-dnode]
+      {:db/id (:e dnode)
+       :node/successors #{stop}})))
+
+;(time
+;  (link-stops @(first @(:networks (:router hiposfer.kamal.dev/system)))))
+;
+;(let [a (data/transact! (first @(:networks (:router hiposfer.kamal.dev/system)))
+;                        (link-stops @(first @(:networks (:router hiposfer.kamal.dev/system)))))]
+;  (println "OK"))
+;
+;(into {} (data/entity @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;                      403908))
+
 ;; TODO: link OSM nodes with GTFS stops
 (defn exec!
   "builds a datascript in-memory db and conj's it into the passed agent"
@@ -80,19 +106,3 @@
   "returns a Router record that will contain the config
    of and all the networks of the system as agents"
   [] (map->Router {}))
-
-;(def network (time (osm/datomize "resources/osm/saarland.min.osm.bz2")))
-;(def network nil)
-
-;(def conn (data/create-conn schema))
-
-;(time (map :v (take 5 (data/index-range @conn :node/location [6.9513 49.318267] nil))))
-
-;(let [a (time (data/transact! conn network))]
-;  (take-last 5 (data/datoms @conn :eavt)))
-
-;(time (into {} (data/entity @conn 202982)))
-
-;(take 5 (data/datoms @conn :eavt))
-;(time ; aevt
-;  (take-while #(= (:v %) 1) (data/index-range @conn :way/nodes 1 nil)))
