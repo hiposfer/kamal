@@ -4,19 +4,15 @@
             [clojure.test.check.generators :as gen]
             [hiposfer.kamal.parsers.gtfs.core :as gtfs]
             [datascript.core :as data]
-            [com.stuartsierra.component :as component]))
+            [com.stuartsierra.component :as component]
+            [hiposfer.kamal.network.algorithms.core :as alg]))
 
-;; NOTE: we only model outgoing links of the graph. If you are interested
-;; in the incoming ones, use a query to find those. It wont be as performant
-;; a direct lookup but I guess that if you are using incoming links, you must
-;; know what you are doing ;)
-
-;; NOTE: we actually have double side relations in the database. Meaning that
-;; if there is a bidirectional connection between a and b then both of them will
-;; have their neighbours id stored in the db. This is due to speed. A single
-;; entity lookup takes around 200 microseconds, while a query for those takes
-;; around 50 milliseconds. For graph traversals that is unacceptable !!
-;; This however goes against Datomic best practices :(
+;; NOTE: we use :db/index true to replace the lack of :VAET index in datascript
+;; This is for performance. In lots of cases we want to lookup back-references
+;; to a certain datom. Without indexes it is not possible to find it without
+;; traversing most (all?) of the db.
+;; The same kind of behavior can be achieved by combining entity with index-range
+;; such that the queries can still be answered pretty fast :)
 
 ;; NOTE: we use a node/location instead of lat, lon separate to avoid creating
 ;; so many datoms and to have a single entity that we can apply protocols against.
@@ -27,11 +23,13 @@
              :node/id         {:db.unique :db.unique/identity}
              :node/location   {:db/index true}
              :node/successors {:db.type        :db.type/ref
-                               :db.cardinality :db.cardinality/many}
+                               :db.cardinality :db.cardinality/many
+                               :db/index true}
 
              :way/id          {:db.unique :db.unique/identity}
              :way/nodes       {:db.type        :db.type/ref
-                               :db.cardinality :db.cardinality/many}
+                               :db.cardinality :db.cardinality/many
+                               :db/index true}
 
              ;; General Transfer Feed Specification - entities
              :trip/id         {:db.unique :db.unique/identity}
@@ -46,8 +44,7 @@
              :route/agency    {:db/type :db.type/ref}
 
              :stop/id         {:db.unique :db.unique/identity}
-             :stop/lat        {:db/index true}
-             :stop/lon        {:db/index true}
+             :stop/location   {:db/index true}
 
              :stop.time/trip  {:db/type :db.type/ref}
              :stop.time/stop  {:db/type :db.type/ref}})
@@ -60,8 +57,8 @@
   (let [vehicle     (when (and (not dev) (:gtfs area))
                       (future (gtfs/datomize (:gtfs area))))
         pedestrian  (if (true? dev)
-                      (concat (gen/generate (ng/graph (:size area)))
-                              (gen/generate (ng/ways (:size area))))
+                      (let [graph (gen/generate (ng/graph (:size area)))]
+                        (concat graph (ng/ways (alg/node-ids graph))))
                       (osm/datomize (:osm area)))
         conn  (data/create-conn schema)]
     (data/transact! conn (concat pedestrian @vehicle))
@@ -84,11 +81,18 @@
    of and all the networks of the system as agents"
   [] (map->Router {}))
 
-;(def network (time (osm/datomize "resources/osm/saarland.min.osm.bz2")))
+(def network (time (osm/datomize "resources/osm/saarland.min.osm.bz2")))
+(def network nil)
 
-;(def conn (data/create-conn schema))
+(def conn (data/create-conn schema))
 
 ;(time (map :v (take 5 (data/index-range @conn :node/location [6.9513 49.318267] nil))))
 
-;(let [a (time (data/transact! conn network))]
- ; (take-last 5 (data/datoms @conn :eavt)))
+(let [a (time (data/transact! conn network))]
+  (take-last 5 (data/datoms @conn :eavt)))
+
+(time (into {} (data/entity @conn 202982)))
+
+(take 5 (data/datoms @conn :eavt))
+(time ; aevt
+  (take-while #(= (:v %) 1) (data/index-range @conn :way/nodes 1 nil)))

@@ -34,8 +34,8 @@
 (defn shortest-path
   "returns the path taken to reach dst using the provided graph traversal"
   [dst-id graph-traversal]
-  (let [pred? (comp #{dst-id} key first)
-        rf    (fn [_ value] (when (pred? value) (reduced value)))]
+  (let [dst? (comp #{dst-id} key first)
+        rf    (fn [_ value] (when (dst? value) (reduced value)))]
     (reduce rf nil graph-traversal)))
 
 (defn node-ids [graph] (map :e (data/datoms graph :aevt :node/id)))

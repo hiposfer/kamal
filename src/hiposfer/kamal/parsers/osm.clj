@@ -127,13 +127,11 @@
                                       (filter #(contains? ids (:node/id %))))
                                 nodes&ways)
         neighbours    (for [way ways]
-                        (mapcat (fn [from to]
-                                  [{:node/id         from
-                                    :node/successors #{[:node/id to]}}
-                                   {:node/id         to
-                                    :node/successors #{[:node/id from]}}])
-                                (:way/nodes way)
-                                (rest (:way/nodes way))))]
+                        (map (fn [from to]
+                               {:node/id         from
+                                :node/successors #{[:node/id to]}})
+                             (:way/nodes way)
+                             (rest (:way/nodes way))))]
     (concat nodes (for [way ways]
                     (assoc way :way/nodes (map #(vector :node/id %) (:way/nodes way))))
                   (sequence cat neighbours))))
