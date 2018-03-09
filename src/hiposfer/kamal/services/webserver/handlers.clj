@@ -22,9 +22,9 @@
   "returns a network whose bounding box contains all points"
   [networks points]
   (when-let [net  (first networks)]
-    (let [distances (map #(geometry/haversine (:node/location (tool/nearest-node @net %)) %)
+    (let [distances (map #(geometry/haversine % (:v (tool/nearest-node @net %)))
                           points)]
-      (if (every? #(< max-distance %) distances) @net
+      (if (every? #(< % max-distance) distances) @net
         (recur (rest networks) points)))))
 
 ;; ring handlers are matched in order
@@ -49,11 +49,16 @@
             (if-let [network (select regions (:coordinates arguments))]
               (code/ok (dir/direction network arguments))
               (code/ok {:code "NoSegment"
-                        :message "No road segment could be matched for coordinates.
-                                     Check for coordinates too far away from a road."}))))))
+                        :message "No road segment could be matched for coordinates"}))))))
     (sweet/undocumented ;; returns a 404 when nothing matched
       (route/not-found (code/not-found "we couldnt find what you were looking for")))))
 
 
+;; TESTS
 ;{"arguments":
-; {"coordinates": [[6.905707,49.398459],[6.705707,49.58459]]}}
+; {"coordinates": [[6.905707,49.398459],
+;                  [6.8992, 49.4509]]}}
+
+;(select @(:networks (:router hiposfer.kamal.dev/system))
+;        [[6.905707,49.398459]
+;         [6.8992, 49.4509]])
