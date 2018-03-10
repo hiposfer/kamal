@@ -67,9 +67,9 @@
 ;; I think nil src then search points less than src
 (test/deftest ^:benchmark nearest-neighbour-search
   (let [src   [7.038535 49.345088]
-        point (:v (tool/nearest-node @network src))]
+        point (:v (tool/nearest-node @@network src))]
     (println "\n\nsaarland graph: nearest neighbour search with random src/dst")
-    (println "B+ tree with:" (count (data/datoms @network :eavt)) "nodes")
+    (println "B+ tree with:" (count (data/datoms @@network :eavt)) "nodes")
     (println "accuraccy: " (geometry/haversine src point) "meters")
-    (c/quick-bench (:v (tool/nearest-node @network src))
+    (c/quick-bench (:v (tool/nearest-node @@network src))
                    :os :runtime :verbose)))
