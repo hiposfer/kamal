@@ -50,15 +50,16 @@
           coll))
 
 (defn node-successors
-  "takes a network and an entity id and returns the successors of that entity.
+  "takes a network and an entity and returns the successors of that entity.
    Only valid for OSM nodes. Assumes bidirectional links i.e. nodes with
-   back-references to id are also returned"
-  [network id]
-  (concat (map :db/id (:node/successors (data/entity network id)))
-          (map :e (take-while #(= (:v %) id)
-                              (data/index-range network :node/successors id nil)))))
+   back-references to it are also returned"
+  [network entity]
+  (map #(data/entity network %)
+       (concat (map :db/id (:node/successors entity))
+               (map :e (take-while #(= (:v %) (:db/id entity))
+                         (data/index-range network :node/successors (:db/id entity) nil))))))
 
-(defn nearest-node
+(defn nearest-location
   "returns the nearest node/location datom to point"
   [network point]
   (first (data/index-range network :node/location point nil)))
