@@ -33,12 +33,17 @@
 
 (defn shortest-path
   "returns the path taken to reach dst using the provided graph traversal"
-  [dst-id graph-traversal]
-  (let [dst? (comp #{dst-id} key first)
-        rf    (fn [_ value] (when (dst? value) (reduced value)))]
+  [dst graph-traversal]
+  (let [dst? (comp #{dst} key first)
+        rf   (fn [_ value] (when (dst? value) (reduced value)))]
     (reduce rf nil graph-traversal)))
 
-(defn node-ids [graph] (map :e (data/datoms graph :aevt :node/id)))
+(defn nodes
+  "returns all the node entities in the network"
+  [network]
+  (sequence (comp (map :e)
+                  (map #(data/entity network %)))
+            (data/datoms network :aevt :node/id)))
 
 (defn- components
   "returns a lazy sequence of sets of nodes' ids of each strongly connected
@@ -46,12 +51,14 @@
 
    NOTE: only relevant for pedestrian routing"
   [network settled]
-  (if (= (count (node-ids network)) (count settled)) (list)
+  (if (= (count (nodes network)) (count settled)) (list)
     (let [start     (some #(and (not (settled %)) %)
-                          (node-ids network))
-          connected (into #{} (comp (map first) (map key))
-                          (breath-first network tool/node-successors start))]
-      (cons connected (lazy-seq (components network (set/union settled connected)))))))
+                           (nodes network))
+          connected (breath-first network tool/node-successors start)]
+     (cons connected
+           (lazy-seq (components network (into settled
+                                               (comp (map first) (map key))
+                                               connected)))))))
 
 ;; note for specs: the looner of the looner should be empty
 (defn looners
@@ -62,4 +69,4 @@
   [network]
   (let [subsets   (components network #{})
         connected (apply max-key count subsets)]
-    (remove #(contains? connected %) (node-ids network))))
+    (remove #(contains? connected %) (nodes network))))
