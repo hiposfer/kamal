@@ -35,20 +35,31 @@
                    (let [data (osm/datomize "resources/osm/saarland.min.osm.bz2")
                          conn (data/create-conn router/schema)]
                      (data/transact! conn data)
-                     @conn)))) ;; dont allow transact anymore
+                     conn))))
 
 ;(take 10 (:network @networker)) ;; force read
 ;(take 10 (alg/biggest-component (:network @networker)))
 
 (test/deftest ^:benchmark dijkstra-saarland-graph
-  (let [src     (rand-nth (alg/node-ids @network))
-        dst     (rand-nth (alg/node-ids @network))]
-    (println "\n\nDIJKSTRA forward with:" (count (alg/node-ids @network)) "nodes")
+  (let [src     (first (alg/node-ids @@network))
+        dst     (last (alg/node-ids @@network))
+        removable (alg/looners @@network)]
+    (println "\n\nDIJKSTRA forward with:" (count (alg/node-ids @@network)) "nodes")
     (println "saarland graph:")
     (c/quick-bench
-      (let [coll (alg/dijkstra @network #(directions/duration @network %1 %2)
+      (let [coll (alg/dijkstra @@network #(directions/duration @@network %1 %2)
                                          tool/node-successors
                                          #{src})]
+        (alg/shortest-path dst coll))
+      :os :runtime :verbose)
+    (println "--------")
+    (println "using only strongly connected components of the original graph")
+    (data/transact! @network (map #(vector :db.fn/retractEntity %) removable))
+    (println "with:" (count (alg/node-ids @@network)) "nodes")
+    (c/quick-bench
+      (let [coll (alg/dijkstra @@network #(directions/duration @@network %1 %2)
+                               tool/node-successors
+                               #{src})]
         (alg/shortest-path dst coll))
       :os :runtime :verbose)))
 
@@ -59,6 +70,6 @@
         point (:v (tool/nearest-node @network src))]
     (println "\n\nsaarland graph: nearest neighbour search with random src/dst")
     (println "B+ tree with:" (count (data/datoms @network :eavt)) "nodes")
-    (println "accuraccy: " (geometry/haversine src point))
+    (println "accuraccy: " (geometry/haversine src point) "meters")
     (c/quick-bench (:v (tool/nearest-node @network src))
                    :os :runtime :verbose)))
