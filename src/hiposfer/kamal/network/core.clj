@@ -38,4 +38,4 @@
 (extend-type Number
   np/Valuable
   (cost [this] this)
-  (sum  [this that] (+ this that)))
+  (sum  [this that] (+ this (np/cost that))))

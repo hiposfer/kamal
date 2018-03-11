@@ -48,8 +48,8 @@
 
 (defn respace
   "takes a keyword and a set of keywords and attempts to convert it into a
-  namespaced keyword using the set posibilities. Returns a qualified keyword
-  with the matched ns or default-ns otherwise"
+  namespaced keyword using the set possibilities. Returns a qualified keyword
+  with the matched ns"
   [k]
   (let [nk (name k)]
     (when-let [kt (first (filter #(str/starts-with? nk (name %)) ns-keys))]

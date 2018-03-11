@@ -5,7 +5,8 @@
             [hiposfer.kamal.libs.geometry :as geometry]
             [datascript.core :as data]
             [hiposfer.kamal.libs.tool :as tool]
-            [clojure.set :as set]))
+            [clojure.set :as set])
+  (:import (java.time LocalDateTime)))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
 (def bearing-turns
@@ -35,11 +36,100 @@
 (defn duration
   "A very simple value computation function for arcs in a network.
   Returns the time it takes to go from src to dst based on walking speeds"
-  [network next-id trail] ;; 1 is a simple value used for test whenever no other value would be suitable
+  [network next-id trail]
   (let [src    (location network (key (first trail)))
         dst    (location network next-id)
         length (geometry/haversine src dst)]
     (/ length osm/walking-speed)))
+
+;; a TripStep represents the transition between two points somehow related to a GTFS
+;; feed. "Somehow" means that not necessarily both points need to be GTFS stops
+(defrecord TripStep [trip value]
+  np/Valuable
+  (cost [_] value)
+  (sum [this that] (assoc this :value (+ value (np/cost that))))
+  ;; compare based on value not on trip. Useful for Fibonnacci Heap order
+  Comparable
+  (compareTo [_ that] (compare value (np/cost that))))
+
+;; find a trip that departs after the current user time
+;; from the specified stop
+(def upcoming-trip '[:find ?tid ?departure
+                     :in $ ?src-id ?dst-id ?now ?start
+                     :where [?src :stop.time/stop ?src-id]
+                            [?dst :stop.time/stop ?dst-id]
+                            [?src :stop.time/trip ?trip]
+                            [?dst :stop.time/trip ?trip]
+                            [?dst :stop.time/arrival_time ?seconds]
+                            [(.plusSeconds ?start ?seconds) ?departure] ;; TODO: do I need to type hint this? ^java.time.LocalDateTime
+                            [(.isAfter ?now ?departure)]]) ;; TODO: do I need to type hint this? ^java.time.LocalDateTime
+
+;; find the arrival time of a trip to a certain stop
+(def continue-trip '[:find ?departure
+                     :in $ ?dst-id ?trip ?start
+                     :where [?dst :stop.time/stop ?dst-id]
+                            [?dst :stop.time/trip ?trip]
+                            [?dst :stop.time/arrival_time ?seconds]
+                            [(.plusSeconds ?start ?seconds) ?departure]])
+
+(def penalty 30) ;; seconds
+
+(defn node? [e] (:node/id e))
+(defn stop? [e] (:stop/id e))
+(defn trip-step? [o] (instance? TripStep o))
+
+(defn walk-time [src dst] (/ (geometry/haversine (:node/location src) (:node/location dst))
+                             osm/walking-speed))
+
+;; find all possible destination stops
+(def next-stops '[:find ?dst
+                  :in $ ?src-id
+                  :where [?src :stop.time/stop ?src-id]
+                         [?src :stop.time/trip ?trip]
+                         [?dst :stop.time/trip ?trip]
+                         [?src :stop/sequence ?s1]
+                         [?dst :stop/sequence ?s2]
+                         [(> s2 s1)]])
+
+(defn successors
+  "takes a network and an entity id and returns the successors of that entity"
+  [network id]
+  (let [e (data/entity network id)]
+    (if (node? e) ;; else stop
+      (concat (map :db/id (:node/successors e))
+              (map :e (take-while #(= (:v %) id)
+                                  (data/index-range network :node/successors id nil))))
+      (data/q next-stops network id))));; TODO: is this fast?
+
+(defn with-timetable
+  "provides routing calculations using both GTFS feed and OSM nodes. Returns
+  a Long for walking parts and a TripStep for GTFS related ones."
+  [network ^LocalDateTime start next-id trail]
+  (let [pre-id (key (first trail))
+        src    (data/entity network pre-id)
+        cost   (val (first trail))
+        dst    (data/entity network next-id)]
+    (cond
+      ;; The user just walking so we route based on walking speed
+      (and (node? src) (or (node? dst) (stop? dst)))
+      (walk-time src dst)
+      ;; the user is trying to leave a vehicle. Apply penalty but route
+      ;; normally
+      (and (stop? src) (node? dst))
+      (+ penalty (walk-time src dst))
+      ;; the user is trying to get into a vehicle. We need to find the next
+      ;; coming trip
+      (and (stop? src) (stop? dst) (not (trip-step? cost)))
+      (let [trip-departs   (data/q upcoming-trip network pre-id next-id cost start)
+            trip-departs2  (sort-by second trip-departs)
+            [trip departs] (first trip-departs2)]
+        (->TripStep trip departs)) ;; TODO: what happens if we dont find an upcoming trip?
+      ;; the user is already in a trip. Just find that trip for the src/dst
+      ;; combination
+      :on-board
+      (let [departures (data/q continue-trip network dst cost start)
+            departs    (first (sort departures))]
+        (->TripStep (:trip cost) departs)))))
 
 (defn- linestring
   "get a geojson linestring based on the route path"
@@ -150,10 +240,9 @@
         start      (tool/nearest-node network (first coordinates)) ;; nil when lat,lon are both greater than
         dst        (tool/nearest-node network (last coordinates)) ;; any node in the network
        ; both start and dst should be found since we checked that before
-        traversal  (alg/dijkstra network
-                                 #(duration network %1 %2)
-                                 tool/node-successors
-                                 #{(:e start)})
+        traversal  (alg/dijkstra network #{(:e start)}
+                       {:value-by #(duration network %1 %2)
+                        :successors tool/node-successors})
         rtrail     (alg/shortest-path (:e dst) traversal)]
     (if (some? rtrail)
       {:code "Ok"

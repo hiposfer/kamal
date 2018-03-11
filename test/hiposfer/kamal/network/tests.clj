@@ -64,10 +64,8 @@
   (let [dst       5
         network   (data/create-conn router/schema)
         _         (data/transact! network rosetta)
-        performer (alg/dijkstra @network
-                                #(length @network %1 %2)
-                                successors
-                                #{1})
+        performer (alg/dijkstra @network #{1} {:value-by #(length @network %1 %2)
+                                               :successors successors})
         traversal (alg/shortest-path dst performer)]
     (is (not (empty? traversal))
         "shortest path not found")
@@ -77,10 +75,8 @@
 (deftest all-paths
   (let [network   (data/create-conn router/schema)
         _         (data/transact! network rosetta)
-        performer (alg/dijkstra @network
-                                #(length @network %1 %2)
-                                successors
-                                #{1})
+        performer (alg/dijkstra @network #{1} {:value-by #(length @network %1 %2)
+                                               :successors successors})
         traversal (into {} (comp (map first)
                                  (map (juxt key (comp np/cost val))))
                            performer)]
@@ -89,6 +85,9 @@
     (is (= {1 0, 2 7, 3 9, 4 20, 5 26, 6 11}
            traversal)
         "shortest path doesnt traverse expected nodes")))
+
+(defn opts [network] {:value-by #(direction/duration network %1 %2)
+                      :successors tool/node-successors})
 
 ; -------------------------------------------------------------------
 ; The Dijkstra algorithm is deterministic, therefore for the same src/dst
@@ -101,10 +100,7 @@
           _ (data/transact! network graph)
           src  (rand-nth (alg/node-ids @network))
           dst  (rand-nth (alg/node-ids @network))
-          coll (alg/dijkstra @network
-                             #(direction/duration @network %1 %2)
-                             tool/node-successors
-                             #{src})
+          coll (alg/dijkstra @network #{src} (opts @network))
           results (for [_ (range 10)]
                     (alg/shortest-path dst coll))]
       (or (every? nil? results)
@@ -121,10 +117,7 @@
           _ (data/transact! network graph)
           src  (rand-nth (alg/node-ids @network))
           dst  (rand-nth (alg/node-ids @network))
-          coll (alg/dijkstra @network
-                             #(direction/duration @network %1 %2)
-                             tool/node-successors
-                             #{src})
+          coll (alg/dijkstra @network #{src} (opts @network))
           result (alg/shortest-path dst coll)]
       (is (or (nil? result)
               (apply >= (concat (map (comp np/cost val) result)
@@ -141,10 +134,7 @@
     (let [network (data/create-conn router/schema)
           _ (data/transact! network graph)
           src  (rand-nth (alg/node-ids @network))
-          coll (alg/dijkstra @network
-                             #(direction/duration @network %1 %2)
-                             tool/node-successors
-                             #{src})
+          coll (alg/dijkstra @network #{src} (opts @network))
           result (alg/shortest-path src coll)]
       (is (not-empty result)
           "no path from node to himself found")
@@ -179,10 +169,7 @@
           r1      (alg/looners @network)
           _ (data/transact! network (map #(vector :db.fn/retractEntity %) r1))
           src  (rand-nth (alg/node-ids @network))
-          coll (alg/dijkstra @network
-                             #(direction/duration @network %1 %2)
-                             tool/node-successors
-                             #{src})]
+          coll (alg/dijkstra @network #{src} (opts @network))]
       (is (seq? (reduce (fn [r v] v) nil coll))
           "biggest components should not contain links to nowhere"))))
 
