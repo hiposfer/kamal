@@ -11,6 +11,9 @@
             [hiposfer.kamal.services.routing.core :as router]
             [datascript.core :as data]))
 
+(defn opts [network] {:value-by #(directions/duration network %1 %2)
+                      :successors tool/node-successors})
+
 ;; This is just to show the difference between a randomly generated network
 ;; and a real-world network. The randomly generated network does not have a structure
 ;; meant to go from one place to the other, thus Dijkstra almost always fails to
@@ -24,9 +27,7 @@
     (println "\n\nDIJKSTRA forward with:" (count (alg/node-ids @network)) "nodes")
     (println "**random graph")
     (c/quick-bench
-      (let [coll (alg/dijkstra @network #(directions/duration @network %1 %2)
-                                         tool/node-successors
-                                         #{src})]
+      (let [coll (alg/dijkstra @network #{src} (opts @network))]
         (alg/shortest-path dst coll))
       :os :runtime :verbose)))
 
@@ -47,9 +48,7 @@
     (println "\n\nDIJKSTRA forward with:" (count (alg/node-ids @@network)) "nodes")
     (println "saarland graph:")
     (c/quick-bench
-      (let [coll (alg/dijkstra @@network #(directions/duration @@network %1 %2)
-                                         tool/node-successors
-                                         #{src})]
+      (let [coll (alg/dijkstra @@network #{src} (opts @@network))]
         (alg/shortest-path dst coll))
       :os :runtime :verbose)
     (println "--------")
@@ -57,9 +56,7 @@
     (data/transact! @network (map #(vector :db.fn/retractEntity %) removable))
     (println "with:" (count (alg/node-ids @@network)) "nodes")
     (c/quick-bench
-      (let [coll (alg/dijkstra @@network #(directions/duration @@network %1 %2)
-                               tool/node-successors
-                               #{src})]
+      (let [coll (alg/dijkstra @@network #{src} (opts @@network))]
         (alg/shortest-path dst coll))
       :os :runtime :verbose)))
 
