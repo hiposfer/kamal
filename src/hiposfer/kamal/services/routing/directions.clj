@@ -123,7 +123,8 @@
       (let [trip-departs   (data/q upcoming-trip network pre-id next-id cost start)
             trip-departs2  (sort-by second trip-departs)
             [trip departs] (first trip-departs2)]
-        (->TripStep trip departs)) ;; TODO: what happens if we dont find an upcoming trip?
+        (when (not-empty trip-departs)
+          (->TripStep trip departs)))
       ;; the user is already in a trip. Just find that trip for the src/dst
       ;; combination
       :on-board

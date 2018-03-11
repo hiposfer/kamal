@@ -38,17 +38,19 @@
       (recur value settled unsettled entry queue trail (rest node-successors))
       (let [id      (first node-successors)
             prev-id (key (.getValue entry))
-            weight  (np/sum (value id trail);;TODO: allow nil value for impossible connections
-                            (.getKey entry))
-            trace2  (trace id prev-id)
-            old-entry ^Heap$Entry (.get unsettled id)]
-        (if (nil? old-entry)
-          (.put unsettled id (.insert queue weight trace2))
-          (when (< weight (.getKey old-entry))
-            (.setValue old-entry trace2)
-            (.decreaseKey queue old-entry weight)))
-        (recur value settled unsettled entry queue
-               trail (rest node-successors))))))
+            v       (value id trail)]
+        (if (nil? v) ;; no path, infinite cost -> ignore it
+          (recur value settled unsettled entry queue trail (rest node-successors))
+          (let [weight  (np/sum v (.getKey entry))
+                trace2  (trace id prev-id)
+                old-entry ^Heap$Entry (.get unsettled id)]
+            (if (nil? old-entry)
+              (.put unsettled id (.insert queue weight trace2))
+              (when (< weight (.getKey old-entry))
+                (.setValue old-entry trace2)
+                (.decreaseKey queue old-entry weight)))
+            (recur value settled unsettled entry queue
+                   trail (rest node-successors))))))))
 
 (defn- produce!
   "returns a lazy sequence of traces by sequentially mutating the
