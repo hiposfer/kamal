@@ -50,6 +50,7 @@
              :stop.time/trip  {:db/type :db.type/ref}
              :stop.time/stop  {:db/type :db.type/ref}})
 
+;; This might not be the best approach but it gets the job done for the time being
 (def pair-stops '[:find ?stop ?node
                   :in $
                   :where [?stop :stop/id]
@@ -75,7 +76,6 @@
 ;(into {} (data/entity @(first @(:networks (:router hiposfer.kamal.dev/system)))
 ;                      403908))
 
-;; TODO: link OSM nodes with GTFS stops
 (defn exec!
   "builds a datascript in-memory db and conj's it into the passed agent"
   [ag area dev]
@@ -86,8 +86,9 @@
                       (let [graph (gen/generate (ng/graph (:size area)))]
                         (concat graph (ng/ways (alg/node-ids graph))))
                       (time (osm/datomize (:osm area))))
-        conn  (data/create-conn schema)]
+        conn        (data/create-conn schema)]
     (time (data/transact! conn (concat pedestrian vehicle)))
+    (data/transact! conn (link-stops @conn))
     (conj ag conn)))
 
 (defrecord Router [config networks]
