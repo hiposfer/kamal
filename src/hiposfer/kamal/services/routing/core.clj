@@ -50,7 +50,8 @@
 
              :stop.times/trip  {:db/type :db.type/ref
                                 :db/index true}
-             :stop.times/stop  {:db/type :db.type/ref}})
+             :stop.times/stop  {:db/type :db.type/ref
+                                :db/index true}})
 
 ;; This might not be the best approach but it gets the job done for the time being
 (def pair-stops '[:find ?stop ?node
@@ -67,22 +68,6 @@
     (for [[stop dnode] stop-dnode]
       {:db/id (:e dnode)
        :node/successors #{stop}})))
-
-;(data/datoms @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;             :avet :stop/id)
-;
-;(defn- plus-seconds [^LocalDateTime t amount] (.plusSeconds t amount))
-;(defn- after? [^LocalDateTime t ^LocalDateTime t2] (.isAfter t t2))
-
-;(time)
-;  (link-stops @(first @(:networks (:router hiposfer.kamal.dev/system)))))
-;
-;(let [a (data/transact! (first @(:networks (:router hiposfer.kamal.dev/system)))
-;                        (link-stops @(first @(:networks (:router hiposfer.kamal.dev/system)))))]
-;  (println "OK"))
-;
-;(into {} (data/entity @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;                      403908))
 
 (defn exec!
   "builds a datascript in-memory db and conj's it into the passed agent"

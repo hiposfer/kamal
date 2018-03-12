@@ -77,7 +77,7 @@
                             [?dst :stop.times/arrival_time ?seconds]
                             [(hiposfer.kamal.services.routing.directions/plus-seconds ?start ?seconds) ?departure]])
 
-; NOTE: this takes around 0.22 ms to complete
+; NOTE: this takes around 0.22 ms to complete :)
 ;(defn foo [net sid tid]
 ;  (comp (take-while #(= (:v %) tid))
 ;        (map #(data/entity net (:e %)))
