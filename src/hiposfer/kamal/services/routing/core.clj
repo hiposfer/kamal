@@ -6,7 +6,8 @@
             [datascript.core :as data]
             [com.stuartsierra.component :as component]
             [hiposfer.kamal.network.algorithms.core :as alg]
-            [hiposfer.kamal.libs.tool :as tool]))
+            [hiposfer.kamal.libs.tool :as tool])
+  (:import (java.time LocalDateTime LocalDate LocalTime)))
 
 ;; NOTE: we use :db/index true to replace the lack of :VAET index in datascript
 ;; This is for performance. In lots of cases we want to lookup back-references
@@ -66,6 +67,24 @@
       {:db/id (:e dnode)
        :node/successors #{stop}})))
 
+;(data/datoms @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;             :avet :stop/id)
+;
+;(defn- plus-seconds [^LocalDateTime t amount] (.plusSeconds t amount))
+;(defn- after? [^LocalDateTime t ^LocalDateTime t2] (.isAfter t t2))
+;
+;(time
+;    (data/q '[:find ?departure
+;              :in $ ?dst-id ?trip ?start
+;              :where [?dst :stop.times/stop ?dst-id]
+;                     [?dst :stop.times/trip ?trip]
+;                     [?dst :stop.times/arrival_time ?seconds]
+;                     [(hiposfer.kamal.services.routing.core/plus-seconds ?start ?seconds) ?departure]]
+;            @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;            230927
+;            229201
+;            (LocalDateTime/of (LocalDate/now) (LocalTime/MIDNIGHT))))
+
 ;(time)
 ;  (link-stops @(first @(:networks (:router hiposfer.kamal.dev/system)))))
 ;
@@ -81,7 +100,7 @@
   [ag area dev]
   (println "-- starting area router:" area)
   (let [vehicle     (when (and (not dev) (:gtfs area))
-                      (time (gtfs/datomize (:gtfs area))))
+                      (gtfs/datomize (:gtfs area)))
         pedestrian  (if (true? dev)
                       (let [graph (gen/generate (ng/graph (:size area)))]
                         (concat graph (ng/ways (alg/node-ids graph))))

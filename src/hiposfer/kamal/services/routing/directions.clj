@@ -52,25 +52,29 @@
   Comparable
   (compareTo [_ that] (compare value (np/cost that))))
 
+(defn- plus-seconds [^LocalDateTime t amount] (.plusSeconds t amount))
+(defn- after? [^LocalDateTime t ^LocalDateTime t2] (.isAfter t t2))
+
 ;; find a trip that departs after the current user time
 ;; from the specified stop
-(def upcoming-trip '[:find ?tid ?departure ;; TODO: it might work to just do (min ?amount) such that we can avoid sorting
+;; NOTE: ?start is the users LocalDateTime at midnight
+(def upcoming-trip '[:find ?trip ?departure
                      :in $ ?src-id ?dst-id ?now ?start
                      :where [?src :stop.times/stop ?src-id]
                             [?dst :stop.times/stop ?dst-id]
                             [?src :stop.times/trip ?trip]
                             [?dst :stop.times/trip ?trip]
                             [?dst :stop.times/arrival_time ?amount]
-                            [(.plusSeconds ?start ?amount) ?departure] ;; TODO: do I need to type hint this? ^java.time.LocalDateTime
-                            [(.isAfter ?now ?departure)]]) ;; TODO: do I need to type hint this? ^java.time.LocalDateTime
+                            [(hiposfer.kamal.services.routing.directions/plus-seconds ?start ?amount) ?departure]
+                            [(hiposfer.kamal.services.routing.directions/after? ?now ?departure)]])
 
 ;; find the arrival time of a trip to a certain stop
-(def continue-trip '[:find ?departure ;; TODO: it might work to just do (min ?amount) such that we can avoid sorting
+(def continue-trip '[:find ?departure
                      :in $ ?dst-id ?trip ?start
                      :where [?dst :stop.times/stop ?dst-id]
                             [?dst :stop.times/trip ?trip]
                             [?dst :stop.times/arrival_time ?seconds]
-                            [(.plusSeconds ?start ?seconds) ?departure]])
+                            [(hiposfer.kamal.services.routing.directions/plus-seconds ?start ?seconds) ?departure]])
 
 (def penalty 30) ;; seconds
 
