@@ -55,7 +55,7 @@
                   :in $
                   :where [?stop :stop/id]
                   [?stop :stop/location ?loc]
-                  [(tool/nearest-node $ ?loc) ?node]])
+                  [(hiposfer.kamal.libs.tool/nearest-node $ ?loc) ?node]])
 
 (defn link-stops
   "takes a network, looks up the nearest node for each stop and returns
@@ -66,7 +66,7 @@
       {:db/id (:e dnode)
        :node/successors #{stop}})))
 
-;(time
+;(time)
 ;  (link-stops @(first @(:networks (:router hiposfer.kamal.dev/system)))))
 ;
 ;(let [a (data/transact! (first @(:networks (:router hiposfer.kamal.dev/system)))
@@ -95,7 +95,8 @@
   component/Lifecycle
   (start [this]
     (if (not-empty (:networks this)) this
-      (let [ag (agent #{})]
+      (let [ag (agent #{} :error-handler println
+                          :error-mode :fail)]
         (run! #(send-off ag exec! % (:dev config))
                (:networks config))
         (assoc this :networks ag))))
