@@ -105,9 +105,8 @@
   "provides routing calculations using both GTFS feed and OSM nodes. Returns
   a Long for walking parts and a TripStep for GTFS related ones."
   [network ^LocalDateTime start next-id trail]
-  (let [pre-id (key (first trail))
+  (let [[pre-id cost] (first trail)
         src    (data/entity network pre-id)
-        cost   (val (first trail))
         dst    (data/entity network next-id)]
     (cond
       ;; The user just walking so we route based on walking speed
@@ -127,7 +126,7 @@
           (->TripStep trip departs)))
       ;; the user is already in a trip. Just find that trip for the src/dst
       ;; combination
-      :on-board
+      :else
       (let [departures (data/q continue-trip network dst cost start)
             departs    (first (sort departures))]
         (->TripStep (:trip cost) departs)))))
