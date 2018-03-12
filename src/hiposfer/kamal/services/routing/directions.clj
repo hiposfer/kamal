@@ -54,7 +54,7 @@
 
 ;; find a trip that departs after the current user time
 ;; from the specified stop
-(def upcoming-trip '[:find ?tid ?departure
+(def upcoming-trip '[:find ?tid ?departure ;; TODO: it might work to just do (min ?amount) such that we can avoid sorting
                      :in $ ?src-id ?dst-id ?now ?start
                      :where [?src :stop.time/stop ?src-id]
                             [?dst :stop.time/stop ?dst-id]
@@ -65,7 +65,7 @@
                             [(.isAfter ?now ?departure)]]) ;; TODO: do I need to type hint this? ^java.time.LocalDateTime
 
 ;; find the arrival time of a trip to a certain stop
-(def continue-trip '[:find ?departure
+(def continue-trip '[:find ?departure ;; TODO: it might work to just do (min ?amount) such that we can avoid sorting
                      :in $ ?dst-id ?trip ?start
                      :where [?dst :stop.time/stop ?dst-id]
                             [?dst :stop.time/trip ?trip]
@@ -109,8 +109,8 @@
         src    (data/entity network pre-id)
         dst    (data/entity network next-id)]
     (cond
-      ;; The user just walking so we route based on walking speed
-      (and (node? src) (or (node? dst) (stop? dst)))
+      ;; The user just walking so we route based on walking duration
+      (node? src)
       (walk-time src dst)
       ;; the user is trying to leave a vehicle. Apply penalty but route
       ;; normally
@@ -121,7 +121,7 @@
       (and (stop? src) (stop? dst) (not (trip-step? cost)))
       (let [trip-departs   (data/q upcoming-trip network pre-id next-id cost start)
             trip-departs2  (sort-by second trip-departs)
-            [trip departs] (first trip-departs2)]
+            [trip departs] (first trip-departs2)] min
         (when (not-empty trip-departs)
           (->TripStep trip departs)))
       ;; the user is already in a trip. Just find that trip for the src/dst
