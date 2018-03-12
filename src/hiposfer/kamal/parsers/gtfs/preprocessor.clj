@@ -103,11 +103,3 @@
         (for [row content
               :let [trimmed (into {}  (remove #(empty? (second %))) row)]]
           (st/conform type trimmed st/string-conforming))))))
-
-(defn parsedir
-  "takes a directory name ending in / and returns a map of
-   [entity-keyword content] for the supported types"
-  [dirname]
-  (into {} (map (fn [name] [(keyword (first (str/split name #"\.")))
-                            (parse (str dirname name))]))
-           (keys conformers)))
