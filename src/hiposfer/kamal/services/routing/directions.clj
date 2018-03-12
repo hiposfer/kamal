@@ -69,12 +69,29 @@
                             [(hiposfer.kamal.services.routing.directions/after? ?now ?departure)]])
 
 ;; find the arrival time of a trip to a certain stop
+;; NOTE: this takes around 50 ms to complete
 (def continue-trip '[:find ?departure
                      :in $ ?dst-id ?trip ?start
                      :where [?dst :stop.times/stop ?dst-id]
                             [?dst :stop.times/trip ?trip]
                             [?dst :stop.times/arrival_time ?seconds]
                             [(hiposfer.kamal.services.routing.directions/plus-seconds ?start ?seconds) ?departure]])
+
+; NOTE: this takes around 0.22 ms to complete
+;(defn foo [net sid tid]
+;  (comp (take-while #(= (:v %) tid))
+;        (map #(data/entity net (:e %)))
+;        (filter #(= sid (:db/id (:stop.times/stop %))))
+;        (map :stop.times/arrival_time)))
+;
+;(time
+;  (eduction (foo @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;                 230927
+;                 229201)
+;            (data/index-range @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;                              :stop.times/trip
+;                              229201
+;                              nil)))
 
 (def penalty 30) ;; seconds
 
