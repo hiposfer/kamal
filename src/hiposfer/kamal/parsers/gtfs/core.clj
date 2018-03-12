@@ -42,9 +42,9 @@
 (def file-keys {:agency     :agency
                 :calendar   :service
                 :routes     :route
-                :stop_times :stop.times
+                :trips      :trip
                 :stops      :stop
-                :trips      :trip}) ;; TODO shape
+                :stop_times :stop.times})
 
 (defn respace
   "takes a keyword and a set of keywords and attempts to convert it into a
