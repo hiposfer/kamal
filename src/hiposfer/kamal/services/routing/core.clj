@@ -48,15 +48,16 @@
              :stop/id         {:db.unique :db.unique/identity}
              :stop/location   {:db/index true}
 
-             :stop.times/trip  {:db/type :db.type/ref}
+             :stop.times/trip  {:db/type :db.type/ref
+                                :db/index true}
              :stop.times/stop  {:db/type :db.type/ref}})
 
 ;; This might not be the best approach but it gets the job done for the time being
 (def pair-stops '[:find ?stop ?node
                   :in $
                   :where [?stop :stop/id]
-                  [?stop :stop/location ?loc]
-                  [(hiposfer.kamal.libs.tool/nearest-node $ ?loc) ?node]])
+                         [?stop :stop/location ?loc]
+                         [(hiposfer.kamal.libs.tool/nearest-node $ ?loc) ?node]])
 
 (defn link-stops
   "takes a network, looks up the nearest node for each stop and returns
@@ -72,18 +73,6 @@
 ;
 ;(defn- plus-seconds [^LocalDateTime t amount] (.plusSeconds t amount))
 ;(defn- after? [^LocalDateTime t ^LocalDateTime t2] (.isAfter t t2))
-;
-;(time
-;    (data/q '[:find ?departure
-;              :in $ ?dst-id ?trip ?start
-;              :where [?dst :stop.times/stop ?dst-id]
-;                     [?dst :stop.times/trip ?trip]
-;                     [?dst :stop.times/arrival_time ?seconds]
-;                     [(hiposfer.kamal.services.routing.core/plus-seconds ?start ?seconds) ?departure]]
-;            @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;            230927
-;            229201
-;            (LocalDateTime/of (LocalDate/now) (LocalTime/MIDNIGHT))))
 
 ;(time)
 ;  (link-stops @(first @(:networks (:router hiposfer.kamal.dev/system)))))
