@@ -57,7 +57,7 @@
         (keyword nsk (str/replace-first nk (re-pattern (str nsk "_")) ""))))))
 ;(respace :stop_id ns-keys)
 
-(defn link
+(defn- link
   "transforms a [k v] pair into a namespaced version with a possible reference
   to another model. The returned pair is suitable to use in a Datalog
   transaction. Returns the key with the base as namespace otherwise
@@ -72,28 +72,28 @@
       (contains? links nk) [(keyword sbase (namespace nk)) [nk v]]
       :else [(keyword sbase (name nk)) v])))
 
-(defn prepare
+(def preparer
   "remove unnecessary information from the gtfs feed. Just to reduce the
   amount of datoms in datascript"
-  [gtfs]
-  (let [calendar (map service (:calendar gtfs))
-        routes   (map #(dissoc % :route_url) (:routes gtfs))
-        trips    (map #(dissoc % :shape_id) (:shapes gtfs))
-        stops    (for [stop (:stops gtfs)]
-                   (let [ks (disj (into #{} (keys stop)) :stop_lat :stop_lon)]
-                     (assoc (select-keys stop ks)
-                       :stop_location (network/->Location (:stop_lon stop)
-                                                          (:stop_lat stop)))))]
-    (assoc gtfs :calendar calendar :routes routes :trips trips
-                :stops stops)))
+  {:calendar (map service)
+   :routes   (map #(dissoc % :route_url))
+   :trips    (map #(dissoc % :shape_id))
+   :stops    (map (fn [stop]
+                    (let [removable [:stop_lat :stop_lon]
+                          ks (apply disj (set (keys stop)) removable)
+                          loc (network/->Location (:stop_lon stop) (:stop_lat stop))]
+                      (assoc (select-keys stop ks) :stop_location loc))))})
 
 ;; TODO: deduplicate strings
 (defn datomize
   "takes a map of gtfs key-name -> content and returns a sequence
   of maps ready to be used for transact"
   [dirname]
-  (for [[k content] (prepare (pregtfs/parsedir dirname))
-        m content]
-    (into {} (map link m (repeat (k file-keys))))))
+  (for [[k ns] file-keys
+        :let [raw (pregtfs/parse (str dirname (name k) ".txt"))
+              content (if-not (contains? preparer k) raw
+                        (sequence (k preparer) raw))]
+         m content]
+    (into {} (map link m (repeat ns)))))
 
-;(def foo (time (datomize "resources/gtfs/")))
+;(time (last (datomize "resources/gtfs/")))
