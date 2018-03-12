@@ -60,8 +60,8 @@
                             [?dst :stop.time/stop ?dst-id]
                             [?src :stop.time/trip ?trip]
                             [?dst :stop.time/trip ?trip]
-                            [?dst :stop.time/arrival_time ?seconds]
-                            [(.plusSeconds ?start ?seconds) ?departure] ;; TODO: do I need to type hint this? ^java.time.LocalDateTime
+                            [?dst :stop.time/arrival_time ?amount]
+                            [(.plusSeconds ?start ?amount) ?departure] ;; TODO: do I need to type hint this? ^java.time.LocalDateTime
                             [(.isAfter ?now ?departure)]]) ;; TODO: do I need to type hint this? ^java.time.LocalDateTime
 
 ;; find the arrival time of a trip to a certain stop
