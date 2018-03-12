@@ -47,8 +47,8 @@
              :stop/id         {:db.unique :db.unique/identity}
              :stop/location   {:db/index true}
 
-             :stop.time/trip  {:db/type :db.type/ref}
-             :stop.time/stop  {:db/type :db.type/ref}})
+             :stop.times/trip  {:db/type :db.type/ref}
+             :stop.times/stop  {:db/type :db.type/ref}})
 
 ;; This might not be the best approach but it gets the job done for the time being
 (def pair-stops '[:find ?stop ?node

@@ -56,20 +56,20 @@
 ;; from the specified stop
 (def upcoming-trip '[:find ?tid ?departure ;; TODO: it might work to just do (min ?amount) such that we can avoid sorting
                      :in $ ?src-id ?dst-id ?now ?start
-                     :where [?src :stop.time/stop ?src-id]
-                            [?dst :stop.time/stop ?dst-id]
-                            [?src :stop.time/trip ?trip]
-                            [?dst :stop.time/trip ?trip]
-                            [?dst :stop.time/arrival_time ?amount]
+                     :where [?src :stop.times/stop ?src-id]
+                            [?dst :stop.times/stop ?dst-id]
+                            [?src :stop.times/trip ?trip]
+                            [?dst :stop.times/trip ?trip]
+                            [?dst :stop.times/arrival_time ?amount]
                             [(.plusSeconds ?start ?amount) ?departure] ;; TODO: do I need to type hint this? ^java.time.LocalDateTime
                             [(.isAfter ?now ?departure)]]) ;; TODO: do I need to type hint this? ^java.time.LocalDateTime
 
 ;; find the arrival time of a trip to a certain stop
 (def continue-trip '[:find ?departure ;; TODO: it might work to just do (min ?amount) such that we can avoid sorting
                      :in $ ?dst-id ?trip ?start
-                     :where [?dst :stop.time/stop ?dst-id]
-                            [?dst :stop.time/trip ?trip]
-                            [?dst :stop.time/arrival_time ?seconds]
+                     :where [?dst :stop.times/stop ?dst-id]
+                            [?dst :stop.times/trip ?trip]
+                            [?dst :stop.times/arrival_time ?seconds]
                             [(.plusSeconds ?start ?seconds) ?departure]])
 
 (def penalty 30) ;; seconds
@@ -84,9 +84,9 @@
 ;; find all possible destination stops
 (def next-stops '[:find ?dst
                   :in $ ?src-id
-                  :where [?src :stop.time/stop ?src-id]
-                         [?src :stop.time/trip ?trip]
-                         [?dst :stop.time/trip ?trip]
+                  :where [?src :stop.times/stop ?src-id]
+                         [?src :stop.times/trip ?trip]
+                         [?dst :stop.times/trip ?trip]
                          [?src :stop/sequence ?s1]
                          [?dst :stop/sequence ?s2]
                          [(> s2 s1)]])
