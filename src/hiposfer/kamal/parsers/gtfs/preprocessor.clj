@@ -32,7 +32,7 @@
 (s/def ::stop (s/keys :req-un [::stop_lon ::stop_lat ::stop_id ::gtfs/stop_name]))
 
 ;; trips
-(s/def ::trip_id spec/integer?)
+(s/def ::trip_id spec/double?)
 (s/def ::trip (s/keys :req-un [::route_id ::gtfs/service_id ::trip_id]))
 
 ;; stop_times
