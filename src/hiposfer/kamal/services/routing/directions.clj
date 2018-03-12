@@ -82,6 +82,8 @@
                              osm/walking-speed))
 
 ;; find all possible destination stops
+;; NOTE: this is not fast at all !!
+;; a quick benchmark shows that it takes around 150 ms to compute :(
 (def next-stops '[:find [?se ...]
                   :in $ ?src-id
                   :where [?src :stop.times/stop ?src-id]
