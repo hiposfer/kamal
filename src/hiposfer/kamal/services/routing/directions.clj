@@ -82,14 +82,15 @@
                              osm/walking-speed))
 
 ;; find all possible destination stops
-(def next-stops '[:find ?dst
+(def next-stops '[:find [?se ...]
                   :in $ ?src-id
                   :where [?src :stop.times/stop ?src-id]
                          [?src :stop.times/trip ?trip]
                          [?dst :stop.times/trip ?trip]
-                         [?src :stop/sequence ?s1]
-                         [?dst :stop/sequence ?s2]
-                         [(> s2 s1)]])
+                         [?src :stop.times/sequence ?s1]
+                         [?dst :stop.times/sequence ?s2]
+                         [(> s2 s1)]
+                         [?dst :stop.times/stop ?se]])
 
 (defn successors
   "takes a network and an entity id and returns the successors of that entity"
