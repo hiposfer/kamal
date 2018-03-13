@@ -5,7 +5,8 @@
             [hiposfer.kamal.specs.mapbox.directions :as mapbox]
             [hiposfer.kamal.services.routing.directions :as dir]
             [hiposfer.kamal.libs.geometry :as geometry]
-            [hiposfer.kamal.libs.tool :as tool]))
+            [hiposfer.kamal.libs.tool :as tool]
+            [hiposfer.kamal.libs.fastq :as fastq]))
 
 (defn- validate
   "validates that the coordinates and the radiuses conform to the mapbox specification.
@@ -22,7 +23,7 @@
   "returns a network whose bounding box contains all points"
   [conns points]
   (when-let [conn  (first conns)]
-    (let [distances (map #(geometry/haversine % (:v (tool/nearest-node @conn %)))
+    (let [distances (map #(geometry/haversine % (:v (fastq/nearest-node @conn %)))
                           points)]
       (if (every? #(< % max-distance) distances) @conn
         (recur (rest conns) points)))))

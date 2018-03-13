@@ -5,7 +5,8 @@
             [hiposfer.kamal.libs.geometry :as geometry]
             [datascript.core :as data]
             [hiposfer.kamal.libs.tool :as tool]
-            [clojure.set :as set])
+            [clojure.set :as set]
+            [hiposfer.kamal.libs.fastq :as fastq])
   (:import (java.time LocalDateTime)))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
@@ -30,8 +31,8 @@
 (defn- link
   "find the first link that connects src and dst and returns its entity id"
   [network src-trace dst-trace]
-  (first (set/intersection (set (map :e (tool/node-ways network (key dst-trace))))
-                           (set (map :e (tool/node-ways network (key src-trace)))))))
+  (first (set/intersection (set (map :e (fastq/node-ways network (key dst-trace))))
+                           (set (map :e (fastq/node-ways network (key src-trace)))))))
 
 (defn duration
   "A very simple value computation function for arcs in a network.
@@ -261,19 +262,19 @@
    (direction network :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
   [network params]
   (let [{:keys [coordinates steps]} params
-        start      (tool/nearest-node network (first coordinates)) ;; nil when lat,lon are both greater than
-        dst        (tool/nearest-node network (last coordinates)) ;; any node in the network
+        start      (fastq/nearest-node network (first coordinates)) ;; nil when lat,lon are both greater than
+        dst        (fastq/nearest-node network (last coordinates)) ;; any node in the network
        ; both start and dst should be found since we checked that before
         traversal  (alg/dijkstra network #{(:e start)}
-                       {:value-by #(duration network %1 %2)
-                        :successors tool/node-successors})
+                       {:value-by   #(duration network %1 %2)
+                        :successors fastq/node-successors})
         rtrail     (alg/shortest-path (:e dst) traversal)]
     (if (some? rtrail)
       {:code "Ok"
        :routes [(route network steps rtrail)]
-       :waypoints [{:name (str (some :way/name (tool/node-ways network (:e start))))
+       :waypoints [{:name (str (some :way/name (fastq/node-ways network (:e start))))
                     :location (->coordinates (:v start))}
-                   {:name (str (some :way/name (tool/node-ways network (:e dst))))
+                   {:name (str (some :way/name (fastq/node-ways network (:e dst))))
                     :location (->coordinates (:v dst))}]}
       {:code "NoRoute"
        :message "There was no route found for the given coordinates. Check for

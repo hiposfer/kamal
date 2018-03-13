@@ -12,7 +12,8 @@
             [hiposfer.kamal.services.routing.core :as router]
             [hiposfer.kamal.services.routing.directions :as dir]
             [hiposfer.kamal.specs.mapbox.directions :as mapbox]
-            [clojure.spec.alpha :as s]))
+            [clojure.spec.alpha :as s]
+            [hiposfer.kamal.libs.fastq :as fastq]))
 
 ;; Example taken from
 ;; https://rosettacode.org/wiki/Dijkstra%27s_algorithm
@@ -86,8 +87,8 @@
            traversal)
         "shortest path doesnt traverse expected nodes")))
 
-(defn opts [network] {:value-by #(direction/duration network %1 %2)
-                      :successors tool/node-successors})
+(defn opts [network] {:value-by   #(direction/duration network %1 %2)
+                      :successors fastq/node-successors})
 
 ; -------------------------------------------------------------------
 ; The Dijkstra algorithm is deterministic, therefore for the same src/dst

@@ -5,9 +5,7 @@
             [hiposfer.kamal.parsers.gtfs.core :as gtfs]
             [datascript.core :as data]
             [com.stuartsierra.component :as component]
-            [hiposfer.kamal.network.algorithms.core :as alg]
-            [hiposfer.kamal.libs.tool :as tool])
-  (:import (java.time LocalDateTime LocalDate LocalTime)))
+            [hiposfer.kamal.network.algorithms.core :as alg]))
 
 ;; NOTE: we use :db/index true to replace the lack of :VAET index in datascript
 ;; This is for performance. In lots of cases we want to lookup back-references
@@ -58,7 +56,7 @@
                   :in $
                   :where [?stop :stop/id]
                          [?stop :stop/location ?loc]
-                         [(hiposfer.kamal.libs.tool/nearest-node $ ?loc) ?node]])
+                         [(hiposfer.kamal.libs.fastq/nearest-node $ ?loc) ?node]])
 
 (defn link-stops
   "takes a network, looks up the nearest node for each stop and returns
