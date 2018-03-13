@@ -7,7 +7,16 @@
 (defn node-successors
   "takes a network and an entity id and returns the successors of that entity.
    Only valid for OSM nodes. Assumes bidirectional links i.e. nodes with
-   back-references to id are also returned"
+   back-references to id are also returned
+
+  replaces:
+  '[:find ?successors ?node
+    :in $ ?id
+    :where [?id :node/successors ?successors]
+           [?node :node/successors ?id]]
+
+  The previous query takes around 50 milliseconds to finish. This function
+  takes around 0.25 milliseconds"
   [network id]
   (concat (map :db/id (:node/successors (data/entity network id)))
           (eduction (map :e) (take-while #(= (:v %) id))
@@ -20,10 +29,17 @@
 
 (defn node-ways
   "takes a dereferenced Datascript connection and an entity id and returns
-  the OSM ways that reference it. Only valid for OSM node ids"
+  the OSM ways that reference it. Only valid for OSM node ids
+
+  replaces:
+  '[:find ?way
+    :in $ ?id
+    :where [?way :way/nodes ?id]]
+
+  The previous query takes around 50 milliseconds to finish. This one takes
+  around 0.15 milliseconds"
   [network id]
   (take-while #(= (:v %) id) (data/index-range network :way/nodes id nil)))
-
 
 ;; utility functions to avoid Datascript complaining about it
 (defn- plus-seconds [^LocalDateTime t amount] (.plusSeconds t amount))
