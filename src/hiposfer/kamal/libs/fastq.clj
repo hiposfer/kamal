@@ -2,7 +2,7 @@
   "namespace for hand-optimized queries that are used inside the routing
   algorithm and need to run extremely fast (< 1 ms per query)"
   (:require [datascript.core :as data])
-  (:import (java.time LocalDateTime LocalDate LocalTime)))
+  (:import (java.time LocalDateTime)))
 
 (defn node-successors
   "takes a network and an entity id and returns the successors of that entity.
@@ -74,6 +74,50 @@
             (data/index-range network :stop.times/trip ?trip nil)))
 
 
+(defn- xf
+  "reducing function for upcoming-trip. Just for convenience"
+  [res v]
+  (if (pos? (compare (:stop.times/arrival_time res) (:stop.times/arrival_time v)))
+    v
+    res))
+
+(defn- close-range
+  "convenience function to get the entities whose attribute (k) equals id"
+  [network k id]
+  (eduction (take-while #(= (:v %) id))
+            (map #(data/entity network (:e %)))
+            (data/index-range network k id nil)))
+
+(defn- upcoming-xform
+  "returns a transducer to get only the stop.times entries that are part of the same
+  trip containing both src and dst and that which arrival time is after the current
+  user time"
+  [four ?start ?now]
+  (comp (filter #(contains? four (first %)))
+        (mapcat second)
+        (filter #(after? (plus-seconds ?start (:stop.times/arrival_time %)) ?now))))
+
+(defn- upcoming-trip
+  "replaces:
+  '[:find ?trip ?departure
+    :in $ ?src-id ?dst-id ?now ?start
+    :where [?src :stop.times/stop ?src-id]
+           [?dst :stop.times/stop ?dst-id]
+           [?src :stop.times/trip ?trip]
+           [?dst :stop.times/trip ?trip]
+           [?src :stop.times/arrival_time ?amount]
+           [(hiposfer.kamal.libs.fastq/plus-seconds ?start ?amount) ?departure]
+           [(hiposfer.kamal.libs.fastq/after? ?departure ?now)]]
+
+  The previous query runs in 118 milliseconds. This function takes 5 milliseconds"
+  [network ?src-id ?dst-id ?start ?now]
+  (let [one      (close-range network :stop.times/stop ?src-id)
+        two      (close-range network :stop.times/stop ?dst-id)
+        three    (group-by #(:db/id (:stop.times/trip %)) one) ;; TODO: maybe not needed
+        four     (group-by #(:db/id (:stop.times/trip %)) two)]
+    (reduce xf (eduction (upcoming-xform four ?start ?now) three))))
+
+
 ;(data/datoms @(first @(:networks (:router hiposfer.kamal.dev/system)))
 ;             :avet :stop/id)
 
@@ -89,22 +133,3 @@
 ;
 ;(into {} (data/entity @(first @(:networks (:router hiposfer.kamal.dev/system)))
 ;                      403908))
-
-
-(comment ----------------- WORK IN PROGRESS)
-;; upcoming trip query
-;(time
-;  (data/q '[:find ?trip ?departure
-;            :in $ ?src-id ?dst-id ?now ?start
-;            :where [?src :stop.times/stop ?src-id]
-;                   [?dst :stop.times/stop ?dst-id]
-;                   [?src :stop.times/trip ?trip]
-;                   [?dst :stop.times/trip ?trip]
-;                   [?dst :stop.times/arrival_time ?amount]
-;                   [(hiposfer.kamal.services.routing.core/plus-seconds ?start ?amount) ?departure]
-;                   [(hiposfer.kamal.services.routing.core/after? ?now ?departure)]]
-;          @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;          230963
-;          230607
-;          (LocalDateTime/now)
-;          (LocalDateTime/of (LocalDate/now) (LocalTime/MIDNIGHT))))
