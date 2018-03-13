@@ -2,7 +2,7 @@
   "namespace for hand-optimized queries that are used inside the routing
   algorithm and need to run extremely fast (< 1 ms per query)"
   (:require [datascript.core :as data])
-  (:import (java.time LocalDateTime)))
+  (:import (java.time LocalDateTime LocalDate LocalTime)))
 
 (defn node-successors
   "takes a network and an entity id and returns the successors of that entity.
@@ -90,12 +90,25 @@
 
 (defn- upcoming-xform
   "returns a transducer to get only the stop.times entries that are part of the same
-  trip containing both src and dst and that which arrival time is after the current
+  trip containing both src and dst and whose arrival time is after the current
   user time"
   [four ?start ?now]
-  (comp (filter #(contains? four (first %)))
-        (mapcat second)
-        (filter #(after? (plus-seconds ?start (:stop.times/arrival_time %)) ?now))))
+  (comp (filter #(contains? four (:stop.times/trip %)))
+        (filter #(after? (plus-seconds ?start (:stop.times/departure_time %)) ?now))))
+
+;; TODO: ideally these computations can be cached to improve performance
+;; to avoid cache misses I guess the ideal way would be to cache the trip
+;; retrieval from the DB since it is what takes most of the time. See below.
+;; Therefore we could add a System Component which exposes some memoized functions
+;; with fancy algorithms like LRU or LU ;)
+;; such that a query like (trips network from-id to-id) can be performed quickly
+
+;"Elapsed time: 0.048362 msecs" -> sources
+;"Elapsed time: 0.023676 msecs" -> dests
+;"Elapsed time: 0.607559 msecs" -> four
+;"Elapsed time: 3.154331 msecs" -> five -> (into [] (upcoming-xform four ?start ?now) sources))
+;"Elapsed time: 0.296584 msecs" -> stime
+;"Elapsed time: 0.004389 msecs" -> result
 
 (defn- upcoming-trip
   "replaces:
@@ -109,14 +122,22 @@
            [(hiposfer.kamal.libs.fastq/plus-seconds ?start ?amount) ?departure]
            [(hiposfer.kamal.libs.fastq/after? ?departure ?now)]]
 
-  The previous query runs in 118 milliseconds. This function takes 5 milliseconds"
+  The previous query runs in 118 milliseconds. This function takes 4 milliseconds"
   [network ?src-id ?dst-id ?start ?now]
-  (let [one      (close-range network :stop.times/stop ?src-id)
-        two      (close-range network :stop.times/stop ?dst-id)
-        three    (group-by #(:db/id (:stop.times/trip %)) one) ;; TODO: maybe not needed
-        four     (group-by #(:db/id (:stop.times/trip %)) two)]
-    (reduce xf (eduction (upcoming-xform four ?start ?now) three))))
+  (let [sources (close-range network :stop.times/stop ?src-id)
+        dests   (close-range network :stop.times/stop ?dst-id)
+        four    (into {} (map #(vector (:stop.times/trip %) %)) dests)
+        stime   (reduce xf (upcoming-xform four ?start ?now) sources)]
+    [stime  (get four (:stop.times/trip stime))]))
 
+;(time)
+;(upcoming-trip @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;               230963
+;               230607
+;               (LocalDateTime/now)
+;               (LocalDateTime/of (LocalDate/now) (LocalTime/MIDNIGHT)))
+
+;(data/pull @(first @(:networks (:router hiposfer.kamal.dev/system))) '[*] 213810)
 
 ;(data/datoms @(first @(:networks (:router hiposfer.kamal.dev/system)))
 ;             :avet :stop/id)

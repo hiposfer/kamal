@@ -1,6 +1,6 @@
 (ns hiposfer.kamal.network.algorithms.core
   (:require [hiposfer.kamal.network.algorithms.dijkstra :as djk]
-            [hiposfer.kamal.libs.tool :as tool]
+            [hiposfer.kamal.libs.fastq :as fastq]
             [clojure.set :as set]
             [datascript.core :as data]))
 
@@ -49,7 +49,7 @@
     (let [start     (some #(and (not (settled %)) %)
                           (node-ids network))
           connected (into #{} (comp (map first) (map key))
-                          (dijkstra network #{start} {:successors tool/node-successors}))]
+                          (dijkstra network #{start} {:successors fastq/node-successors}))]
       (cons connected (lazy-seq (components network (set/union settled connected)))))))
 
 ;; note for specs: the looner of the looner should be empty
