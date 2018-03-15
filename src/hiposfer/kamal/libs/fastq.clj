@@ -19,7 +19,7 @@
   takes around 0.25 milliseconds"
   [network id]
   (concat (map :db/id (:node/successors (data/entity network id)))
-          (eduction (map :e) (take-while #(= (:v %) id))
+          (eduction (comp (map :e) (take-while #(= (:v %) id)))
                     (data/index-range network :node/successors id nil))))
 
 (defn nearest-node
