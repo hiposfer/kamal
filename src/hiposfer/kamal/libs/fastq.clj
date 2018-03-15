@@ -128,12 +128,12 @@
                              trip))]
     (get four (:stop.times/trip stime))))
 
-(time
-  (upcoming-trip @(first @(:networks (:router hiposfer.kamal.dev/system)))
-                 230963
-                 230607
-                 (LocalDateTime/now)
-                 (LocalDateTime/of (LocalDate/now) (LocalTime/MIDNIGHT))))
+;(time
+;  (upcoming-trip @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;                 230963
+;                 230607
+;                 (LocalDateTime/now)
+;                 (LocalDateTime/of (LocalDate/now) (LocalTime/MIDNIGHT))))
 
 
 (defn next-stops
