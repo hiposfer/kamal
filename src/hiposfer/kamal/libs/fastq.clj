@@ -45,7 +45,7 @@
 (defn plus-seconds [^LocalDateTime t amount] (.plusSeconds t amount))
 (defn after? [^LocalDateTime t ^LocalDateTime t2] (.isAfter t t2))
 
-(defn close-range
+(defn index-lookup
   "convenience function to get the entities whose attribute (k) equals id"
   [network k id]
   (eduction (take-while #(= (:v %) id))
@@ -60,7 +60,7 @@
         (map :stop.times/arrival_time)
         (map #(plus-seconds ?start %))))
 
-(defn- continue-trip
+(defn continue-trip
   "find the time of arrival for a certain trip to a specifc stop
 
   replaces:
@@ -76,7 +76,7 @@
    "
   [network ?dst-id ?trip ?start]
   (eduction (continue-xform ?dst-id ?start)
-            (close-range network :stop.times/trip ?trip)))
+            (index-lookup network :stop.times/trip ?trip)))
 
 
 (defn- xf
@@ -101,7 +101,7 @@
 ;"Elapsed time: 0.296584 msecs" -> stime
 ;"Elapsed time: 0.004389 msecs" -> result
 
-(defn- upcoming-trip
+(defn upcoming-trip
   "Query to find out what is the next trip coming connection ?src and ?dst
   departing later than ?now. Returns the stop.time the dst on the upcoming trip
 
@@ -118,8 +118,8 @@
 
   The previous query runs in 118 milliseconds. This function takes 4 milliseconds"
   [network ?src-id ?dst-id ?now ?start]
-  (let [sources (close-range network :stop.times/stop ?src-id)
-        dests   (close-range network :stop.times/stop ?dst-id)
+  (let [sources (index-lookup network :stop.times/stop ?src-id)
+        dests   (index-lookup network :stop.times/stop ?dst-id)
         four    (into {} (map #(vector (:stop.times/trip %) %)) dests)
         trips   (filter #(contains? four (:stop.times/trip %)) sources)
         stime   (reduce xf (for [trip trips
@@ -152,10 +152,10 @@
            [?se :stop/id ?id]]
   the previous query takes 145 milliseconds. This function takes 0.2 milliseconds"
   [network ?src-id]
-  (let [stop-times (close-range network :stop.times/stop ?src-id)
+  (let [stop-times (index-lookup network :stop.times/stop ?src-id)
         stops      (for [st1  stop-times
                          :let [trip    (:stop.times/trip st1)
-                               stimes2 (close-range network :stop.times/trip (:db/id trip))]
+                               stimes2 (index-lookup network :stop.times/trip (:db/id trip))]
                          st2  stimes2
                          :when (> (:stop.times/sequence st2) (:stop.times/sequence st1))]
                      (:stop.times/stop st2))]
