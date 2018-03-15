@@ -42,16 +42,21 @@
   (take-while #(= (:v %) id) (data/index-range network :way/nodes id nil)))
 
 ;; utility functions to avoid Datascript complaining about it
-(defn- plus-seconds [^LocalDateTime t amount] (.plusSeconds t amount))
-(defn- after? [^LocalDateTime t ^LocalDateTime t2] (.isAfter t t2))
+(defn plus-seconds [^LocalDateTime t amount] (.plusSeconds t amount))
+(defn after? [^LocalDateTime t ^LocalDateTime t2] (.isAfter t t2))
+
+(defn close-range
+  "convenience function to get the entities whose attribute (k) equals id"
+  [network k id]
+  (eduction (take-while #(= (:v %) id))
+            (map #(data/entity network (:e %)))
+            (data/index-range network k id nil)))
 
 (defn- continue-xform
   "for some reason, defining the transducer outside of the eduction itself
   seems to be faster"
-  [network ?dst-id ?trip-id ?start]
-  (comp (take-while #(= (:v %) ?trip-id))
-        (map #(data/entity network (:e %)))
-        (filter #(= ?dst-id (:db/id (:stop.times/stop %))))
+  [?dst-id ?start]
+  (comp (filter #(= ?dst-id (:db/id (:stop.times/stop %))))
         (map :stop.times/arrival_time)
         (map #(plus-seconds ?start %))))
 
@@ -70,31 +75,17 @@
    takes around 0.22 milliseconds to execute. Depends on :stop.times/trip index.
    "
   [network ?dst-id ?trip ?start]
-  (eduction (continue-xform network ?dst-id ?trip ?start)
-            (data/index-range network :stop.times/trip ?trip nil)))
+  (eduction (continue-xform ?dst-id ?start)
+            (close-range network :stop.times/trip ?trip)))
 
 
 (defn- xf
   "reducing function for upcoming-trip. Just for convenience"
-  [res v]
-  (if (pos? (compare (:stop.times/arrival_time res) (:stop.times/arrival_time v)))
-    v
-    res))
-
-(defn- close-range
-  "convenience function to get the entities whose attribute (k) equals id"
-  [network k id]
-  (eduction (take-while #(= (:v %) id))
-            (map #(data/entity network (:e %)))
-            (data/index-range network k id nil)))
-
-(defn- upcoming-xform
-  "returns a transducer to get only the stop.times entries that are part of the same
-  trip containing both src and dst and whose arrival time is after the current
-  user time"
-  [four ?start ?now]
-  (comp (filter #(contains? four (:stop.times/trip %)))
-        (filter #(after? (plus-seconds ?start (:stop.times/departure_time %)) ?now))))
+  ([] nil)
+  ([res v]
+   (if (pos? (compare (:stop.times/departure_time res) (:stop.times/departure_time v)))
+     v
+     res)))
 
 ;; TODO: ideally these computations can be cached to improve performance
 ;; to avoid cache misses I guess the ideal way would be to cache the trip
@@ -111,46 +102,61 @@
 ;"Elapsed time: 0.004389 msecs" -> result
 
 (defn- upcoming-trip
-  "replaces:
+  "Query to find out what is the next trip coming connection ?src and ?dst
+  departing later than ?now. Returns the stop.time the dst on the upcoming trip
+
+  replaces:
   '[:find ?trip ?departure
     :in $ ?src-id ?dst-id ?now ?start
     :where [?src :stop.times/stop ?src-id]
            [?dst :stop.times/stop ?dst-id]
            [?src :stop.times/trip ?trip]
            [?dst :stop.times/trip ?trip]
-           [?src :stop.times/arrival_time ?amount]
+           [?src :stop.times/departure_time ?amount]
            [(hiposfer.kamal.libs.fastq/plus-seconds ?start ?amount) ?departure]
            [(hiposfer.kamal.libs.fastq/after? ?departure ?now)]]
 
   The previous query runs in 118 milliseconds. This function takes 4 milliseconds"
-  [network ?src-id ?dst-id ?start ?now]
+  [network ?src-id ?dst-id ?now ?start]
   (let [sources (close-range network :stop.times/stop ?src-id)
         dests   (close-range network :stop.times/stop ?dst-id)
         four    (into {} (map #(vector (:stop.times/trip %) %)) dests)
-        stime   (reduce xf (upcoming-xform four ?start ?now) sources)]
-    [stime  (get four (:stop.times/trip stime))]))
+        trips   (filter #(contains? four (:stop.times/trip %)) sources)
+        stime   (reduce xf (for [trip trips
+                                 :let [departs (plus-seconds ?start (:stop.times/departure_time trip))]
+                                 :when (after? departs ?now)]
+                             trip))]
+    (get four (:stop.times/trip stime))))
 
-;(time)
-;(upcoming-trip @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;               230963
-;               230607
-;               (LocalDateTime/now)
-;               (LocalDateTime/of (LocalDate/now) (LocalTime/MIDNIGHT)))
+(time
+  (upcoming-trip @(first @(:networks (:router hiposfer.kamal.dev/system)))
+                 230963
+                 230607
+                 (LocalDateTime/now)
+                 (LocalDateTime/of (LocalDate/now) (LocalTime/MIDNIGHT))))
 
-;(data/pull @(first @(:networks (:router hiposfer.kamal.dev/system))) '[*] 213810)
 
-;(data/datoms @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;             :avet :stop/id)
+(defn next-stops
+  "find the next possible stops of ?src-id based on stop.times
 
-;(data/entity @(first @(:networks (:router hiposfer.kamal.dev/system))) [:stop/id 263906742])
-;(data/entity @(first @(:networks (:router hiposfer.kamal.dev/system))) [:stop/id 5069917764])
-
-;(time)
-;  (link-stops @(first @(:networks (:router hiposfer.kamal.dev/system)))))
-;
-;(let [a (data/transact! (first @(:networks (:router hiposfer.kamal.dev/system)))
-;                        (link-stops @(first @(:networks (:router hiposfer.kamal.dev/system)))))]
-;  (println "OK"))
-;
-;(into {} (data/entity @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;                      403908))
+  replaces:
+  '[:find [?id ...]
+    :in $ ?src-id
+    :where [?src :stop.times/stop ?src-id]
+           [?src :stop.times/trip ?trip]
+           [?dst :stop.times/trip ?trip]
+           [?src :stop.times/sequence ?s1]
+           [?dst :stop.times/sequence ?s2]
+           [(> ?s2 ?s1)]
+           [?dst :stop.times/stop ?se]
+           [?se :stop/id ?id]]
+  the previous query takes 145 milliseconds. This function takes 0.2 milliseconds"
+  [network ?src-id]
+  (let [stop-times (close-range network :stop.times/stop ?src-id)
+        stops      (for [st1  stop-times
+                         :let [trip    (:stop.times/trip st1)
+                               stimes2 (close-range network :stop.times/trip (:db/id trip))]
+                         st2  stimes2
+                         :when (> (:stop.times/sequence st2) (:stop.times/sequence st1))]
+                     (:stop.times/stop st2))]
+    (distinct stops)))

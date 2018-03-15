@@ -49,50 +49,9 @@
   np/Valuable
   (cost [_] value)
   (sum [this that] (assoc this :value (+ value (np/cost that))))
-  ;; compare based on value not on trip. Useful for Fibonnacci Heap order
+  ;; compare based on value not on trip. Useful for Fibonacci Heap order
   Comparable
   (compareTo [_ that] (compare value (np/cost that))))
-
-(defn- plus-seconds [^LocalDateTime t amount] (.plusSeconds t amount))
-(defn- after? [^LocalDateTime t ^LocalDateTime t2] (.isAfter t t2))
-
-;; find a trip that departs after the current user time
-;; from the specified stop
-;; NOTE: ?start is the users LocalDateTime at midnight
-(def upcoming-trip '[:find ?trip ?departure
-                     :in $ ?src-id ?dst-id ?now ?start
-                     :where [?src :stop.times/stop ?src-id]
-                            [?dst :stop.times/stop ?dst-id]
-                            [?src :stop.times/trip ?trip]
-                            [?dst :stop.times/trip ?trip]
-                            [?dst :stop.times/arrival_time ?amount]
-                            [(hiposfer.kamal.services.routing.directions/plus-seconds ?start ?amount) ?departure]
-                            [(hiposfer.kamal.services.routing.directions/after? ?now ?departure)]])
-
-;; find the arrival time of a trip to a certain stop
-;; NOTE: this takes around 50 ms to complete
-(def continue-trip '[:find ?departure
-                     :in $ ?dst-id ?trip ?start
-                     :where [?dst :stop.times/stop ?dst-id]
-                            [?dst :stop.times/trip ?trip]
-                            [?dst :stop.times/arrival_time ?seconds]
-                            [(hiposfer.kamal.services.routing.directions/plus-seconds ?start ?seconds) ?departure]])
-
-; NOTE: this takes around 0.22 ms to complete :)
-;(defn foo [net sid tid]
-;  (comp (take-while #(= (:v %) tid))
-;        (map #(data/entity net (:e %)))
-;        (filter #(= sid (:db/id (:stop.times/stop %))))
-;        (map :stop.times/arrival_time)))
-;
-;(time
-;  (eduction (foo @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;                 230927
-;                 229201)
-;            (data/index-range @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;                              :stop.times/trip
-;                              229201
-;                              nil)))
 
 (def penalty 30) ;; seconds
 
@@ -103,19 +62,6 @@
 (defn walk-time [src dst] (/ (geometry/haversine (:node/location src) (:node/location dst))
                              osm/walking-speed))
 
-;; find all possible destination stops
-;; NOTE: this is not fast at all !!
-;; a quick benchmark shows that it takes around 150 ms to compute :(
-(def next-stops '[:find [?se ...]
-                  :in $ ?src-id
-                  :where [?src :stop.times/stop ?src-id]
-                         [?src :stop.times/trip ?trip]
-                         [?dst :stop.times/trip ?trip]
-                         [?src :stop.times/sequence ?s1]
-                         [?dst :stop.times/sequence ?s2]
-                         [(> s2 s1)]
-                         [?dst :stop.times/stop ?se]])
-
 (defn successors
   "takes a network and an entity id and returns the successors of that entity"
   [network id]
@@ -124,37 +70,35 @@
       (concat (map :db/id (:node/successors e))
               (map :e (take-while #(= (:v %) id)
                                   (data/index-range network :node/successors id nil))))
-      (data/q next-stops network id))));; TODO: is this fast?
+      (fastq/next-stops network id))))
 
 (defn with-timetable
   "provides routing calculations using both GTFS feed and OSM nodes. Returns
   a Long for walking parts and a TripStep for GTFS related ones."
   [network ^LocalDateTime start next-id trail]
-  (let [[pre-id cost] (first trail)
+  (let [[pre-id value] (first trail)
         src    (data/entity network pre-id)
         dst    (data/entity network next-id)]
     (cond
       ;; The user just walking so we route based on walking duration
       (node? src)
-      (walk-time src dst)
+      (walk-time src dst) ;; TODO: localtime
       ;; the user is trying to leave a vehicle. Apply penalty but route
       ;; normally
       (and (stop? src) (node? dst))
       (+ penalty (walk-time src dst))
       ;; the user is trying to get into a vehicle. We need to find the next
       ;; coming trip
-      (and (stop? src) (stop? dst) (not (trip-step? cost)))
-      (let [trip-departs   (data/q upcoming-trip network pre-id next-id cost start)
-            trip-departs2  (sort-by second trip-departs)
-            [trip departs] (first trip-departs2)] min
-        (when (not-empty trip-departs)
-          (->TripStep trip departs)))
+      (and (stop? src) (stop? dst) (not (trip-step? value)))
+      (when-let [st (fastq/upcoming-trip network pre-id next-id value start)]
+        (let [arrives (fastq/plus-seconds start (:stop.times/arrival_time st))]
+          (->TripStep (:stop.times/trip st) (.minus arrives value))))
       ;; the user is already in a trip. Just find that trip for the src/dst
       ;; combination
       :else
-      (let [departures (data/q continue-trip network dst cost start)
-            departs    (first (sort departures))]
-        (->TripStep (:trip cost) departs)))))
+      (let [departures (fastq/continue-trip network next-id
+                             (:db/id (:trip value)) start)]
+        (->TripStep (:trip value) (first departures))))))
 
 (defn- linestring
   "get a geojson linestring based on the route path"
