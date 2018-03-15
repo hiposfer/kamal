@@ -48,8 +48,8 @@
 (defn index-lookup
   "convenience function to get the entities whose attribute (k) equals id"
   [network k id]
-  (eduction (take-while #(= (:v %) id))
-            (map #(data/entity network (:e %)))
+  (eduction (comp (take-while #(= (:v %) id))
+                  (map #(data/entity network (:e %))))
             (data/index-range network k id nil)))
 
 (defn- continue-xform
