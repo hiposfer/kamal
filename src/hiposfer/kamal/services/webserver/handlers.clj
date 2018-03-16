@@ -22,7 +22,7 @@
   "returns a network whose bounding box contains all points"
   [networks points]
   (when-let [net  (first networks)]
-    (let [distances (map #(geometry/haversine % (:v (tool/nearest-node @net %)))
+    (let [distances (map #(geometry/haversine % (:v (tool/nearest-location @net %)))
                           points)]
       (if (every? #(< % max-distance) distances) @net
         (recur (rest networks) points)))))

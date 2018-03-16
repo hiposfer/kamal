@@ -19,9 +19,9 @@
   (let [dt      (gen/generate (ng/graph 1000))
         network (data/create-conn router/schema)
         _       (data/transact! network dt)
-        src     (rand-nth (alg/node-ids @network))
-        dst     (rand-nth (alg/node-ids @network))]
-    (println "\n\nDIJKSTRA forward with:" (count (alg/node-ids @network)) "nodes")
+        src     (rand-nth (alg/nodes @network))
+        dst     (rand-nth (alg/nodes @network))]
+    (println "\n\nDIJKSTRA forward with:" (count (alg/nodes @network)) "nodes")
     (println "**random graph")
     (c/quick-bench
       (let [coll (alg/dijkstra @network #(directions/duration @network %1 %2)
@@ -41,9 +41,9 @@
 ;(take 10 (alg/biggest-component (:network @networker)))
 
 (test/deftest ^:benchmark dijkstra-saarland-graph
-  (let [src     (rand-nth (alg/node-ids @network))
-        dst     (rand-nth (alg/node-ids @network))]
-    (println "\n\nDIJKSTRA forward with:" (count (alg/node-ids @network)) "nodes")
+  (let [src     (rand-nth (alg/nodes @network))
+        dst     (rand-nth (alg/nodes @network))]
+    (println "\n\nDIJKSTRA forward with:" (count (alg/nodes @network)) "nodes")
     (println "saarland graph:")
     (c/quick-bench
       (let [coll (alg/dijkstra @network #(directions/duration @network %1 %2)
@@ -56,9 +56,9 @@
 ;; I think nil src then search points less than src
 (test/deftest ^:benchmark nearest-neighbour-search
   (let [src   [7.038535 49.345088]
-        point (:v (tool/nearest-node @network src))]
+        point (:v (tool/nearest-location @network src))]
     (println "\n\nsaarland graph: nearest neighbour search with random src/dst")
     (println "B+ tree with:" (count (data/datoms @network :eavt)) "nodes")
     (println "accuraccy: " (geometry/haversine src point))
-    (c/quick-bench (:v (tool/nearest-node @network src))
+    (c/quick-bench (:v (tool/nearest-location @network src))
                    :os :runtime :verbose)))
