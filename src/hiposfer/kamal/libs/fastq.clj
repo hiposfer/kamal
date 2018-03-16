@@ -46,8 +46,8 @@
 
   The previous query takes around 50 milliseconds to finish. This one takes
   around 0.15 milliseconds"
-  [network id]
-  (index-lookup network :way/nodes id))
+  [network entity]
+  (index-lookup network :way/nodes (:db/id entity)))
 
 (defn continue-trip
   "returns the :stop.times entity to reach ?dst-id via ?trip
@@ -80,7 +80,7 @@
 ;"Elapsed time: 0.296584 msecs" -> stime
 ;"Elapsed time: 0.004389 msecs" -> result
 
-(defn upcoming-trip
+(defn find-trip
   "Returns a [src dst] stop.times pair for the next trip between ?src-id
    and ?dst-id departing after ?now
 
@@ -125,8 +125,8 @@
            [?dst :stop.times/stop ?se]
            [?se :stop/id ?id]]
   the previous query takes 145 milliseconds. This function takes 0.2 milliseconds"
-  [network ?src-id]
-  (let [stop-times (index-lookup network :stop.times/stop ?src-id)
+  [network ?src]
+  (let [stop-times (index-lookup network :stop.times/stop (:db/id ?src))
         stops      (for [st1  stop-times
                          :let [trip    (:stop.times/trip st1)
                                stimes2 (index-lookup network :stop.times/trip (:db/id trip))]

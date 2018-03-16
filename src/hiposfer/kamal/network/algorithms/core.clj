@@ -15,7 +15,9 @@
   Parameters:
    - graph: an collection of nodes over which the traversal will happen.
             Expected to be a Datascript db but need not be
-   - start-from is a set of node-entity ids to start searching from
+   - start-from is a set of
+      - entities to start searching from
+      - [entity init] pair where init is value to start settling nodes
    - opts: is a map of options with the following keys
      :successors -> a function of graph, id -> [ id ]. Used to get the id of
                     the next nodes value-by successors

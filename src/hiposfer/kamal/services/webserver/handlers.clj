@@ -5,8 +5,8 @@
             [hiposfer.kamal.specs.mapbox.directions :as mapbox]
             [hiposfer.kamal.services.routing.directions :as dir]
             [hiposfer.kamal.libs.geometry :as geometry]
-            [hiposfer.kamal.libs.tool :as tool]
-            [hiposfer.kamal.libs.fastq :as fastq]))
+            [hiposfer.kamal.libs.fastq :as fastq])
+  (:import (java.time Duration LocalTime Instant)))
 
 (defn- validate
   "validates that the coordinates and the radiuses conform to the mapbox specification.
@@ -60,6 +60,11 @@
 ; {"coordinates": [[6.905707,49.398459],
 ;                  [6.8992, 49.4509]]}}
 
-;(select @(:networks (:router hiposfer.kamal.dev/system))
-;        [[6.905707,49.398459]
-;         [6.8992, 49.4509]])
+;(fastq/nearest-node @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;                    [6.905707,49.398459])
+
+;(dir/direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;               {:coordinates [[6.905707, 49.398459]
+;                              [6.8992, 49.4509]]
+;                :departure  (.getSeconds (Duration/between (LocalTime/MIDNIGHT)
+;                                                           (LocalTime/now)))})
