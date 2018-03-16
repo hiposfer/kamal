@@ -5,7 +5,8 @@
             [hiposfer.kamal.parsers.gtfs.core :as gtfs]
             [datascript.core :as data]
             [com.stuartsierra.component :as component]
-            [hiposfer.kamal.network.algorithms.core :as alg]))
+            [hiposfer.kamal.network.algorithms.core :as alg]
+            [hiposfer.kamal.libs.fastq :as fastq]))
 
 ;; NOTE: we use :db/index true to replace the lack of :VAET index in datascript
 ;; This is for performance. In lots of cases we want to lookup back-references
@@ -53,20 +54,15 @@
              :stop.times/departure_time {:db/index true}})
 
 ;; This might not be the best approach but it gets the job done for the time being
-(def pair-stops '[:find ?stop ?node
-                  :in $
-                  :where [?stop :stop/id]
-                         [?stop :stop/location ?loc]
-                         [(hiposfer.kamal.libs.fastq/nearest-node $ ?loc) ?node]])
-
 (defn link-stops
   "takes a network, looks up the nearest node for each stop and returns
   a transaction that will link those"
   [network]
-  (let [stop-dnode (data/q pair-stops network)]
-    (for [[stop dnode] stop-dnode]
-      {:db/id (:e dnode)
-       :node/successors #{stop}})))
+  (for [stop (map #(data/entity network (:e %))
+                   (data/datoms @@network :aevt :stop/id))]
+    (let [node (fastq/nearest-node network (:stop/location stop))]
+      {:node/id (:node/id node)
+       :node/successors #{(:db/id stop)}})))
 
 (defn exec!
   "builds a datascript in-memory db and conj's it into the passed agent"
