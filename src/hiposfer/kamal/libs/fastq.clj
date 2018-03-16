@@ -13,9 +13,9 @@
             (data/index-range network k id nil)))
 
 (defn node-successors
-  "takes a network and an entity id and returns the successors of that entity.
+  "takes a network and an entity and returns the successors of that entity.
    Only valid for OSM nodes. Assumes bidirectional links i.e. nodes with
-   back-references to id are also returned
+   back-references to entity are also returned
 
   replaces:
   '[:find ?successors ?node
@@ -25,9 +25,9 @@
 
   The previous query takes around 50 milliseconds to finish. This function
   takes around 0.25 milliseconds"
-  [network id]
-  (concat (:node/successors (data/entity network id))
-          (index-lookup network :node/successors id)))
+  [network entity]
+  (concat (:node/successors entity)
+          (index-lookup network :node/successors (:db/id entity))))
 
 (defn nearest-node
   "returns the nearest node/location datom to point"

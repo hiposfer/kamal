@@ -53,14 +53,10 @@
   (if (= (count (nodes network)) (count settled)) (list)
     (let [start     (some #(and (not (settled %)) %)
                            (nodes network))
-          djks (breath-first network tool/node-successors start)
-          connected (sequence (comp (map first) (map key)) djks)]
-     (cons connected
-           (lazy-seq (components network (into settled connected)
-                          (node-ids network)))
-          connected (into #{} (comp (map first) (map key))
-                          (dijkstra network #{start} {:successors fastq/node-successors}))
-      (cons connected (lazy-seq (components network (set/union settled connected))))))))
+          connected (sequence (comp (map first) (map key))
+                              (dijkstra network #{start}
+                                {:successors fastq/node-successors}))]
+     (cons connected (lazy-seq (components network (into settled connected)))))))
 
 ;; note for specs: the looner of the looner should be empty
 (defn looners
