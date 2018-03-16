@@ -32,7 +32,8 @@
 (defn nearest-node
   "returns the nearest node/location datom to point"
   [network point]
-  (first (index-lookup network :node/location point)))
+  (let [locs (data/index-range network :node/location point nil)]
+    (data/entity network (:e (first locs)))))
 
 (defn node-ways
   "takes a dereferenced Datascript connection and an entity id and returns
