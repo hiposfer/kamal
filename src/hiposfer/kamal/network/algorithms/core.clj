@@ -54,11 +54,10 @@
   (if (= (count (nodes network)) (count settled)) (list)
     (let [start     (some #(and (not (settled %)) %)
                            (nodes network))
-          connected (breath-first network tool/node-successors start)]
+          djks (breath-first network tool/node-successors start)
+          connected (sequence (comp (map first) (map key)) djks)]
      (cons connected
-           (lazy-seq (components network (into settled
-                                               (comp (map first) (map key))
-                                               connected)))))))
+           (lazy-seq (components network (into settled connected)))))))
 
 ;; note for specs: the looner of the looner should be empty
 (defn looners
@@ -68,5 +67,5 @@
   NOTE: only relevant for pedestrian routing"
   [network]
   (let [subsets   (components network #{})
-        connected (apply max-key count subsets)]
+        connected (into #{} (apply max-key count subsets))]
     (remove #(contains? connected %) (nodes network))))

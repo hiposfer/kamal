@@ -54,10 +54,10 @@
    Only valid for OSM nodes. Assumes bidirectional links i.e. nodes with
    back-references to it are also returned"
   [network entity]
-  (map #(data/entity network %)
-       (concat (map :db/id (:node/successors entity))
-               (map :e (take-while #(= (:v %) (:db/id entity))
-                         (data/index-range network :node/successors (:db/id entity) nil))))))
+  (concat (:node/successors entity)
+          (map #(data/entity network %)
+            (map :e (take-while #(= (:v %) (:db/id entity))
+                      (data/index-range network :node/successors (:db/id entity) nil))))))
 
 (defn nearest-location
   "returns the nearest node/location datom to point"
