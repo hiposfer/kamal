@@ -23,9 +23,9 @@
   (let [dt      (gen/generate (ng/graph 1000))
         network (data/create-conn router/schema)
         _       (data/transact! network dt)
-        src     (rand-nth (alg/node-ids @network))
-        dst     (rand-nth (alg/node-ids @network))]
-    (println "\n\nDIJKSTRA forward with:" (count (alg/node-ids @network)) "nodes")
+        src     (rand-nth (alg/nodes @network))
+        dst     (rand-nth (alg/nodes @network))]
+    (println "\n\nDIJKSTRA forward with:" (count (alg/nodes @network)) "nodes")
     (println "**random graph")
     (c/quick-bench
       (let [coll (alg/dijkstra @network #{src} (opts @network))]
@@ -43,10 +43,9 @@
 ;(take 10 (alg/biggest-component (:network @networker)))
 
 (test/deftest ^:benchmark dijkstra-saarland-graph
-  (let [src     (first (alg/node-ids @@network))
-        dst     (last (alg/node-ids @@network))
-        removable (alg/looners @@network)]
-    (println "\n\nDIJKSTRA forward with:" (count (alg/node-ids @@network)) "nodes")
+  (let [src     (rand-nth (alg/nodes @network))
+        dst     (rand-nth (alg/nodes @network))]
+    (println "\n\nDIJKSTRA forward with:" (count (alg/nodes @network)) "nodes")
     (println "saarland graph:")
     (c/quick-bench
       (let [coll (alg/dijkstra @@network #{src} (opts @@network))]

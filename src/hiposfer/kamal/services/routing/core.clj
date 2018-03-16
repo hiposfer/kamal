@@ -76,7 +76,7 @@
                       (gtfs/datomize (:gtfs area)))
         pedestrian  (if (true? dev)
                       (let [graph (gen/generate (ng/graph (:size area)))]
-                        (concat graph (ng/ways (alg/node-ids graph))))
+                        (concat graph (ng/ways (alg/nodes graph))))
                       (time (osm/datomize (:osm area))))
         conn        (data/create-conn schema)]
     (time (data/transact! conn (concat pedestrian vehicle)))
