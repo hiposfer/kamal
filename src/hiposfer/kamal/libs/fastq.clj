@@ -3,7 +3,8 @@
   algorithm and need to run extremely fast (< 1 ms per query)
 
   By convention all queries here return Entities"
-  (:require [datascript.core :as data]))
+  (:require [datascript.core :as data])
+  (:import (java.time Duration LocalTime)))
 
 (defn index-lookup
   "convenience function to get the entities whose attribute (k) equals id"
@@ -97,18 +98,20 @@
 
   The previous query runs in 118 milliseconds. This function takes 4 milliseconds"
   [network ?src-id ?dst-id ?now]
-  (let [all     (data/index-range network :stop.times/departure_time ?now nil)
-        src     (first (filter #(= ?src-id (:db/id (:stop.times/stop %)))
-                                (map #(data/entity network (:e %)) all)))
-        arrival (continue-trip network ?dst-id (:db/id (:stop.times/trip src)))]
-    [src arrival]))
+  (let [sts     (filter #(> (:stop.times/departure_time %) ?now)
+                         (index-lookup network :stop.times/stop ?src-id))
+        departures (sort-by :stop.times/departure_time sts)
+        trips   (for [st departures
+                      :let [?trip-id (:db/id (:stop.times/trip st))]]
+                  [st (continue-trip network ?dst-id ?trip-id)])]
+    (first trips)))
 
 ;(time
-;  (upcoming-trip @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;                 230963
-;                 230607
-;                 (LocalDateTime/now)
-;                 (LocalDateTime/of (LocalDate/now) (LocalTime/MIDNIGHT))))
+;  (find-trip @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;             230963
+;             230607
+;             (.getSeconds (Duration/between (LocalTime/MIDNIGHT)
+;                                            (LocalTime/now)))))
 
 (defn next-stops
   "return the next stop entities for ?src-id based on stop.times

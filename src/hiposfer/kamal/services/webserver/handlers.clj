@@ -63,8 +63,9 @@
 ;(fastq/nearest-node @(first @(:networks (:router hiposfer.kamal.dev/system)))
 ;                    [6.905707,49.398459])
 
-;(dir/direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;               {:coordinates [[6.905707, 49.398459]
-;                              [6.8992, 49.4509]]
-;                :departure  (.getSeconds (Duration/between (LocalTime/MIDNIGHT)
-;                                                           (LocalTime/now)))})
+;(time
+;  (dir/direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;                 {:coordinates [[6.905707, 49.398459]
+;                                [6.8992, 49.4509]]
+;                  :departure  (.getSeconds (Duration/between (LocalTime/MIDNIGHT)
+;                                                             (LocalTime/now)))}))
