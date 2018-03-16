@@ -148,8 +148,8 @@
         traversal  (alg/dijkstra network
                                  #(duration network %1 %2)
                                  tool/node-successors
-                                 #{(:e start)})
-        rtrail     (alg/shortest-path (:e dst) traversal)]
+                                 #{(data/entity network (:e start))})
+        rtrail     (alg/shortest-path (data/entity network (:e dst)) traversal)]
     (if (some? rtrail)
       {:code "Ok"
        :routes [(route network steps rtrail)]

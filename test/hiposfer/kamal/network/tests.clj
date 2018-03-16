@@ -39,8 +39,8 @@
 (defn successors
   "returns only the successors of id. Assuming that all of them are under
   node/successors"
-  [network id]
-  (map :db/id (:node/successors (data/entity network id))))
+  [network node]
+  (:node/successors node))
 
 ;; hack. It shouldnt be like this but I am not going to modify the schema just
 ;; to make it pretty
@@ -55,34 +55,35 @@
 
 (defn- length
   [network dst trail]
-  (let [src    (:node/id (data/entity network (key (first trail))))
-        dst    (:node/id (data/entity network dst))]
-    ;(println src dst (get-in lengths [src dst]) trail)
-    (get-in lengths [src dst])))
+  (let [src-id (:node/id (key (first trail)))
+        dst-id (:node/id dst)]
+    (get-in lengths [src-id dst-id])))
 
 (deftest shortest-path
-  (let [dst       5
-        network   (data/create-conn router/schema)
+  (let [network   (data/create-conn router/schema)
         _         (data/transact! network rosetta)
+        dst       (data/entity @network [:node/id 5])
+        src       (data/entity @network [:node/id 1])
         performer (alg/dijkstra @network
                                 #(length @network %1 %2)
                                 successors
-                                #{1})
+                                #{src})
         traversal (alg/shortest-path dst performer)]
     (is (not (empty? traversal))
         "shortest path not found")
-    (is (= '(5 4 3 1) (map key traversal))
+    (is (= '(5 4 3 1) (map (comp :node/id key) traversal))
         "shortest path doesnt traverse expected nodes")))
 
 (deftest all-paths
   (let [network   (data/create-conn router/schema)
         _         (data/transact! network rosetta)
+        src       (data/entity @network [:node/id 1])
         performer (alg/dijkstra @network
                                 #(length @network %1 %2)
                                 successors
-                                #{1})
+                                #{src})
         traversal (into {} (comp (map first)
-                                 (map (juxt key (comp np/cost val))))
+                                 (map (juxt (comp :node/id key) (comp np/cost val))))
                            performer)]
     (is (not (nil? traversal))
         "shortest path not found")
@@ -160,7 +161,7 @@
     (let [network (data/create-conn router/schema)
           _ (data/transact! network graph)
           r1      (alg/looners @network)
-          _ (data/transact! network (map #(vector :db.fn/retractEntity %) r1))
+          _ (data/transact! network (map #(vector :db.fn/retractEntity (:db/id %)) r1))
           r2      (alg/looners @network)]
       (is (empty? r2)
           "looners should be empty for a strongly connected graph"))))
@@ -177,7 +178,7 @@
     (let [network (data/create-conn router/schema)
           _ (data/transact! network graph)
           r1      (alg/looners @network)
-          _ (data/transact! network (map #(vector :db.fn/retractEntity %) r1))
+          _ (data/transact! network (map #(vector :db.fn/retractEntity (:db/id %)) r1))
           src  (rand-nth (alg/nodes @network))
           coll (alg/dijkstra @network
                              #(direction/duration @network %1 %2)
@@ -188,13 +189,13 @@
 
 ;; -----------------------------------------------------------------
 ;; generative tests for the direction endpoint
-(defspec routable
-  100; tries
-  (prop/for-all [graph (gen/such-that not-empty (ng/graph 300) 1000)]
-    (let [network (data/create-conn router/schema)
-          _ (data/transact! network graph)
-          request (gen/generate (s/gen ::mapbox/args))
-          result (dir/direction @network request)]
-      (is (s/valid? ::mapbox/response result)))))
+;(defspec routable
+;  100; tries
+;  (prop/for-all [graph (gen/such-that not-empty (ng/graph 300) 1000)]
+;    (let [network (data/create-conn router/schema)
+;          _ (data/transact! network graph)
+;          request (gen/generate (s/gen ::mapbox/args))
+;          result (dir/direction @network request)]
+;      (is (s/valid? ::mapbox/response result)))))
 
 ;(clojure.test/run-tests)
