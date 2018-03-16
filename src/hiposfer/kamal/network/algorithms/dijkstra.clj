@@ -36,14 +36,14 @@
   (if (empty? node-successors) nil
     (if (.containsKey settled (first node-successors))
       (recur value settled unsettled entry queue trail (rest node-successors))
-      (let [id      (first node-successors)
-            prev-id (key (.getValue entry))
-            weight  (np/sum (value id trail)
+      (let [entity  (first node-successors)
+            prev    (key (.getValue entry))
+            weight  (np/sum (value entity trail)
                             (.getKey entry))
-            trace2  (trace id prev-id)
-            old-entry ^Heap$Entry (.get unsettled id)]
+            trace2  (trace entity prev)
+            old-entry ^Heap$Entry (.get unsettled entity)]
         (if (nil? old-entry)
-          (.put unsettled id (.insert queue weight trace2))
+          (.put unsettled entity (.insert queue weight trace2))
           (when (< weight (.getKey old-entry))
             (.setValue old-entry trace2)
             (.decreaseKey queue old-entry weight)))
@@ -56,12 +56,12 @@
    node"
   [graph value successors ^Heap queue ^Map settled ^Map unsettled]
   (let [entry  (.extractMinimum queue)
-        id     (key (.getValue entry))
-        _      (.put settled id entry)
-        _      (.remove unsettled id)
-        trail  (path settled id)]
+        entity (key (.getValue entry))
+        _      (.put settled entity entry)
+        _      (.remove unsettled entity)
+        trail  (path settled entity)]
     (relax! value settled unsettled entry queue
-            trail (successors graph id))
+            trail (successors graph entity))
     trail))
 
 ; inspired by http://insideclojure.org/2015/01/18/reducible-generators/
