@@ -43,9 +43,9 @@
         length (geometry/haversine src dst)]
     (/ length osm/walking-speed)))
 
-;; a TripStep represents the transition between two points somehow related to a GTFS
-;; feed. "Somehow" means that not necessarily both points need to be GTFS stops
-(defrecord TripStep [trip value]
+;; a TripStep represents the transition between two stops in a GTFS feed
+;; Both the source and destination stop.times are kept to avoid future lookups
+(defrecord TripStep [source destination ^Long value]
   np/Valuable
   (cost [_] value)
   (sum [this that] (assoc this :value (+ value (np/cost that))))
@@ -67,38 +67,34 @@
   [network id]
   (let [e (data/entity network id)]
     (if (node? e) ;; else stop
-      (concat (map :db/id (:node/successors e))
-              (map :e (take-while #(= (:v %) id)
-                                  (data/index-range network :node/successors id nil))))
-      (fastq/next-stops network id))))
+      (map :db/id (fastq/node-successors network id))
+      (map :db/id (fastq/next-stops network id)))))
 
 (defn with-timetable
   "provides routing calculations using both GTFS feed and OSM nodes. Returns
   a Long for walking parts and a TripStep for GTFS related ones."
-  [network ^LocalDateTime start next-id trail]
+  [network now next-id trail]
   (let [[pre-id value] (first trail)
         src    (data/entity network pre-id)
         dst    (data/entity network next-id)]
     (cond
       ;; The user just walking so we route based on walking duration
       (node? src)
-      (walk-time src dst) ;; TODO: localtime
+      (long (walk-time src dst))
       ;; the user is trying to leave a vehicle. Apply penalty but route
       ;; normally
       (and (stop? src) (node? dst))
-      (+ penalty (walk-time src dst))
+      (+ penalty (long (walk-time src dst)))
       ;; the user is trying to get into a vehicle. We need to find the next
       ;; coming trip
       (and (stop? src) (stop? dst) (not (trip-step? value)))
-      (when-let [st (fastq/upcoming-trip network pre-id next-id value start)]
-        (let [arrives (fastq/plus-seconds start (:stop.times/arrival_time st))]
-          (->TripStep (:stop.times/trip st) (.minus arrives value))))
-      ;; the user is already in a trip. Just find that trip for the src/dst
-      ;; combination
+      (when-let [[st1 st2] (fastq/upcoming-trip network pre-id next-id now)]
+        (->TripStep st1 st2 (- (:stop.times/arrival_time st2) (np/cost value))))
+      ;; the user is already in a trip. Just find that trip for the dst
       :else
-      (let [departure (fastq/continue-trip network next-id
-                             (:db/id (:trip value)) start)]
-        (->TripStep (:trip value) departure)))))
+      (let [st (fastq/continue-trip network next-id (:db/id (:trip value)))]
+        (->TripStep (:destination value) st
+                    (- (:stop.times/arrival_time st) (np/cost value)))))))
 
 (defn- linestring
   "get a geojson linestring based on the route path"

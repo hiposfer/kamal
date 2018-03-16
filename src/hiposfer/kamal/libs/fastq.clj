@@ -1,8 +1,9 @@
 (ns hiposfer.kamal.libs.fastq
   "namespace for hand-optimized queries that are used inside the routing
-  algorithm and need to run extremely fast (< 1 ms per query)"
-  (:require [datascript.core :as data])
-  (:import (java.time LocalDateTime LocalDate LocalTime Duration)))
+  algorithm and need to run extremely fast (< 1 ms per query)
+
+  By convention all queries here return Entities"
+  (:require [datascript.core :as data]))
 
 (defn index-lookup
   "convenience function to get the entities whose attribute (k) equals id"
@@ -25,8 +26,8 @@
   The previous query takes around 50 milliseconds to finish. This function
   takes around 0.25 milliseconds"
   [network id]
-  (concat (map :db/id (:node/successors (data/entity network id)))
-          (map :db/id (index-lookup network :node/successors id))))
+  (concat (:node/successors (data/entity network id))
+          (index-lookup network :node/successors id)))
 
 (defn nearest-node
   "returns the nearest node/location datom to point"
@@ -47,20 +48,8 @@
   [network id]
   (index-lookup network :way/nodes id))
 
-;; utility functions to avoid Datascript complaining about it
-(defn plus-seconds [^LocalDateTime t amount] (.plusSeconds t amount))
-(defn after? [^LocalDateTime t ^LocalDateTime t2] (.isAfter t t2))
-
-(defn- continue-xform
-  "for some reason, defining the transducer outside of the eduction itself
-  seems to be faster"
-  [?dst-id ?start]
-  (comp (filter #(= ?dst-id (:db/id (:stop.times/stop %))))
-        (map :stop.times/arrival_time)
-        (map #(plus-seconds ?start %))))
-
 (defn continue-trip
-  "find the time of arrival for a certain trip to a specific stop
+  "returns the :stop.times entity to reach ?dst-id via ?trip
 
   replaces:
   '[:find ?departure
@@ -72,9 +61,9 @@
 
    The previous query takes around 50 milliseconds to execute. This function
    takes around 0.22 milliseconds to execute. Depends on :stop.times/trip index"
-  [network ?dst-id ?trip ?start]
-  (first (eduction (continue-xform ?dst-id ?start)
-                   (index-lookup network :stop.times/trip ?trip))))
+  [network ?dst-id ?trip]
+  (first (filter #(= ?dst-id (:db/id (:stop.times/stop %)))
+                  (index-lookup network :stop.times/trip ?trip))))
 
 ;; TODO: ideally these computations can be cached to improve performance
 ;; to avoid cache misses I guess the ideal way would be to cache the trip
@@ -91,8 +80,8 @@
 ;"Elapsed time: 0.004389 msecs" -> result
 
 (defn upcoming-trip
-  "Query to find out what is the next trip coming connection ?src and ?dst
-  departing later than ?now. Returns the stop.time the dst on the upcoming trip
+  "Returns a [src dst] stop.times pair for the next trip between ?src-id
+   and ?dst-id departing after ?now
 
   replaces:
   '[:find ?trip ?departure
@@ -106,13 +95,12 @@
            [(hiposfer.kamal.libs.fastq/after? ?departure ?now)]]
 
   The previous query runs in 118 milliseconds. This function takes 4 milliseconds"
-  [network ?src-id ?dst-id ?now ?start]
-  (let [t    (.getSeconds (Duration/between ?start ?now))
-        all  (data/index-range network :stop.times/departure_time t nil)
-        src  (first (filter #(= ?src-id (:db/id (:stop.times/stop %)))
-                            (map #(data/entity network (:e %)) all)))
-        dst-arrival (continue-trip network ?dst-id (:db/id (:stop.times/trip src)) ?start)]
-    [src dst-arrival]))
+  [network ?src-id ?dst-id ?now]
+  (let [all     (data/index-range network :stop.times/departure_time ?now nil)
+        src     (first (filter #(= ?src-id (:db/id (:stop.times/stop %)))
+                                (map #(data/entity network (:e %)) all)))
+        arrival (continue-trip network ?dst-id (:db/id (:stop.times/trip src)))]
+    [src arrival]))
 
 ;(time
 ;  (upcoming-trip @(first @(:networks (:router hiposfer.kamal.dev/system)))
@@ -122,7 +110,7 @@
 ;                 (LocalDateTime/of (LocalDate/now) (LocalTime/MIDNIGHT))))
 
 (defn next-stops
-  "find the next possible stops of ?src-id based on stop.times
+  "return the next stop entities for ?src-id based on stop.times
 
   replaces:
   '[:find [?id ...]
