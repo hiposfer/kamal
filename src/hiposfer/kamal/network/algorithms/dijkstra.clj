@@ -58,12 +58,12 @@
    node"
   [graph value successors ^Heap queue ^Map settled ^Map unsettled]
   (let [entry  (.extractMinimum queue)
-        id     (key (.getValue entry))
-        _      (.put settled id entry)
-        _      (.remove unsettled id)
-        trail  (path settled id)]
+        entity (key (.getValue entry))
+        _      (.put settled entity entry)
+        _      (.remove unsettled entity)
+        trail  (path settled entity)]
     (relax! value settled unsettled entry queue
-            trail (successors graph id))
+            trail (successors graph entity))
     trail))
 
 ; inspired by http://insideclojure.org/2015/01/18/reducible-generators/

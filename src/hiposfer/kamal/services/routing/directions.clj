@@ -23,11 +23,6 @@
 
 (def ->coordinates (juxt np/lon np/lat))
 
-(defn location
-  "given an entity id returns its geo location assuming it is a node"
-  [network id]
-  (:node/location (data/entity network id)))
-
 (defn- link
   "find the first link that connects src and dst and returns its entity id"
   [network src-trace dst-trace]
@@ -37,9 +32,9 @@
 (defn duration
   "A very simple value computation function for arcs in a network.
   Returns the time it takes to go from src to dst based on walking speeds"
-  [network next-id trail]
-  (let [src    (location network (key (first trail)))
-        dst    (location network next-id)
+  [network next-entity trail] ;; 1 is a simple value used for test whenever no other value would be suitable
+  (let [src    (:node/location (key (first trail)))
+        dst    (:node/location next-entity)
         length (geometry/haversine src dst)]
     (/ length osm/walking-speed)))
 
@@ -98,10 +93,10 @@
 
 (defn- linestring
   "get a geojson linestring based on the route path"
-  [network ids]
-  (let [coordinates (sequence (comp (map #(location network %))
+  [network entities]
+  (let [coordinates (sequence (comp (map :node/location)
                                     (map ->coordinates))
-                              ids)]
+                              entities)]
     {:type "LineString"
      :coordinates coordinates}))
 
@@ -109,11 +104,11 @@
 (defn- maneuver
   "returns a step manuever"
   [network prev-piece  piece next-piece]
-  (let [position     (location network (key (ffirst piece)))
-        pre-bearing  (geometry/bearing (location network (key (ffirst prev-piece)))
-                                       (location network (key (ffirst piece))))
-        post-bearing (geometry/bearing (location network (key (ffirst piece)))
-                                       (location network (key (ffirst next-piece))))
+  (let [position     (:node/location network (key (ffirst piece)))
+        pre-bearing  (geometry/bearing (:node/location (key (ffirst prev-piece)))
+                                       (:node/location (key (ffirst piece))))
+        post-bearing (geometry/bearing (:node/location (key (ffirst piece)))
+                                       (:node/location (key (ffirst next-piece))))
         angle        (mod (+ 360 (- post-bearing pre-bearing)) 360)
         modifier     (val (last (subseq bearing-turns <= angle)))
         way-name     (:way/name (data/entity network (second (first piece))))
