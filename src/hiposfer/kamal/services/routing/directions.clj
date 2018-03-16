@@ -96,9 +96,9 @@
       ;; the user is already in a trip. Just find that trip for the src/dst
       ;; combination
       :else
-      (let [departures (fastq/continue-trip network next-id
+      (let [departure (fastq/continue-trip network next-id
                              (:db/id (:trip value)) start)]
-        (->TripStep (:trip value) (first departures))))))
+        (->TripStep (:trip value) departure)))))
 
 (defn- linestring
   "get a geojson linestring based on the route path"
