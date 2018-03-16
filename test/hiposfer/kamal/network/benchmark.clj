@@ -5,7 +5,6 @@
             [hiposfer.kamal.network.generators :as ng]
             [hiposfer.kamal.network.algorithms.core :as alg]
             [hiposfer.kamal.parsers.osm :as osm]
-            [hiposfer.kamal.libs.tool :as tool]
             [hiposfer.kamal.services.routing.directions :as directions]
             [hiposfer.kamal.libs.geometry :as geometry]
             [hiposfer.kamal.services.routing.core :as router]
@@ -39,26 +38,24 @@
                      (data/transact! conn data)
                      conn))))
 
-;(take 10 (:network @networker)) ;; force read
-;(take 10 (alg/biggest-component (:network @networker)))
+;(type @@network) ;; force read
 
 (test/deftest ^:benchmark dijkstra-saarland-graph
-  (let [src     (rand-nth (alg/nodes @network))
-        dst     (rand-nth (alg/nodes @network))]
-    (println "\n\nDIJKSTRA forward with:" (count (alg/nodes @network)) "nodes")
+  (let [src  (first (alg/nodes @@network))
+        dst  (last (alg/nodes @@network))
+        r1   (alg/looners @@network)
+        coll (alg/dijkstra @@network #{src} (opts @@network))]
+    (println "\n\nDIJKSTRA forward with:" (count (alg/nodes @@network)) "nodes")
     (println "saarland graph:")
-    (c/quick-bench
-      (let [coll (alg/dijkstra @@network #{src} (opts @@network))]
-        (alg/shortest-path dst coll))
+    (c/quick-bench (alg/shortest-path dst coll)
       :os :runtime :verbose)
     (println "--------")
     (println "using only strongly connected components of the original graph")
-    (data/transact! @network (map #(vector :db.fn/retractEntity %) removable))
-    (println "with:" (count (alg/node-ids @@network)) "nodes")
-    (c/quick-bench
-      (let [coll (alg/dijkstra @@network #{src} (opts @@network))]
-        (alg/shortest-path dst coll))
-      :os :runtime :verbose)))
+    (data/transact! @network (map #(vector :db.fn/retractEntity (:db/id %)) r1))
+    (println "with:" (count (alg/nodes @@network)) "nodes")
+    (let [coll (alg/dijkstra @@network #{src} (opts @@network))]
+      (c/quick-bench (alg/shortest-path dst coll)
+        :os :runtime :verbose))))
 
 ;; note src nil search will search for points greater or equal to src
 ;; I think nil src then search points less than src
