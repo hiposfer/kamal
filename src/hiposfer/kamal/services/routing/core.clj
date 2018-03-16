@@ -49,7 +49,8 @@
              :stop.times/trip  {:db/type :db.type/ref
                                 :db/index true}
              :stop.times/stop  {:db/type :db.type/ref
-                                :db/index true}})
+                                :db/index true}
+             :stop.times/departure_time {:db/index true}})
 
 ;; This might not be the best approach but it gets the job done for the time being
 (def pair-stops '[:find ?stop ?node
