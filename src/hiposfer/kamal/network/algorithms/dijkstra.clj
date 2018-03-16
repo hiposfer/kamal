@@ -14,9 +14,10 @@
    sources id to the beginning of the queue and to the settled map."
   ^Heap [init-set ^Map settled comparator]
   (let [queue  ^Heap (new FibonacciHeap comparator)]
-    (run! (fn [id] (->> (trace id nil)
-                        (.insert queue 0)
-                        (.put settled id)))
+    (run! (fn [value] (let [[e v] (if (vector? value) value [value 0])
+                            t (trace e nil)
+                            he (.insert queue v t)]
+                        (.put settled value he)))
           init-set)
     queue))
 
@@ -36,17 +37,18 @@
   (if (empty? node-successors) nil
     (if (.containsKey settled (first node-successors))
       (recur value settled unsettled entry queue trail (rest node-successors))
-      (let [id      (first node-successors)
-            prev-id (key (.getValue entry))
-            v       (value id trail)]
+      (let [entity  (first node-successors)
+            v       (value entity trail)]
         (if (nil? v) ;; no path, infinite cost -> ignore it
           (recur value settled unsettled entry queue trail (rest node-successors))
-          (let [weight  (np/sum v (.getKey entry))
-                trace2  (trace id prev-id)
-                old-entry ^Heap$Entry (.get unsettled id)]
+          (let [prev    (key (.getValue entry))
+                weight  (np/sum v (.getKey entry))
+                trace2  (trace entity prev)
+                old-entry ^Heap$Entry (.get unsettled entity)]
             (if (nil? old-entry)
-              (.put unsettled id (.insert queue weight trace2))
-              (when (< weight (.getKey old-entry))
+              (.put unsettled entity (.insert queue weight trace2))
+              (when (< (np/cost weight)
+                       (np/cost (.getKey old-entry)))
                 (.setValue old-entry trace2)
                 (.decreaseKey queue old-entry weight)))
             (recur value settled unsettled entry queue
@@ -99,11 +101,11 @@
 ; - value: a function of next-node, current-trace -> Valuable implementation
 ; - successors: a function of id -> [ id ]. Used to get either the outgoing
 ;               arcs of a node
-(deftype Dijkstra [graph ids value successors comparator]
+(deftype Dijkstra [graph start-from value successors comparator]
   Seqable
   (seq [_]
     (let [settled   (new HashMap) ;{id {weight {id prev}}}
-          queue     (init! ids settled comparator) ;[{weight {id prev}}]
+          queue     (init! start-from settled comparator) ;[{weight {id prev}}]
           unsettled (new HashMap); {id {weight {id prev}}}
           trailer!  (fn trailer! []
                       (if (.isEmpty queue) (list)
@@ -118,7 +120,7 @@
   (reduce [_ rf init]
     ;; Heap.Entry -> {weight {id prev}}
     (let [settled   (new HashMap); {id Heap.Entry}
-          queue     (init! ids settled comparator); [Heap.Entry]
+          queue     (init! start-from settled comparator); [Heap.Entry]
           unsettled (new HashMap)]; {id Heap.Entry}
       (loop [ret init
              trail (produce! graph value successors queue settled unsettled)]

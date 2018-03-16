@@ -45,10 +45,12 @@
 
 (s/def ::radiuses (s/coll-of (s/or :string #{"unlimited"} :number (s/and int? pos?))))
 (s/def ::language string?)
+(s/def ::departure pos?)
 ;; TODO: dirty hack to avoid separating namespaces
 (s/def :mapbox.directions.request/steps boolean?)
 
-(s/def ::args (s/keys :req-un [:hiposfer.geojson.specs.multipoint/coordinates]
+(s/def ::args (s/keys :req-un [:hiposfer.geojson.specs.multipoint/coordinates
+                               ::departure]
                       :opt-un [::radiuses
                                :mapbox.directions.request/steps]))
 
