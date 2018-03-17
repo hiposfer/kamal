@@ -2,7 +2,9 @@
   (:require [hiposfer.kamal.network.algorithms.protocols :as np]
             [hiposfer.kamal.libs.fastq :as fastq]
             [hiposfer.kamal.parsers.osm :as osm]
-            [hiposfer.kamal.libs.geometry :as geometry]))
+            [hiposfer.kamal.libs.geometry :as geometry]
+            [datascript.core :as data])
+  (:import (java.time LocalDate)))
 
 (defn- walk-time [src dst]
   (/ (geometry/haversine (or (:node/location src)
@@ -74,3 +76,17 @@
           (->TripStep (:destination value) st
                       (- (:stop.times/arrival_time st) (np/cost value))))))))
 
+
+(defn by-service-day
+  "filters the Database to contain remove stop.times entries that are not applicable
+  to the current Date"
+  [db datom ^LocalDate now]
+  (if-not (contains? #{:stop.times/trip :stop.times/stop} (:a datom)) true
+    (let [st      (data/entity db (:e datom))
+          trip    (:stop.times/trip st)
+          service (:trip/service trip)
+          start   ^LocalDate (:service/start_date service)
+          end     ^LocalDate (:service/end_date service)]
+      (if (and (.isAfter now start) (.isBefore now end))
+        (contains? (:service/days service) (.getDayOfWeek now))
+        false))))

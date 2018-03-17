@@ -5,7 +5,8 @@
             [hiposfer.kamal.libs.geometry :as geometry]
             [datascript.core :as data]
             [clojure.set :as set]
-            [hiposfer.kamal.libs.fastq :as fastq]))
+            [hiposfer.kamal.libs.fastq :as fastq])
+  (:import (java.time LocalDateTime Duration LocalTime)))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
 (def bearing-turns
@@ -134,11 +135,16 @@
    Example:
    (direction network :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
   [network params]
-  (let [{:keys [coordinates steps departure]} params
+  (let [{:keys [coordinates steps ^LocalDateTime departure]} params
+        date       (.toLocalDate departure)
+        start      (.getSeconds (Duration/between (LocalTime/MIDNIGHT)
+                                                  (.toLocalTime departure)))
+        ;; WARNING: this is just too slow :(
+        ;network    (data/filter network #(transit/by-service-day %1 %2 date))
         src        (first (fastq/nearest-node network (first coordinates)))
         dst        (first (fastq/nearest-node network (last coordinates)))
        ; both start and dst should be found since we checked that before
-        traversal  (alg/dijkstra network #{[src departure]}
+        traversal  (alg/dijkstra network #{[src start]}
                                  {:value-by   #(transit/timetable-duration network %1 %2)
                                   :successors transit/successors
                                   :comparator transit/by-cost})
