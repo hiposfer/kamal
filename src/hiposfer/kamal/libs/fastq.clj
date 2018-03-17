@@ -5,7 +5,7 @@
   By convention all queries here return Entities"
   (:require [datascript.core :as data]
             [hiposfer.kamal.libs.tool :as tool])
-  (:import (java.time Duration LocalTime)))
+  (:import (java.time Duration LocalTime LocalDate)))
 
 (defn index-lookup
   "convenience function to get the entities whose attribute (k) equals id"
@@ -99,10 +99,10 @@
 
   The previous query runs in 118 milliseconds. This function takes 4 milliseconds"
   [network ?src-id ?dst-id ?now]
-  (let [sts     (filter #(> (:stop.times/departure_time %) ?now)
-                        (index-lookup network :stop.times/stop ?src-id))
-        trip (apply min-key :stop.times/departure_time sts)]
-    [trip (continue-trip network ?dst-id (:db/id (:stop.times/trip trip)))]))
+  (when-let [sts  (not-empty (filter #(> (:stop.times/departure_time %) ?now)
+                                      (index-lookup network :stop.times/stop ?src-id)))]
+    (let [trip (apply min-key :stop.times/departure_time sts)]
+      [trip (continue-trip network ?dst-id (:db/id (:stop.times/trip trip)))])))
 
 ;(time
 ;  (dotimes [n 1000]
