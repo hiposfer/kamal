@@ -45,6 +45,8 @@
              :route/agency    {:db/type :db.type/ref}
 
              :stop/id         {:db.unique :db.unique/identity}
+             :stop/successors {:db.type :db.type/ref
+                               :db.cardinality :db.cardinality/many}
              :stop/location   {:db/index true}
 
              :stop.times/trip  {:db/type :db.type/ref
@@ -63,6 +65,16 @@
       {:node/id (:node/id node)
        :node/successors #{(:db/id stop)}})))
 
+(defn cache-stop-successors
+  "computes the next-stops for each stop and returns a transaction
+  that will cache those results inside the :stop entities"
+  [network]
+  (for [stop (map #(data/entity network (:e %))
+                   (data/datoms network :aevt :stop/id))]
+    (let [neighbours (fastq/next-stops network stop)]
+      {:stop/id (:stop/id stop)
+       :stop/successors (map :db/id neighbours)})))
+
 (defn exec!
   "builds a datascript in-memory db and conj's it into the passed agent"
   [ag area dev]
@@ -76,6 +88,7 @@
         conn        (data/create-conn schema)]
     (time (data/transact! conn (concat pedestrian vehicle)))
     (data/transact! conn (link-stops @conn))
+    (data/transact! conn (cache-stop-successors @conn))
     (conj ag conn)))
 
 (defrecord Router [config networks]
