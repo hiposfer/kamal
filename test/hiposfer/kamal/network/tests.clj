@@ -5,12 +5,12 @@
             [clojure.test :refer [is deftest]]
             [hiposfer.kamal.network.algorithms.core :as alg]
             [hiposfer.kamal.network.algorithms.protocols :as np]
-            [hiposfer.kamal.services.routing.directions :as direction]
             [hiposfer.kamal.network.generators :as ng]
             [datascript.core :as data]
             [hiposfer.kamal.services.routing.core :as router]
             [clojure.spec.alpha :as s]
-            [hiposfer.kamal.libs.fastq :as fastq]))
+            [hiposfer.kamal.libs.fastq :as fastq]
+            [hiposfer.kamal.services.routing.transit :as transit]))
 
 ;; Example taken from
 ;; https://rosettacode.org/wiki/Dijkstra%27s_algorithm
@@ -85,7 +85,7 @@
            traversal)
         "shortest path doesnt traverse expected nodes")))
 
-(defn opts [network] {:value-by   #(direction/duration network %1 %2)
+(defn opts [network] {:value-by   #(transit/duration network %1 %2)
                       :successors fastq/node-successors})
 
 ; -------------------------------------------------------------------

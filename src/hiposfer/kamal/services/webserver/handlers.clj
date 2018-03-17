@@ -65,7 +65,8 @@
 
 ;(time
 ;  (dir/direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;                 {:coordinates [[6.905707, 49.398459]
+;                 {:steps true
+;                  :coordinates [[6.905707, 49.398459]
 ;                                [6.8992, 49.4509]]
 ;                  :departure  (.getSeconds (Duration/between (LocalTime/MIDNIGHT)
 ;                                                             (LocalTime/now)))}))

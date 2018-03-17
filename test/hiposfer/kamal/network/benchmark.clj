@@ -5,13 +5,13 @@
             [hiposfer.kamal.network.generators :as ng]
             [hiposfer.kamal.network.algorithms.core :as alg]
             [hiposfer.kamal.parsers.osm :as osm]
-            [hiposfer.kamal.services.routing.directions :as directions]
+            [hiposfer.kamal.services.routing.transit :as transit]
             [hiposfer.kamal.libs.geometry :as geometry]
             [hiposfer.kamal.services.routing.core :as router]
             [hiposfer.kamal.libs.fastq :as fastq]
             [datascript.core :as data]))
 
-(defn opts [network] {:value-by #(directions/duration network %1 %2)
+(defn opts [network] {:value-by #(transit/duration network %1 %2)
                       :successors fastq/node-successors})
 
 ;; This is just to show the difference between a randomly generated network
