@@ -16,7 +16,8 @@
                  [org.teneighty/java-heaps "1.0.0"]
                  [org.clojure/data.csv "0.1.4"]
                  [datascript "0.16.4"]
-                 [ch.hsr/geohash "1.3.0"]]
+                 [ch.hsr/geohash "1.3.0"]
+                 [org.clojure/core.memoize "0.7.1"]]
   :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
                                   [expound "0.4.0"]
                                   [io.aviso/pretty "0.1.34"]

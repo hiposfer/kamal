@@ -36,6 +36,12 @@
                              (:stop/location dst)))
      osm/walking-speed))
 
+(defn duration
+  "A very simple value computation function for arcs in a network.
+  Returns the time it takes to go from src to dst based on walking speeds"
+  [network next-entity trail] ;; 1 is a simple value used for test whenever no other value would be suitable
+  (walk-time (key (first trail)) next-entity))
+
 ;; a TripStep represents the transition between two stops in a GTFS feed
 ;; Both the source and destination stop.times are kept to avoid future lookups
 (defrecord TripStep [source destination ^Long value]
@@ -63,7 +69,8 @@
   [network entity]
   (if (node? entity) ;; else stop entity
     (fastq/node-successors network entity)
-    (fastq/next-stops network entity)))
+    (concat (fastq/node-successors network entity)
+            (fastq/node-successors network entity))))
 
 (defn timetable-duration
   "provides routing calculations using both GTFS feed and OSM nodes. Returns
