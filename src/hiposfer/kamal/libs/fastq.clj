@@ -68,19 +68,11 @@
   (tool/some #(= ?dst-id (:db/id (:stop.times/stop %)))
               (index-lookup network :stop.times/trip ?trip)))
 
-;; TODO: ideally these computations can be cached to improve performance
-;; to avoid cache misses I guess the ideal way would be to cache the trip
-;; retrieval from the DB since it is what takes most of the time. See below.
-;; Therefore we could add a System Component which exposes some memoized functions
-;; with fancy algorithms like LRU or LU ;)
-;; such that a query like (trips network from-id to-id) can be performed quickly
-
-;"Elapsed time: 0.048362 msecs" -> sources
-;"Elapsed time: 0.023676 msecs" -> dests
-;"Elapsed time: 0.607559 msecs" -> four
-;"Elapsed time: 3.154331 msecs" -> five -> (into [] (upcoming-xform four ?start ?now) sources))
-;"Elapsed time: 0.296584 msecs" -> stime
-;"Elapsed time: 0.004389 msecs" -> result
+(defn- min-departure
+  [result value]
+  (if (> (:stop.times/departure_time result) (:stop.times/departure_time value))
+    value
+    result))
 
 (defn find-trip
   "Returns a [src dst] stop.times pair for the next trip between ?src-id
@@ -101,7 +93,7 @@
   [network ?src-id ?dst-id ?now]
   (when-let [sts  (not-empty (filter #(> (:stop.times/departure_time %) ?now)
                                       (index-lookup network :stop.times/stop ?src-id)))]
-    (let [trip (apply min-key :stop.times/departure_time sts)]
+    (let [trip (reduce min-departure sts)]
       [trip (continue-trip network ?dst-id (:db/id (:stop.times/trip trip)))])))
 
 ;(time
