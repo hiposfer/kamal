@@ -69,7 +69,7 @@
   [network entity]
   (if (node? entity) ;; else stop entity
     (fastq/node-successors network entity)
-    (concat (fastq/node-successors network entity)
+    (concat (fastq/next-stops network entity)
             (fastq/node-successors network entity))))
 
 (defn timetable-duration
