@@ -59,7 +59,7 @@
   [network]
   (for [stop (map #(data/entity network (:e %))
                    (data/datoms network :aevt :stop/id))]
-    (let [node (fastq/nearest-node network (:stop/location stop))]
+    (let [node (first (fastq/nearest-node network (:stop/location stop)))]
       {:node/id (:node/id node)
        :node/successors #{(:db/id stop)}})))
 

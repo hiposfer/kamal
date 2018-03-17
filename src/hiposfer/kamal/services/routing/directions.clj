@@ -205,8 +205,8 @@
    (direction network :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
   [network params]
   (let [{:keys [coordinates steps departure]} params
-        src        (fastq/nearest-node network (first coordinates))
-        dst        (fastq/nearest-node network (last coordinates))
+        src        (first (fastq/nearest-node network (first coordinates)))
+        dst        (first (fastq/nearest-node network (last coordinates)))
        ; both start and dst should be found since we checked that before
         traversal  (alg/dijkstra network #{[src departure]}
                                  {:value-by   #(timetable-duration network %1 %2)

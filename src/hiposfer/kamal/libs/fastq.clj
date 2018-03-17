@@ -3,7 +3,8 @@
   algorithm and need to run extremely fast (< 1 ms per query)
 
   By convention all queries here return Entities"
-  (:require [datascript.core :as data])
+  (:require [datascript.core :as data]
+            [hiposfer.kamal.libs.tool :as tool])
   (:import (java.time Duration LocalTime)))
 
 (defn index-lookup
@@ -31,10 +32,10 @@
           (index-lookup network :node/successors (:db/id entity))))
 
 (defn nearest-node
-  "returns the nearest node/location datom to point"
+  "returns the nearest node/location to point"
   [network point]
-  (let [locs (data/index-range network :node/location point nil)]
-    (data/entity network (:e (first locs)))))
+  (map #(data/entity network (:e %))
+        (data/index-range network :node/location point nil)))
 
 (defn node-ways
   "takes a dereferenced Datascript connection and an entity id and returns
@@ -64,8 +65,8 @@
    The previous query takes around 50 milliseconds to execute. This function
    takes around 0.22 milliseconds to execute. Depends on :stop.times/trip index"
   [network ?dst-id ?trip]
-  (first (filter #(= ?dst-id (:db/id (:stop.times/stop %)))
-                  (index-lookup network :stop.times/trip ?trip))))
+  (tool/some #(= ?dst-id (:db/id (:stop.times/stop %)))
+              (index-lookup network :stop.times/trip ?trip)))
 
 ;; TODO: ideally these computations can be cached to improve performance
 ;; to avoid cache misses I guess the ideal way would be to cache the trip
@@ -99,20 +100,22 @@
   The previous query runs in 118 milliseconds. This function takes 4 milliseconds"
   [network ?src-id ?dst-id ?now]
   (let [sts     (filter #(> (:stop.times/departure_time %) ?now)
-                         (index-lookup network :stop.times/stop ?src-id))
-        departures (sort-by :stop.times/departure_time sts)
-        trips   (for [st departures
-                      :let [?trip-id (:db/id (:stop.times/trip st))]]
-                  [st (continue-trip network ?dst-id ?trip-id)])]
-    (first trips)))
+                        (index-lookup network :stop.times/stop ?src-id))
+        trip (apply min-key :stop.times/departure_time sts)]
+    [trip (continue-trip network ?dst-id (:db/id (:stop.times/trip trip)))]))
 
 ;(time
-;  (find-trip @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;             230963
-;             230607
-;             (.getSeconds (Duration/between (LocalTime/MIDNIGHT)
-;                                            (LocalTime/now)))))
+;  (dotimes [n 1000]
+;    (find-trip @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;               230963
+;               230607
+;               (.getSeconds (Duration/between (LocalTime/MIDNIGHT)
+;                                              (LocalTime/now))))))
 
+
+;; TODO: this could be cached directly into the stop itself
+;; right now we search all trips for the neighbours which is
+;; very expensive !!
 (defn next-stops
   "return the next stop entities for ?src-id based on stop.times
 
@@ -138,5 +141,7 @@
                      (:stop.times/stop st2))]
     (distinct stops)))
 
-;(next-stops @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;            230371)
+;(time
+;  (dotimes [n 10000]
+;    (next-stops @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;                (data/entity @(first @(:networks (:router hiposfer.kamal.dev/system))) 230963))))

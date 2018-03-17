@@ -23,8 +23,8 @@
   "returns a network whose bounding box contains all points"
   [conns points]
   (when-let [conn  (first conns)]
-    (let [distances (map #(geometry/haversine % (:v (fastq/nearest-node @conn %)))
-                          points)]
+    (let [nodes (map #(:node/location (first (fastq/nearest-node @conn %))) points)
+          distances (map geometry/haversine points nodes)]
       (if (every? #(< % max-distance) distances) @conn
         (recur (rest conns) points)))))
 
