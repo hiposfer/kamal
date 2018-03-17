@@ -1,13 +1,11 @@
 (ns hiposfer.kamal.services.routing.directions
-  (:require [hiposfer.kamal.parsers.osm :as osm]
-            [hiposfer.kamal.network.algorithms.core :as alg]
+  (:require [hiposfer.kamal.network.algorithms.core :as alg]
             [hiposfer.kamal.network.algorithms.protocols :as np]
+            [hiposfer.kamal.services.routing.transit :as transit]
             [hiposfer.kamal.libs.geometry :as geometry]
             [datascript.core :as data]
-            [hiposfer.kamal.libs.tool :as tool]
             [clojure.set :as set]
-            [hiposfer.kamal.libs.fastq :as fastq])
-  (:import (java.time LocalDateTime)))
+            [hiposfer.kamal.libs.fastq :as fastq]))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
 (def bearing-turns
@@ -29,76 +27,6 @@
   (first (set/intersection (set (fastq/node-ways network (key dst-trace)))
                            (set (fastq/node-ways network (key src-trace))))))
 
-(defn- walk-time [src dst]
-  (/ (geometry/haversine (or (:node/location src)
-                             (:stop/location src))
-                         (or (:node/location dst)
-                             (:stop/location dst)))
-     osm/walking-speed))
-
-(defn duration
-  "A very simple value computation function for arcs in a network.
-  Returns the time it takes to go from src to dst based on walking speeds"
-  [network next-entity trail] ;; 1 is a simple value used for test whenever no other value would be suitable
-  (walk-time (key (first trail)) next-entity))
-
-;; a TripStep represents the transition between two stops in a GTFS feed
-;; Both the source and destination stop.times are kept to avoid future lookups
-(defrecord TripStep [source destination ^Long value]
-  np/Valuable
-  (cost [_] value)
-  (sum [this that] (assoc this :value (+ value (np/cost that)))))
-  ;; compare based on value not on trip. Useful for Fibonacci Heap order
-  ;Comparable
-  ;(compareTo [_ that] (compare value (np/cost that))))
-
-(defn- by-cost
-  "comparator to avoid CastClassException due to Java's Long limited comparison"
-  [a b]
-  (.compareTo ^Long (np/cost a)
-              ^Long (np/cost b)))
-
-(def penalty 30) ;; seconds
-
-(defn node? [e] (:node/id e))
-(defn stop? [e] (:stop/id e))
-(defn trip-step? [o] (instance? TripStep o))
-
-(defn successors
-  "takes a network and an entity id and returns the successors of that entity"
-  [network entity]
-  (let [sus (fastq/index-lookup network :node/successors (:db/id entity))]
-    (if (node? entity)
-      (concat sus (:node/successors entity))
-      (concat sus (:stop/successors entity)))))
-
-(defn timetable-duration
-  "provides routing calculations using both GTFS feed and OSM nodes. Returns
-  a Long for walking parts and a TripStep for GTFS related ones."
-  [network dst trail]
-  (let [[src value] (first trail)
-        now         (np/cost value)]
-    (cond
-      ;; The user just walking so we route based on walking duration
-      (node? src)
-      (long (walk-time src dst))
-      ;; the user is trying to leave a vehicle. Apply penalty but route
-      ;; normally
-      (and (stop? src) (node? dst))
-      (+ penalty (long (walk-time src dst)))
-      ;; the user is trying to get into a vehicle. We need to find the next
-      ;; coming trip
-      (and (stop? src) (stop? dst) (not (trip-step? value)))
-      (let [[st1 st2] (fastq/find-trip network (:db/id src) (:db/id dst) now)]
-        (when (some? st2)
-          (->TripStep st1 st2 (- (:stop.times/arrival_time st2) now))))
-      ;; the user is already in a trip. Just find that trip for the dst
-      :else
-      (let [st (fastq/continue-trip network (:db/id dst) (:db/id (:trip value)))]
-        (when (some? st)
-          (->TripStep (:destination value) st
-                      (- (:stop.times/arrival_time st) (np/cost value))))))))
-
 (defn- location [e] (or (:node/location e) (:stop/location e)))
 
 (defn- linestring
@@ -114,16 +42,16 @@
 (defn- maneuver
   "returns a step manuever"
   [network prev-piece  piece next-piece]
-  (let [position     (:node/location network (key (ffirst piece)))
-        pre-bearing  (geometry/bearing (:node/location (key (ffirst prev-piece)))
-                                       (:node/location (key (ffirst piece))))
-        post-bearing (geometry/bearing (:node/location (key (ffirst piece)))
-                                       (:node/location (key (ffirst next-piece))))
+  (let [position     (location (key (ffirst piece)))
+        pre-bearing  (geometry/bearing (location (key (ffirst prev-piece)))
+                                       (location (key (ffirst piece))))
+        post-bearing (geometry/bearing (location (key (ffirst piece)))
+                                       (location (key (ffirst next-piece))))
         angle        (mod (+ 360 (- post-bearing pre-bearing)) 360)
         modifier     (val (last (subseq bearing-turns <= angle)))
         way-name     (:way/name (data/entity network (second (first piece))))
         instruction  (str "Take " modifier (when way-name (str " on " way-name)))]
-    {:location (->coordinates  position)
+    {:location (->coordinates position)
      ;; todo: implement maneuver type
      ;https://www.mapbox.com/api-documentation/#maneuver-types
      :type     "turn"
@@ -211,9 +139,9 @@
         dst        (first (fastq/nearest-node network (last coordinates)))
        ; both start and dst should be found since we checked that before
         traversal  (alg/dijkstra network #{[src departure]}
-                                 {:value-by   #(timetable-duration network %1 %2)
-                                  :successors successors
-                                  :comparator by-cost})
+                                 {:value-by   #(transit/timetable-duration network %1 %2)
+                                  :successors transit/successors
+                                  :comparator transit/by-cost})
         rtrail     (alg/shortest-path dst traversal)]
     (if (some? rtrail)
       {:code "Ok"
