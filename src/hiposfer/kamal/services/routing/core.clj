@@ -65,6 +65,7 @@
       {:node/id (:node/id node)
        :node/successors #{(:db/id stop)}})))
 
+;; this reduced my test query from 30 seconds to 8 seconds
 (defn cache-stop-successors
   "computes the next-stops for each stop and returns a transaction
   that will cache those results inside the :stop entities"
