@@ -34,10 +34,10 @@
   "calculate the weight of traversing arc and updates it if already in
   the queue or adds it otherwise"
   [value ^Map settled ^Map unsettled ^Heap$Entry entry ^Heap queue trail node-successors]
-  (if (empty? node-successors) nil
-    (if (.containsKey settled (first node-successors))
+  (if (empty? node-successors) nil ;; nothing more to process
+    (if (.containsKey settled (first node-successors)) ;; node already settled, continue
       (recur value settled unsettled entry queue trail (rest node-successors))
-      (let [entity  (first node-successors)
+      (let [entity  (first node-successors) ;; nothing settled, compute value
             v       (value entity trail)]
         (if (nil? v) ;; no path, infinite cost -> ignore it
           (recur value settled unsettled entry queue trail (rest node-successors))
@@ -45,13 +45,12 @@
                 weight  (np/sum v (.getKey entry))
                 trace2  (trace entity prev)
                 old-entry ^Heap$Entry (.get unsettled entity)]
-            (if (nil? old-entry)
+            (if (nil? old-entry) ;; new entry
               (.put unsettled entity (.insert queue weight trace2))
-              (when (< (np/cost weight)
-                       (np/cost (.getKey old-entry)))
-                (.setValue old-entry trace2)
+              (when (< (np/cost weight) (np/cost (.getKey old-entry)))
+                (.setValue old-entry trace2) ;; new entry has better cost
                 (.decreaseKey queue old-entry weight)))
-            (recur value settled unsettled entry queue
+            (recur value settled unsettled entry queue ;; continue to next node
                    trail (rest node-successors))))))))
 
 (defn- produce!
