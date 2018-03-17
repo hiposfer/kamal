@@ -67,10 +67,10 @@
 (defn successors
   "takes a network and an entity id and returns the successors of that entity"
   [network entity]
-  (if (node? entity) ;; else stop entity
-    (fastq/node-successors network entity)
-    (concat (fastq/next-stops network entity)
-            (fastq/node-successors network entity))))
+  (let [sus (fastq/index-lookup network :node/successors (:db/id entity))]
+    (if (node? entity)
+      (concat sus (:node/successors entity))
+      (concat sus (:stop/successors entity)))))
 
 (defn timetable-duration
   "provides routing calculations using both GTFS feed and OSM nodes. Returns
@@ -99,10 +99,12 @@
           (->TripStep (:destination value) st
                       (- (:stop.times/arrival_time st) (np/cost value))))))))
 
+(defn- location [e] (or (:node/location e) (:stop/location e)))
+
 (defn- linestring
   "get a geojson linestring based on the route path"
   [network entities]
-  (let [coordinates (sequence (comp (map :node/location)
+  (let [coordinates (sequence (comp (map location)
                                     (map ->coordinates))
                               entities)]
     {:type "LineString"
