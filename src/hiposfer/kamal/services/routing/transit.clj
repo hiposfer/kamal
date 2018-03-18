@@ -6,6 +6,17 @@
             [datascript.core :as data])
   (:import (java.time LocalDate)))
 
+;; https://developers.google.com/transit/gtfs/reference/#routestxt
+(def route-types
+  {0 "Tram"; Streetcar, Light rail. Any light rail or street level system within a metropolitan area.
+   1 "Subway"; Metro. Any underground rail system within a metropolitan area.
+   2 "Rail"; Used for intercity or long-distance travel.
+   3 "Bus"; Used for short- and long-distance bus routes.
+   4 "Ferry"; Used for short- and long-distance boat service.
+   5 "Cable car"; Used for street-level cable cars where the cable runs beneath the car.
+   6 "Gondola"; Suspended cable car. Typically used for aerial cable cars where the car is suspended from the cable.
+   7 "Funicular"}); Any rail system designed for steep inclines.})
+
 (defn- walk-time [src dst]
   (/ (geometry/haversine (or (:node/location src)
                              (:stop/location src))
@@ -38,7 +49,9 @@
 (def penalty 30) ;; seconds
 
 (defn node? [e] (:node/id e))
+(defn way? [e] (:way/id e))
 (defn stop? [e] (:stop/id e))
+(defn stop.times? [e] (:stop.times/trip e))
 (defn trip-step? [o] (instance? TripStep o))
 
 (defn successors
