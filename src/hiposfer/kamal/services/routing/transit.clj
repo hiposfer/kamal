@@ -81,7 +81,7 @@
   "filters the Database to contain remove stop.times entries that are not applicable
   to the current Date"
   [db datom ^LocalDate now]
-  (if-not (contains? #{:stop.times/trip :stop.times/stop} (:a datom)) true
+  (if (not= :stop.times/stop (:a datom)) true
     (let [st      (data/entity db (:e datom))
           trip    (:stop.times/trip st)
           service (:trip/service trip)
