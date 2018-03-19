@@ -57,7 +57,9 @@
 (defn successors
   "takes a network and an entity id and returns the successors of that entity"
   [network entity]
-  (let [sus (fastq/index-lookup network :node/successors (:db/id entity))]
+  (let [id  (:db/id entity)
+        sus (eduction (fastq/index-lookup network id)
+                      (data/index-range network :node/successors id nil))]
     (if (node? entity)
       (concat sus (:node/successors entity))
       (concat sus (:stop/successors entity)))))
@@ -65,7 +67,7 @@
 (defn timetable-duration
   "provides routing calculations using both GTFS feed and OSM nodes. Returns
   a Long for walking parts and a TripStep for GTFS related ones."
-  [network dst trail]
+  [network trips dst trail]
   (let [[src value] (first trail)
         now         (np/cost value)]
     (cond
@@ -79,7 +81,7 @@
       ;; the user is trying to get into a vehicle. We need to find the next
       ;; coming trip
       (and (stop? src) (stop? dst) (not (trip-step? value)))
-      (let [[st1 st2] (fastq/find-trip network (:db/id src) (:db/id dst) now)]
+      (let [[st1 st2] (fastq/find-trip network trips (:db/id src) (:db/id dst) now)]
         (when (some? st2)
           (->TripStep st1 st2 (- (:stop.times/arrival_time st2) now))))
       ;; the user is already in a trip. Just find that trip for the dst
@@ -88,18 +90,3 @@
         (when (some? st)
           (->TripStep (:destination value) st
                       (- (:stop.times/arrival_time st) (np/cost value))))))))
-
-
-(defn by-service-day
-  "filters the Database to contain remove stop.times entries that are not applicable
-  to the current Date"
-  [db datom ^LocalDate now]
-  (if (not= :stop.times/stop (:a datom)) true
-    (let [st      (data/entity db (:e datom))
-          trip    (:stop.times/trip st)
-          service (:trip/service trip)
-          start   ^LocalDate (:service/start_date service)
-          end     ^LocalDate (:service/end_date service)]
-      (if (and (.isAfter now start) (.isBefore now end))
-        (contains? (:service/days service) (.getDayOfWeek now))
-        false))))

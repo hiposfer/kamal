@@ -177,15 +177,14 @@
   [network params]
   (let [{:keys [coordinates steps ^LocalDateTime departure]} params
         date       (.toLocalDate departure)
+        trips      (fastq/day-trips network date)
         start      (Duration/between (LocalTime/MIDNIGHT)
                                      (.toLocalTime departure))
-        ;; WARNING: this is just too slow :(
-        ;network    (data/filter network #(transit/by-service-day %1 %2 date))
         src        (first (fastq/nearest-node network (first coordinates)))
         dst        (first (fastq/nearest-node network (last coordinates)))
        ; both start and dst should be found since we checked that before
         traversal  (alg/dijkstra network #{[src (.getSeconds start)]}
-                                 {:value-by   #(transit/timetable-duration network %1 %2)
+                                 {:value-by   #(transit/timetable-duration network trips %1 %2)
                                   :successors transit/successors
                                   :comparator transit/by-cost})
         rtrail     (alg/shortest-path dst traversal)]
