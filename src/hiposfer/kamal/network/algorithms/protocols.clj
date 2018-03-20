@@ -1,9 +1,5 @@
 (ns hiposfer.kamal.network.algorithms.protocols)
 
-
-(defprotocol Passage
-  (way [this] "return the way id that a Link is associated with"))
-
 ;; ------ special protocols for Dijkstra network traversal
 (defprotocol Valuable "A simple representation of a generic routing worth function result"
   (cost [this]     "a number indicating how difficult it is to get to a specific node")

@@ -6,7 +6,6 @@
   :min-lein-version "2.0.0"
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/data.xml "0.0.8"] ; parse xml lazily
-                 [org.clojure/data.int-map "0.2.4"] ; fast integers-map
                  [org.clojure/test.check "0.9.0"] ;; generators
                  [metosin/compojure-api "2.0.0-alpha18"]
                  [metosin/spec-tools "0.5.1"] ;;coercion
@@ -14,12 +13,10 @@
                  [ring/ring-jetty-adapter "1.6.3"]
                  [com.stuartsierra/component "0.3.2"]
                  [org.apache.commons/commons-compress "1.4"] ;;bz2 files read
-                 [org.clojure/data.avl "0.0.17"]
                  [org.teneighty/java-heaps "1.0.0"]
                  [org.clojure/data.csv "0.1.4"]
-                 [ch.hsr/geohash "1.3.0"]
-                 [org.clojure/data.priority-map "0.0.7"]
-                 [datascript "0.16.3"]]
+                 [datascript "0.16.4"]
+                 [ch.hsr/geohash "1.3.0"]]
   :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
                                   [expound "0.4.0"]
                                   [io.aviso/pretty "0.1.34"]
@@ -35,10 +32,12 @@
   :test-selectors {:default (complement :benchmark)
                    :benchmark :benchmark}
   :main hiposfer.kamal.core
-  :global-vars {*warn-on-reflection* true}
+  :global-vars {*warn-on-reflection* true
+                *print-length* 100}
   ;;FIXME: https://github.com/technomancy/leiningen/issues/2173
   :monkeypatch-clojure-test false
-  :jvm-opts ["-Xmx1g" "-XX:-OmitStackTraceInFastThrow"]
+  :jvm-opts ["-Xmx1g" "-XX:-OmitStackTraceInFastThrow"
+             "-XX:+UseG1GC" "-XX:+UseStringDeduplication"]
   :repositories [["releases"  {:url      "https://clojars.org/repo"
                                :username :env/clojars_username
                                :password :env/clojars_password
