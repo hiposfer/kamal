@@ -4,7 +4,11 @@
             [compojure.route :as route]
             [hiposfer.kamal.specs.mapbox.directions :as mapbox]
             [hiposfer.kamal.services.routing.directions :as dir]
-            [hiposfer.kamal.libs.geometry :as geometry]))
+            [hiposfer.kamal.libs.geometry :as geometry]
+            [hiposfer.kamal.libs.fastq :as fastq]
+            [hiposfer.kamal.services.routing.transit :as transit]
+            [datascript.core :as data])
+  (:import (java.time LocalDateTime)))
 
 (defn- validate
   "validates that the coordinates and the radiuses conform to the mapbox specification.
@@ -15,17 +19,18 @@
       {:code "InvalidInput"
        :message "The same amount of radiuses and coordinates must be provided"})))
 
-(def available "xform - returns the networks that are available for computation"
-  (comp (map deref) (remove nil?)))
+(def max-distance 1000) ;; meters
 
 (defn- select
   "returns a network whose bounding box contains all points"
-  [networks points]
-  (when-let [net (first networks)]
-    (if (every? #(geometry/contains? (:bbox net) %) points) net
-      (recur (rest networks) points))))
+  [conns points]
+  (when-let [conn  (first conns)]
+    (let [nodes (map #(:node/location (first (fastq/nearest-node @conn %))) points)
+          distances (map geometry/haversine points nodes)]
+      (if (every? #(< % max-distance) distances) @conn
+        (recur (rest conns) points)))))
 
-  ;; ring handlers are matched in order
+;; ring handlers are matched in order
 (defn create
   "creates an API handler with a closure around the router"
   [router]
@@ -41,17 +46,36 @@
                     ;; TODO: pull filter
       :return ::mapbox/response
       (let [error   (validate (:coordinates arguments) (:radiuses arguments))
-            regions (sequence available (:networks router))]
+            regions @(:networks router)]
         (if (some? error) error
           (if (empty? regions) (code/service-unavailable)
             (if-let [network (select regions (:coordinates arguments))]
               (code/ok (dir/direction network arguments))
               (code/ok {:code "NoSegment"
-                        :message "No road segment could be matched for coordinates.
-                                     Check for coordinates too far away from a road."}))))))
+                        :message "No road segment could be matched for coordinates"}))))))
     (sweet/undocumented ;; returns a 404 when nothing matched
       (route/not-found (code/not-found "we couldnt find what you were looking for")))))
 
 
+;; TESTS
 ;{"arguments":
-; {"coordinates": [[6.905707,49.398459],[6.705707,49.58459]]}}
+; {"coordinates": [[6.905707,49.398459],
+;                  [6.8992, 49.4509]]}}
+
+;(fastq/nearest-node @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;                    [6.905707,49.398459])
+
+;(time
+;  (dotimes [n 20]
+;    (dir/direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;                   {;:steps       true
+;                    :coordinates [[6.905707, 49.398459]
+;                                  [6.8992, 49.4509]]
+;                    :departure   (LocalDateTime/now)})))
+;
+;(time
+;  (dir/direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;                 {;:steps       true
+;                  :coordinates [[6.905707, 49.398459]
+;                                [6.8992, 49.4509]]
+;                  :departure   (LocalDateTime/now)}))
