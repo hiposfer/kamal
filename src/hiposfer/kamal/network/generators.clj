@@ -42,7 +42,7 @@
   "returns a sequence of way objects ready to be used in a Datascript transaction"
   [ids]
   (let [;; An string 90% of the time, nil 10%
-        namer (gen/frequency [[1 (gen/return nil)]
+        namer (gen/frequency [[1 (gen/return "")]
                               [9 (gen/fmap str/capitalize string-alpha)]])]
     (for [id ids]
       {:way/id id

@@ -181,6 +181,7 @@
   (prop/for-all [graph (gen/such-that not-empty (ng/graph 300) 1000)]
     (let [network (data/create-conn router/schema)
           _ (data/transact! network graph)
+          _ (data/transact! network (ng/ways (map :db/id (alg/nodes @network))))
           request (gen/generate (s/gen ::mapbox/args))
           result (dir/direction @network request)]
       (is (s/valid? ::mapbox/response result)))))

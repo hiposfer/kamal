@@ -49,9 +49,8 @@
   "returns a name that represents this entity in the network"
   [entity]
   (cond
-    (transit/way? entity) (:way/name entity)
-    (transit/stop.times? entity) (:trip/headsign (:stop.times/trip entity))))
-    ;; error otherwise
+    (transit/way? entity) (str (:way/name entity))
+    (transit/stop.times? entity) (str (:trip/headsign (:stop.times/trip entity)))))
 
 (defn- location [e] (or (:node/location e) (:stop/location e)))
 
