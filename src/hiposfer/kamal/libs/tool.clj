@@ -1,6 +1,7 @@
 (ns hiposfer.kamal.libs.tool
   "useful functions that have not found a proper place yet"
-  (:refer-clojure :rename {some some*}))
+  (:refer-clojure :rename {some some*})
+  (:require [datascript.core :as data]))
 
 
 (defn unique-by

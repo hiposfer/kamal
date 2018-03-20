@@ -3,6 +3,9 @@
   not be included in a production build of the application."
   (:require [com.stuartsierra.component :as component]
             [hiposfer.kamal.core :as core]
+            [clojure.spec.test.alpha :as st]
+            [expound.alpha :as expound]
+            [clojure.spec.alpha :as s]
             [clojure.tools.namespace.repl :as repl]))
 
 (def system nil)
@@ -29,6 +32,8 @@
   []
   (stop!)
   (init!)
+  (st/instrument)
+  (set! s/*explain-out* expound/printer)
   (start!))
 
 ;; WARN: this will fail if you just ran `lein uberjar` without
@@ -45,4 +50,4 @@
 ;(set! *print-length* 50)
 ;(take 10 (:network @(:network (:grid system))))
 
-;(keys system)
+;(type (:networks (:router system)))
