@@ -5,14 +5,14 @@
             [clojure.test :refer [is deftest]]
             [hiposfer.kamal.network.algorithms.core :as alg]
             [hiposfer.kamal.network.algorithms.protocols :as np]
-            [hiposfer.kamal.services.routing.directions :as direction]
             [hiposfer.kamal.network.generators :as ng]
-            [hiposfer.kamal.libs.tool :as tool]
             [datascript.core :as data]
             [hiposfer.kamal.services.routing.core :as router]
-            [hiposfer.kamal.services.routing.directions :as dir]
+            [clojure.spec.alpha :as s]
+            [hiposfer.kamal.libs.fastq :as fastq]
             [hiposfer.kamal.specs.mapbox.directions :as mapbox]
-            [clojure.spec.alpha :as s]))
+            [hiposfer.kamal.services.routing.transit :as transit]
+            [hiposfer.kamal.services.routing.directions :as dir]))
 
 ;; Example taken from
 ;; https://rosettacode.org/wiki/Dijkstra%27s_algorithm
@@ -64,10 +64,8 @@
         _         (data/transact! network rosetta)
         dst       (data/entity @network [:node/id 5])
         src       (data/entity @network [:node/id 1])
-        performer (alg/dijkstra @network
-                                #(length @network %1 %2)
-                                successors
-                                #{src})
+        performer (alg/dijkstra @network #{src} {:value-by #(length @network %1 %2)
+                                                 :successors successors})
         traversal (alg/shortest-path dst performer)]
     (is (not (empty? traversal))
         "shortest path not found")
@@ -78,10 +76,8 @@
   (let [network   (data/create-conn router/schema)
         _         (data/transact! network rosetta)
         src       (data/entity @network [:node/id 1])
-        performer (alg/dijkstra @network
-                                #(length @network %1 %2)
-                                successors
-                                #{src})
+        performer (alg/dijkstra @network #{src} {:value-by #(length @network %1 %2)
+                                                 :successors successors})
         traversal (into {} (comp (map first)
                                  (map (juxt (comp :node/id key) (comp np/cost val))))
                            performer)]
@@ -90,6 +86,9 @@
     (is (= {1 0, 2 7, 3 9, 4 20, 5 26, 6 11}
            traversal)
         "shortest path doesnt traverse expected nodes")))
+
+(defn opts [network] {:value-by   #(transit/duration network %1 %2)
+                      :successors fastq/node-successors})
 
 ; -------------------------------------------------------------------
 ; The Dijkstra algorithm is deterministic, therefore for the same src/dst
@@ -102,10 +101,7 @@
           _ (data/transact! network graph)
           src  (rand-nth (alg/nodes @network))
           dst  (rand-nth (alg/nodes @network))
-          coll (alg/dijkstra @network
-                             #(direction/duration @network %1 %2)
-                             tool/node-successors
-                             #{src})
+          coll (alg/dijkstra @network #{src} (opts @network))
           results (for [_ (range 10)]
                     (alg/shortest-path dst coll))]
       (or (every? nil? results)
@@ -122,10 +118,7 @@
           _ (data/transact! network graph)
           src  (rand-nth (alg/nodes @network))
           dst  (rand-nth (alg/nodes @network))
-          coll (alg/dijkstra @network
-                             #(direction/duration @network %1 %2)
-                             tool/node-successors
-                             #{src})
+          coll (alg/dijkstra @network #{src} (opts @network))
           result (alg/shortest-path dst coll)]
       (is (or (nil? result)
               (apply >= (concat (map (comp np/cost val) result)
@@ -142,10 +135,7 @@
     (let [network (data/create-conn router/schema)
           _ (data/transact! network graph)
           src  (rand-nth (alg/nodes @network))
-          coll (alg/dijkstra @network
-                             #(direction/duration @network %1 %2)
-                             tool/node-successors
-                             #{src})
+          coll (alg/dijkstra @network #{src} (opts @network))
           result (alg/shortest-path src coll)]
       (is (not-empty result)
           "no path from node to himself found")
@@ -180,22 +170,20 @@
           r1      (alg/looners @network)
           _ (data/transact! network (map #(vector :db.fn/retractEntity (:db/id %)) r1))
           src  (rand-nth (alg/nodes @network))
-          coll (alg/dijkstra @network
-                             #(direction/duration @network %1 %2)
-                             tool/node-successors
-                             #{src})]
+          coll (alg/dijkstra @network #{src} (opts @network))]
       (is (seq? (reduce (fn [r v] v) nil coll))
           "biggest components should not contain links to nowhere"))))
 
-;; -----------------------------------------------------------------
-;; generative tests for the direction endpoint
-;(defspec routable
-;  100; tries
-;  (prop/for-all [graph (gen/such-that not-empty (ng/graph 300) 1000)]
-;    (let [network (data/create-conn router/schema)
-;          _ (data/transact! network graph)
-;          request (gen/generate (s/gen ::mapbox/args))
-;          result (dir/direction @network request)]
-;      (is (s/valid? ::mapbox/response result)))))
+; -----------------------------------------------------------------
+; generative tests for the direction endpoint
+(defspec routable
+  100; tries
+  (prop/for-all [graph (gen/such-that not-empty (ng/graph 300) 1000)]
+    (let [network (data/create-conn router/schema)
+          _ (data/transact! network graph)
+          _ (data/transact! network (ng/ways (map :db/id (alg/nodes @network))))
+          request (gen/generate (s/gen ::mapbox/args))
+          result (dir/direction @network request)]
+      (is (s/valid? ::mapbox/response result)))))
 
 ;(clojure.test/run-tests)

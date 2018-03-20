@@ -5,11 +5,14 @@
             [hiposfer.kamal.network.generators :as ng]
             [hiposfer.kamal.network.algorithms.core :as alg]
             [hiposfer.kamal.parsers.osm :as osm]
-            [hiposfer.kamal.libs.tool :as tool]
-            [hiposfer.kamal.services.routing.directions :as directions]
+            [hiposfer.kamal.services.routing.transit :as transit]
             [hiposfer.kamal.libs.geometry :as geometry]
             [hiposfer.kamal.services.routing.core :as router]
+            [hiposfer.kamal.libs.fastq :as fastq]
             [datascript.core :as data]))
+
+(defn opts [network] {:value-by #(transit/duration network %1 %2)
+                      :successors fastq/node-successors})
 
 ;; This is just to show the difference between a randomly generated network
 ;; and a real-world network. The randomly generated network does not have a structure
@@ -24,9 +27,7 @@
     (println "\n\nDIJKSTRA forward with:" (count (alg/nodes @network)) "nodes")
     (println "**random graph")
     (c/quick-bench
-      (let [coll (alg/dijkstra @network #(directions/duration @network %1 %2)
-                                         tool/node-successors
-                                         #{src})]
+      (let [coll (alg/dijkstra @network #{src} (opts @network))]
         (alg/shortest-path dst coll))
       :os :runtime :verbose)))
 
@@ -35,30 +36,34 @@
                    (let [data (osm/datomize "resources/osm/saarland.min.osm.bz2")
                          conn (data/create-conn router/schema)]
                      (data/transact! conn data)
-                     @conn)))) ;; dont allow transact anymore
+                     conn))))
 
-;(take 10 (:network @networker)) ;; force read
-;(take 10 (alg/biggest-component (:network @networker)))
+;(type @@network) ;; force read
 
 (test/deftest ^:benchmark dijkstra-saarland-graph
-  (let [src     (rand-nth (alg/nodes @network))
-        dst     (rand-nth (alg/nodes @network))]
-    (println "\n\nDIJKSTRA forward with:" (count (alg/nodes @network)) "nodes")
+  (let [src  (first (alg/nodes @@network))
+        dst  (last (alg/nodes @@network))
+        r1   (alg/looners @@network)
+        coll (alg/dijkstra @@network #{src} (opts @@network))]
+    (println "\n\nDIJKSTRA forward with:" (count (alg/nodes @@network)) "nodes")
     (println "saarland graph:")
-    (c/quick-bench
-      (let [coll (alg/dijkstra @network #(directions/duration @network %1 %2)
-                                         tool/node-successors
-                                         #{src})]
-        (alg/shortest-path dst coll))
-      :os :runtime :verbose)))
+    (c/quick-bench (alg/shortest-path dst coll)
+      :os :runtime :verbose)
+    (println "--------")
+    (println "using only strongly connected components of the original graph")
+    (data/transact! @network (map #(vector :db.fn/retractEntity (:db/id %)) r1))
+    (println "with:" (count (alg/nodes @@network)) "nodes")
+    (let [coll (alg/dijkstra @@network #{src} (opts @@network))]
+      (c/quick-bench (alg/shortest-path dst coll)
+        :os :runtime :verbose))))
 
 ;; note src nil search will search for points greater or equal to src
 ;; I think nil src then search points less than src
 (test/deftest ^:benchmark nearest-neighbour-search
   (let [src   [7.038535 49.345088]
-        point (:v (tool/nearest-location @network src))]
+        point (:node/location (first (fastq/nearest-node @@network src)))]
     (println "\n\nsaarland graph: nearest neighbour search with random src/dst")
-    (println "B+ tree with:" (count (data/datoms @network :eavt)) "nodes")
-    (println "accuraccy: " (geometry/haversine src point))
-    (c/quick-bench (:v (tool/nearest-location @network src))
+    (println "B+ tree with:" (count (data/datoms @@network :eavt)) "nodes")
+    (println "accuraccy: " (geometry/haversine src point) "meters")
+    (c/quick-bench (:node/location (first (fastq/nearest-node @@network src)))
                    :os :runtime :verbose)))

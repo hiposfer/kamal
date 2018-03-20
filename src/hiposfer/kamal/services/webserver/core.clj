@@ -19,7 +19,7 @@
       (do (println "-- Stopping App server")
           (.stop ^Server server)
           (.join ^Server server)
-          (assoc this :server nil)))
+          (assoc this :server nil router nil)))
     this))
 
 (defn service [] (map->WebServer {}))
