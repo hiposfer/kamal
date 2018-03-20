@@ -5,7 +5,10 @@
             [hiposfer.kamal.specs.mapbox.directions :as mapbox]
             [hiposfer.kamal.services.routing.directions :as dir]
             [hiposfer.kamal.libs.geometry :as geometry]
-            [hiposfer.kamal.libs.tool :as tool]))
+            [hiposfer.kamal.libs.fastq :as fastq]
+            [hiposfer.kamal.services.routing.transit :as transit]
+            [datascript.core :as data])
+  (:import (java.time LocalDateTime)))
 
 (defn- validate
   "validates that the coordinates and the radiuses conform to the mapbox specification.
@@ -20,12 +23,12 @@
 
 (defn- select
   "returns a network whose bounding box contains all points"
-  [networks points]
-  (when-let [net  (first networks)]
-    (let [distances (map #(geometry/haversine % (:v (tool/nearest-location @net %)))
-                          points)]
-      (if (every? #(< % max-distance) distances) @net
-        (recur (rest networks) points)))))
+  [conns points]
+  (when-let [conn  (first conns)]
+    (let [nodes (map #(:node/location (first (fastq/nearest-node @conn %))) points)
+          distances (map geometry/haversine points nodes)]
+      (if (every? #(< % max-distance) distances) @conn
+        (recur (rest conns) points)))))
 
 ;; ring handlers are matched in order
 (defn create
@@ -59,6 +62,20 @@
 ; {"coordinates": [[6.905707,49.398459],
 ;                  [6.8992, 49.4509]]}}
 
-;(select @(:networks (:router hiposfer.kamal.dev/system))
-;        [[6.905707,49.398459]
-;         [6.8992, 49.4509]])
+;(fastq/nearest-node @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;                    [6.905707,49.398459])
+
+;(time
+;  (dotimes [n 20]
+;    (dir/direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;                   {;:steps       true
+;                    :coordinates [[6.905707, 49.398459]
+;                                  [6.8992, 49.4509]]
+;                    :departure   (LocalDateTime/now)})))
+;
+;(time
+;  (dir/direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;                 {;:steps       true
+;                  :coordinates [[6.905707, 49.398459]
+;                                [6.8992, 49.4509]]
+;                  :departure   (LocalDateTime/now)}))

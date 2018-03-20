@@ -5,7 +5,8 @@
             [hiposfer.kamal.parsers.gtfs.core :as gtfs]
             [datascript.core :as data]
             [com.stuartsierra.component :as component]
-            [hiposfer.kamal.network.algorithms.core :as alg]))
+            [hiposfer.kamal.network.algorithms.core :as alg]
+            [hiposfer.kamal.libs.fastq :as fastq]))
 
 ;; NOTE: we use :db/index true to replace the lack of :VAET index in datascript
 ;; This is for performance. In lots of cases we want to lookup back-references
@@ -44,31 +45,59 @@
              :route/agency    {:db/type :db.type/ref}
 
              :stop/id         {:db.unique :db.unique/identity}
+             :stop/successors {:db.type :db.type/ref
+                               :db.cardinality :db.cardinality/many}
              :stop/location   {:db/index true}
 
-             :stop.time/trip  {:db/type :db.type/ref}
-             :stop.time/stop  {:db/type :db.type/ref}})
+             :stop.times/trip  {:db/type :db.type/ref
+                                :db/index true}
+             :stop.times/stop  {:db/type :db.type/ref
+                                :db/index true}})
 
-;; TODO: link OSM nodes with GTFS stops
+;; This might not be the best approach but it gets the job done for the time being
+(defn link-stops
+  "takes a network, looks up the nearest node for each stop and returns
+  a transaction that will link those"
+  [network]
+  (for [stop (map #(data/entity network (:e %))
+                   (data/datoms network :aevt :stop/id))]
+    (let [node (first (fastq/nearest-node network (:stop/location stop)))]
+      {:node/id (:node/id node)
+       :node/successors #{(:db/id stop)}})))
+
+;; this reduced my test query from 30 seconds to 8 seconds
+(defn cache-stop-successors
+  "computes the next-stops for each stop and returns a transaction
+  that will cache those results inside the :stop entities"
+  [network]
+  (for [stop (map #(data/entity network (:e %))
+                   (data/datoms network :aevt :stop/id))]
+    (let [neighbours (fastq/next-stops network stop)]
+      {:stop/id (:stop/id stop)
+       :stop/successors (map :db/id neighbours)})))
+
 (defn exec!
   "builds a datascript in-memory db and conj's it into the passed agent"
   [ag area dev]
   (println "-- starting area router:" area)
   (let [vehicle     (when (and (not dev) (:gtfs area))
-                      (time (gtfs/datomize (:gtfs area))))
+                      (gtfs/datomize (:gtfs area)))
         pedestrian  (if (true? dev)
                       (let [graph (gen/generate (ng/graph (:size area)))]
                         (concat graph (ng/ways (alg/nodes graph))))
                       (time (osm/datomize (:osm area))))
-        conn  (data/create-conn schema)]
+        conn        (data/create-conn schema)]
     (time (data/transact! conn (concat pedestrian vehicle)))
+    (data/transact! conn (link-stops @conn))
+    (data/transact! conn (cache-stop-successors @conn))
     (conj ag conn)))
 
 (defrecord Router [config networks]
   component/Lifecycle
   (start [this]
     (if (not-empty (:networks this)) this
-      (let [ag (agent #{})]
+      (let [ag (agent #{} :error-handler println
+                          :error-mode :fail)]
         (run! #(send-off ag exec! % (:dev config))
                (:networks config))
         (assoc this :networks ag))))
@@ -80,19 +109,3 @@
   "returns a Router record that will contain the config
    of and all the networks of the system as agents"
   [] (map->Router {}))
-
-;(def network (time (osm/datomize "resources/osm/saarland.min.osm.bz2")))
-;(def network nil)
-
-;(def conn (data/create-conn schema))
-
-;(time (map :v (take 5 (data/index-range @conn :node/location [6.9513 49.318267] nil))))
-
-;(let [a (time (data/transact! conn network))]
-;  (take-last 5 (data/datoms @conn :eavt)))
-
-;(time (into {} (data/entity @conn 202982)))
-
-;(take 5 (data/datoms @conn :eavt))
-;(time ; aevt
-;  (take-while #(= (:v %) 1) (data/index-range @conn :way/nodes 1 nil)))

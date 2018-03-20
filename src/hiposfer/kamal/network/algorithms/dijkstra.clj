@@ -12,11 +12,12 @@
 (defn- init!
   "returns a new MUTABLE fibonacci heap (priority queue) and adds all the
    sources id to the beginning of the queue and to the settled map."
-  ^Heap [init-set ^Map settled]
-  (let [queue  ^Heap (new FibonacciHeap)]
-    (run! (fn [id] (->> (trace id nil)
-                        (.insert queue 0)
-                        (.put settled id)))
+  ^Heap [init-set ^Map settled comparator]
+  (let [queue  ^Heap (new FibonacciHeap comparator)]
+    (run! (fn [value] (let [[e v] (if (vector? value) value [value 0])
+                            t (trace e nil)
+                            he (.insert queue v t)]
+                        (.put settled value he)))
           init-set)
     queue))
 
@@ -33,22 +34,24 @@
   "calculate the weight of traversing arc and updates it if already in
   the queue or adds it otherwise"
   [value ^Map settled ^Map unsettled ^Heap$Entry entry ^Heap queue trail node-successors]
-  (if (empty? node-successors) nil
-    (if (.containsKey settled (first node-successors))
+  (if (empty? node-successors) nil ;; nothing more to process
+    (if (.containsKey settled (first node-successors)) ;; node already settled, continue
       (recur value settled unsettled entry queue trail (rest node-successors))
-      (let [entity  (first node-successors)
-            prev    (key (.getValue entry))
-            weight  (np/sum (value entity trail)
-                            (.getKey entry))
-            trace2  (trace entity prev)
-            old-entry ^Heap$Entry (.get unsettled entity)]
-        (if (nil? old-entry)
-          (.put unsettled entity (.insert queue weight trace2))
-          (when (< weight (.getKey old-entry))
-            (.setValue old-entry trace2)
-            (.decreaseKey queue old-entry weight)))
-        (recur value settled unsettled entry queue
-               trail (rest node-successors))))))
+      (let [entity  (first node-successors) ;; nothing settled, compute value
+            v       (value entity trail)]
+        (if (nil? v) ;; no path, infinite cost -> ignore it
+          (recur value settled unsettled entry queue trail (rest node-successors))
+          (let [prev    (key (.getValue entry))
+                weight  (np/sum v (.getKey entry))
+                trace2  (trace entity prev)
+                old-entry ^Heap$Entry (.get unsettled entity)]
+            (if (nil? old-entry) ;; new entry
+              (.put unsettled entity (.insert queue weight trace2))
+              (when (< (np/cost weight) (np/cost (.getKey old-entry)))
+                (.setValue old-entry trace2) ;; new entry has better cost
+                (.decreaseKey queue old-entry weight)))
+            (recur value settled unsettled entry queue ;; continue to next node
+                   trail (rest node-successors))))))))
 
 (defn- produce!
   "returns a lazy sequence of traces by sequentially mutating the
@@ -97,11 +100,11 @@
 ; - value: a function of next-node, current-trace -> Valuable implementation
 ; - successors: a function of id -> [ id ]. Used to get either the outgoing
 ;               arcs of a node
-(deftype Dijkstra [graph ids value successors]
+(deftype Dijkstra [graph start-from value successors comparator]
   Seqable
   (seq [_]
     (let [settled   (new HashMap) ;{id {weight {id prev}}}
-          queue     (init! ids settled) ;[{weight {id prev}}]
+          queue     (init! start-from settled comparator) ;[{weight {id prev}}]
           unsettled (new HashMap); {id {weight {id prev}}}
           trailer!  (fn trailer! []
                       (if (.isEmpty queue) (list)
@@ -116,7 +119,7 @@
   (reduce [_ rf init]
     ;; Heap.Entry -> {weight {id prev}}
     (let [settled   (new HashMap); {id Heap.Entry}
-          queue     (init! ids settled); [Heap.Entry]
+          queue     (init! start-from settled comparator); [Heap.Entry]
           unsettled (new HashMap)]; {id Heap.Entry}
       (loop [ret init
              trail (produce! graph value successors queue settled unsettled)]

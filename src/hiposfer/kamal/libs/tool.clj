@@ -48,24 +48,3 @@
   (reduce (fn [_ value] (when (pred? value) (reduced value)))
           nil
           coll))
-
-(defn node-successors
-  "takes a network and an entity and returns the successors of that entity.
-   Only valid for OSM nodes. Assumes bidirectional links i.e. nodes with
-   back-references to it are also returned"
-  [network entity]
-  (concat (:node/successors entity)
-          (map #(data/entity network %)
-            (map :e (take-while #(= (:v %) (:db/id entity))
-                      (data/index-range network :node/successors (:db/id entity) nil))))))
-
-(defn nearest-location
-  "returns the nearest node/location datom to point"
-  [network point]
-  (first (data/index-range network :node/location point nil)))
-
-(defn node-ways
-  "takes a dereferenced Datascript connection and an entity id and returns
-  the OSM ways that reference it. Only valid for OSM node ids"
-  [network id]
-  (take-while #(= (:v %) id) (data/index-range network :way/nodes id nil)))
