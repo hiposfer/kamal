@@ -1,5 +1,5 @@
 {:port    3000
  :dev false ;; use parsed OSM networks
  :join? true ;; block the main thread
- :networks {:saarland {:osm "resources/osm/saarland.min.osm.bz2"
-                       :gtfs ""}}} ;; TODO
+ :networks #{{:osm "resources/osm/saarland.min.osm.bz2"
+              :gtfs "resources/gtfs/"}}}
