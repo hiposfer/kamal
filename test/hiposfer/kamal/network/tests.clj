@@ -10,7 +10,8 @@
             [hiposfer.kamal.services.routing.core :as router]
             [clojure.spec.alpha :as s]
             [hiposfer.kamal.libs.fastq :as fastq]
-            [hiposfer.kamal.services.routing.transit :as transit]))
+            [hiposfer.kamal.services.routing.transit :as transit]
+            [hiposfer.kamal.services.routing.directions :as dir]))
 
 ;; Example taken from
 ;; https://rosettacode.org/wiki/Dijkstra%27s_algorithm
@@ -172,15 +173,15 @@
       (is (seq? (reduce (fn [r v] v) nil coll))
           "biggest components should not contain links to nowhere"))))
 
-;; -----------------------------------------------------------------
-;; generative tests for the direction endpoint
-;(defspec routable
-;  100; tries
-;  (prop/for-all [graph (gen/such-that not-empty (ng/graph 300) 1000)]
-;    (let [network (data/create-conn router/schema)
-;          _ (data/transact! network graph)
-;          request (gen/generate (s/gen ::mapbox/args))
-;          result (dir/direction @network request)]
-;      (is (s/valid? ::mapbox/response result)))))
+; -----------------------------------------------------------------
+; generative tests for the direction endpoint
+(defspec routable
+  100; tries
+  (prop/for-all [graph (gen/such-that not-empty (ng/graph 300) 1000)]
+    (let [network (data/create-conn router/schema)
+          _ (data/transact! network graph)
+          request (gen/generate (s/gen ::mapbox/args))
+          result (dir/direction @network request)]
+      (is (s/valid? ::mapbox/response result)))))
 
 ;(clojure.test/run-tests)
