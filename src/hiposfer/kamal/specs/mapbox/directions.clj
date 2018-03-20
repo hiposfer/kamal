@@ -1,7 +1,9 @@
 (ns hiposfer.kamal.specs.mapbox.directions
   (:require [clojure.spec.alpha :as s]
             [spec-tools.spec :as spec]
-            [hiposfer.geojson.specs :as geojson]))
+            [hiposfer.geojson.specs :as geojson]
+            [clojure.spec.gen.alpha :as gen])
+  (:import (java.time LocalDateTime)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; RESPONSE
 
@@ -45,7 +47,9 @@
 
 (s/def ::radiuses (s/coll-of (s/or :string #{"unlimited"} :number (s/and int? pos?))))
 (s/def ::language string?)
-(s/def ::departure (s/and spec/integer? pos?))
+(s/def ::departure (s/with-gen #(instance? LocalDateTime %)
+                               (fn [] (gen/fmap (fn [_] (LocalDateTime/now))
+                                                (s/gen pos-int?)))))
 ;; TODO: dirty hack to avoid separating namespaces
 (s/def :mapbox.directions.request/steps boolean?)
 

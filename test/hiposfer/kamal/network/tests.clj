@@ -10,6 +10,7 @@
             [hiposfer.kamal.services.routing.core :as router]
             [clojure.spec.alpha :as s]
             [hiposfer.kamal.libs.fastq :as fastq]
+            [hiposfer.kamal.specs.mapbox.directions :as mapbox]
             [hiposfer.kamal.services.routing.transit :as transit]
             [hiposfer.kamal.services.routing.directions :as dir]))
 
