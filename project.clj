@@ -1,4 +1,4 @@
-(defproject hiposfer/kamal "0.5.0"
+(defproject hiposfer/kamal "0.6.0"
   :description "An application that provides routing based on external sources and OSM data"
   :url "https://github.com/hiposfer/kamal"
   :license {:name "LGPLv3"
@@ -18,7 +18,7 @@
                  [datascript "0.16.4"]
                  [ch.hsr/geohash "1.3.0"]]
   :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
-                                  [expound "0.4.0"]
+                                  [expound "0.5.1-SNAPSHOT"]
                                   [io.aviso/pretty "0.1.34"]
                                   [org.clojure/tools.namespace "0.2.11"]]
                    :plugins [[jonase/eastwood "0.2.5"]

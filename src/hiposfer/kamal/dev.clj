@@ -33,7 +33,7 @@
   (stop!)
   (init!)
   (st/instrument)
-  (set! s/*explain-out* expound/printer)
+  (set! s/*explain-out* (expound/custom-printer {:theme :figwheel-theme}))
   (start!))
 
 ;; WARN: this will fail if you just ran `lein uberjar` without
