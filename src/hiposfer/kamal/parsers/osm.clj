@@ -136,7 +136,8 @@
                     (assoc way :way/nodes (map #(vector :node/id %) (:way/nodes way))))
                   (sequence cat neighbours))))
 
-(def walking-speed  2.5);; m/s
+;; https://www.wikiwand.com/en/Preferred_walking_speed
+(def walking-speed  1.4);; m/s
 
 ;; LEARNINGS ----- resources/osm/saarland.osm
 ;; way count
