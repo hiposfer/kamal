@@ -3,7 +3,8 @@
   (:require [clojure.edn :as edn]
             [com.stuartsierra.component :as component]
             [hiposfer.kamal.services.webserver.core :as webserver]
-            [hiposfer.kamal.services.routing.core :as routing]))
+            [hiposfer.kamal.services.routing.core :as routing]
+            [taoensso.timbre :as timbre]))
 
 (defn system
   "creates a complete system map using components and the provided
@@ -30,7 +31,7 @@
                     (concat user-config custom-config)))))
 
 (defn -main [& args]
-  (println "\n\nWelcome to the hiposfer/kamal App")
+  (timbre/info "\n\nWelcome to the hiposfer/kamal App")
   (let [port        (edn/read-string (System/getenv "PORT"))
         config-path (edn/read-string (first args))
         user-config (if-not config-path {}

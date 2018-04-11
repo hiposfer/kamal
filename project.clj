@@ -10,6 +10,7 @@
                  [metosin/compojure-api "2.0.0-alpha18"]
                  [metosin/spec-tools "0.5.1"] ;;coercion
                  [hiposfer/geojson.specs "0.2.0"]
+                 [com.taoensso/timbre "4.10.0"]
                  [ring/ring-jetty-adapter "1.6.3"]
                  [com.stuartsierra/component "0.3.2"]
                  [org.apache.commons/commons-compress "1.4"] ;;bz2 files read
