@@ -6,7 +6,8 @@
             [datascript.core :as data]
             [com.stuartsierra.component :as component]
             [hiposfer.kamal.network.algorithms.core :as alg]
-            [hiposfer.kamal.libs.fastq :as fastq]))
+            [hiposfer.kamal.libs.fastq :as fastq]
+            [taoensso.timbre :as timbre]))
 
 ;; NOTE: we use :db/index true to replace the lack of :VAET index in datascript
 ;; This is for performance. In lots of cases we want to lookup back-references
@@ -79,7 +80,7 @@
 (defn exec!
   "builds a datascript in-memory db and conj's it into the passed agent"
   [ag area dev]
-  (println "-- starting area router:" area)
+  (timbre/info "starting area router:" area)
   (let [vehicle     (when (and (not dev) (:gtfs area))
                       (gtfs/datomize (:gtfs area)))
         pedestrian  (if (true? dev)
@@ -96,13 +97,13 @@
   component/Lifecycle
   (start [this]
     (if (not-empty (:networks this)) this
-      (let [ag (agent #{} :error-handler println
+      (let [ag (agent #{} :error-handler #(timbre/info %)
                           :error-mode :fail)]
         (run! #(send-off ag exec! % (:dev config))
                (:networks config))
         (assoc this :networks ag))))
   (stop [this]
-    (println "-- stopping router")
+    (timbre/info "stopping router")
     (assoc this :networks nil)))
 
 (defn service
