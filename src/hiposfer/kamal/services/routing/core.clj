@@ -97,7 +97,7 @@
   component/Lifecycle
   (start [this]
     (if (not-empty (:networks this)) this
-      (let [ag (agent #{} :error-handler #(timbre/info %)
+      (let [ag (agent #{} :error-handler #(timbre/fatal %2 (deref %1))
                           :error-mode :fail)]
         (run! #(send-off ag exec! % (:dev config))
                (:networks config))
