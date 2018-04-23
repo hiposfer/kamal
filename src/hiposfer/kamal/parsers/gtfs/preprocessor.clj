@@ -5,7 +5,8 @@
             [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.data.csv :as csv]
-            [spec-tools.core :as st])
+            [spec-tools.core :as st]
+            [expound.alpha :as expound])
   (:import (java.time ZoneId Duration LocalDate)
            (java.time.format DateTimeFormatter)))
 
@@ -16,8 +17,7 @@
 (s/def ::agency_id spec/integer?)
 (s/def ::agency_timezone (s/and ::gtfs/agency_timezone
                                 (s/conformer #(ZoneId/of %))))
-(s/def ::agency (s/keys :req-un [::gtfs/agency_name ::agency_timezone]
-                        :opt-un [::agency_id]))
+(s/def ::agency (s/keys :req-un [::agency_id ::gtfs/agency_name ::agency_timezone]))
 
 ;; routes
 (s/def ::route_id spec/integer?)
@@ -99,7 +99,10 @@
           raw     (csv/read-csv file)
           head    (map keyword (first raw))
           content (map zipmap (repeat head) (rest raw))]
-      (into [] (remove #(= % ::s/invalid))
+      (into []
         (for [row content
               :let [trimmed (into {}  (remove #(empty? (second %))) row)]]
-          (st/conform type trimmed st/string-conforming))))))
+          (let [result (st/conform type trimmed st/string-conforming)]
+            (if (not= result ::s/invalid) result
+              (do (st/explain type trimmed st/string-conforming)
+                  (throw (ex-info "coercion failed" trimmed))))))))))
