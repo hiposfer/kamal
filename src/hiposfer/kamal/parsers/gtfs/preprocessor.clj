@@ -5,8 +5,7 @@
             [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.data.csv :as csv]
-            [spec-tools.core :as st]
-            [expound.alpha :as expound])
+            [spec-tools.core :as st])
   (:import (java.time ZoneId Duration LocalDate)
            (java.time.format DateTimeFormatter)))
 
