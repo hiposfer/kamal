@@ -48,16 +48,26 @@
 (s/def ::radiuses (s/coll-of (s/or :string #{"unlimited"} :number (s/and int? pos?))))
 (s/def ::language string?)
 
+(def localdatetime-gen
+  (gen/fmap #(java.time.LocalDateTime/ofEpochSecond % 0 java.time.ZoneOffset/UTC)
+            (gen/large-integer* {:min -365243219162 :max 365241780471})))
+
 (s/def ::departure-gen (s/with-gen #(instance? LocalDateTime %)
-                                   (fn [] (gen/fmap (fn [_] (LocalDateTime/now))
-                                                    (s/gen pos-int?)))))
+                                   (fn [] localdatetime-gen)))
+
+(s/def ::departure-str
+  (s/with-gen
+    (s/conformer
+      (fn [datetime]
+          (try
+              (LocalDateTime/parse datetime)
+              (catch Exception e :clojure.spec.alpha/invalid)))
+      ; definitely wrong, but doesn't work otherwise.
+      identity)
+    (fn [] (gen/fmap #(.toString %) localdatetime-gen))))
+
 (s/def ::departure (s/or :instance ::departure-gen
-                         :text (s/conformer
-                            (fn [datetime]
-                                (try
-                                    (LocalDateTime/parse datetime)
-                                    (catch Exception e :clojure.spec.alpha/invalid)))
-                            identity)))
+                         :text ::departure-str))
 
 ;; TODO: dirty hack to avoid separating namespaces
 (s/def :mapbox.directions.request/steps boolean?)
