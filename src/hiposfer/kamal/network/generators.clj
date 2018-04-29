@@ -47,4 +47,5 @@
     (for [id ids]
       {:way/id id
        :way/name (gen/generate namer)
-       :way/nodes (random-sample 0.2 ids)})))
+       :way/nodes (for [i (random-sample 0.4 ids)]
+                    [:node/id i])})))
