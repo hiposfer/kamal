@@ -185,6 +185,6 @@
           request (gen/generate (s/gen ::mapbox/args))
           result (dir/direction @network request)]
       (is (s/valid? ::mapbox/response result)
-          (s/explain-str ::mapbox/response result)))))
+          (str (s/explain-str ::mapbox/response result))))))
 
 ;(clojure.test/run-tests)
