@@ -2,7 +2,6 @@
 FROM clojure AS builder
 WORKDIR /app
 COPY ./project.clj ./
-RUN lein deps
 COPY . .
 RUN lein uberjar
 
