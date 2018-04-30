@@ -70,16 +70,15 @@
                 (select-keys way way-attrs))))
 
 (defn- strip-points
-  "returns a sequence of node ids that join the intersections
-  of this way. The first and last id are included as well."
+  "returns way with only the first/last and intersection nodes"
   [intersections way]
   (let [intersections (conj intersections (first (:way/nodes way))
                                           (last  (:way/nodes way)))]
     (assoc way :way/nodes (filter intersections (:way/nodes way)))))
 
-(defn- simplify
-  "returns a [way-id [connected-node-ids]], i.e. only the nodes that represent
-  the connected nodes in a graph structure.
+(defn simplify
+  "returns the ways sequence including only the first/last and intersection
+   nodes i.e. the connected nodes in a graph structure.
 
   Uses the ::nodes of each way and counts which nodes appear more than once"
   [ways]

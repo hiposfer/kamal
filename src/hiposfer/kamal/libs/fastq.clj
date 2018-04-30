@@ -147,7 +147,7 @@
   [network ?src]
   (let [id         (:db/id ?src)
         stop-times (sequence (index-lookup network id)
-                             (data/index-range network :stop.times/stop ?src nil))
+                             (data/index-range network :stop.times/stop id nil))
         stops      (for [st1  stop-times
                          :let [trip-id (:db/id (:stop.times/trip st1))
                                stimes2 (sequence (index-lookup network trip-id)
