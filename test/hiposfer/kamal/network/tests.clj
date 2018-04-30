@@ -99,10 +99,7 @@
 (defspec deterministic
   100; tries
   (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
-    (let [router   (component/start (router/->DevRouter {:networks #{{:size i}}
-                                                         :log false}
-                                                        nil))
-          graph   @(first @(:networks router))
+    (let [graph   @(router/pedestrian-graph {:size i})
           src      (rand-nth (alg/nodes graph))
           dst      (rand-nth (alg/nodes graph))
           coll     (alg/dijkstra graph #{src} (opts graph))
@@ -119,10 +116,7 @@
 (defspec monotonic
   100; tries
   (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
-     (let [router   (component/start (router/->DevRouter {:networks #{{:size i}}
-                                                          :log false}
-                                                         nil))
-           graph   @(first @(:networks router))
+     (let [graph   @(router/pedestrian-graph {:size i})
            src      (rand-nth (alg/nodes graph))
            dst      (rand-nth (alg/nodes graph))
            coll     (alg/dijkstra graph #{src} (opts graph))
@@ -139,10 +133,7 @@
 (defspec symmetry
   100; tries
   (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
-    (let [router   (component/start (router/->DevRouter {:networks #{{:size i}}
-                                                         :log false}
-                                                        nil))
-          graph   @(first @(:networks router))
+    (let [graph   @(router/pedestrian-graph {:size i})
           src      (rand-nth (alg/nodes graph))
           coll     (alg/dijkstra graph #{src} (opts graph))
           result   (alg/shortest-path src coll)]
@@ -157,10 +148,7 @@
 (defspec components
   100; tries
   (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
-    (let [router   (component/start (router/->DevRouter {:networks #{{:size i}}
-                                                         :log false}
-                                                        nil))
-          graph   @(first @(:networks router))
+    (let [graph   @(router/pedestrian-graph {:size i})
           r1      (alg/looners graph)
           graph2  (data/db-with graph (for [i r1 ] [:db.fn/retractEntity (:db/id i)]))
           r2      (alg/looners graph2)]
@@ -176,10 +164,7 @@
 (defspec routable-components
   100; tries
   (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
-    (let [router   (component/start (router/->DevRouter {:networks #{{:size i}}
-                                                         :log false}
-                                                        nil))
-          graph   @(first @(:networks router))
+    (let [graph   @(router/pedestrian-graph {:size i})
           r1      (alg/looners graph)
           graph2  (data/db-with graph (for [i r1 ] [:db.fn/retractEntity (:db/id i)]))
           src     (rand-nth (alg/nodes graph2))
@@ -192,12 +177,9 @@
 (defspec routable
   100; tries
   (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
-    (let [router   (component/start (router/->DevRouter {:networks #{{:size i}}
-                                                         :log false}
-                                     nil))
-          graph   @(first @(:networks router))
-          request (gen/generate (s/gen ::mapbox/args))
-          result (dir/direction graph request)]
+    (let [graph   @(router/pedestrian-graph {:size i})
+          request  (gen/generate (s/gen ::mapbox/args))
+          result   (dir/direction graph request)]
       (is (s/valid? ::mapbox/response result)
           (str (expound/expound-str ::mapbox/response result))))))
 
