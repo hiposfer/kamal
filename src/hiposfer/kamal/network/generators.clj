@@ -25,6 +25,9 @@
                      :node/location (network/->Location (lon-gen) (lat-gen))})]
     (concat nodes edges)))     ;; now connect the nodes
 
+;; TODO: this is far from ideal. Currently we just generate nodes here
+;; and then later on we generate ways and HOPE that they match. This
+;; can lead to bugs since the generated graph is not consistent
 (defn graph
   "returns a graph generator with node's id between 0 and 3*size.
   The generator creates a minimum of size elements"
@@ -47,4 +50,5 @@
     (for [id ids]
       {:way/id id
        :way/name (gen/generate namer)
-       :way/nodes (random-sample 0.2 ids)})))
+       :way/nodes (for [i (random-sample 0.4 ids)]
+                    [:node/id i])})))
