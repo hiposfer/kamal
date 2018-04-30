@@ -90,8 +90,9 @@
     (data/transact! conn (cache-stop-successors @conn))
     (conj ag conn)))
 
-(defn- pedestrian-graph
-  "builds a datascript in-memory db and conj's it into the passed agent"
+(defn pedestrian-graph
+  "builds a datascript in-memory db and returns it. Only valid for
+  pedestrian routing"
   [area]
   ;; we dont support fake GTFS data for development yet
   (let [conn   (data/create-conn schema)
@@ -105,7 +106,7 @@
   component/Lifecycle
   (start [this]
     (when (:log config)
-      (timbre/info "starting dev router"))
+      (timbre/info "starting dev router with:" config))
     (if (not-empty (:networks this)) this
       (let [values (into #{} (map pedestrian-graph (:networks config)))
             ag     (agent values :error-handler #(timbre/fatal %2 (deref %1))
