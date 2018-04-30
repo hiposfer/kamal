@@ -12,7 +12,7 @@
   [config]
   (component/system-map
     :config config
-    :router (component/using (routing/service)
+    :router (component/using (routing/service config)
                              [:config])
     :app (component/using (webserver/service)
                           [:config :router])))
