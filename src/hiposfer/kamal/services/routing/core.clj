@@ -56,7 +56,7 @@
                                 :db/index true}})
 
 ;; This might not be the best approach but it gets the job done for the time being
-(defn link-stops
+(defn- link-stops
   "takes a network, looks up the nearest node for each stop and returns
   a transaction that will link those"
   [network]
@@ -67,7 +67,7 @@
        :node/successors #{(:db/id stop)}})))
 
 ;; this reduced my test query from 30 seconds to 8 seconds
-(defn cache-stop-successors
+(defn- cache-stop-successors
   "computes the next-stops for each stop and returns a transaction
   that will cache those results inside the :stop entities"
   [network]
@@ -77,21 +77,44 @@
       {:stop/id (:stop/id stop)
        :stop/successors (map :db/id neighbours)})))
 
-(defn exec!
+(defn- exec!
   "builds a datascript in-memory db and conj's it into the passed agent"
-  [ag area dev]
+  [ag area]
   (timbre/info "starting area router:" area)
-  (let [vehicle     (when (and (not dev) (:gtfs area))
+  (let [vehicle     (when (:gtfs area)
                       (gtfs/datomize (:gtfs area)))
-        pedestrian  (if (true? dev)
-                      (let [graph (gen/generate (ng/graph (:size area)))]
-                        (concat graph (ng/ways (alg/nodes graph))))
-                      (time (osm/datomize (:osm area))))
+        pedestrian  (time (osm/datomize (:osm area)))
         conn        (data/create-conn schema)]
     (time (data/transact! conn (concat pedestrian vehicle)))
     (data/transact! conn (link-stops @conn))
     (data/transact! conn (cache-stop-successors @conn))
     (conj ag conn)))
+
+(defn- pedestrian-graph
+  "builds a datascript in-memory db and conj's it into the passed agent"
+  [area]
+  ;; we dont support fake GTFS data for development yet
+  (let [conn   (data/create-conn schema)
+        g      (gen/such-that not-empty (ng/graph (:size area)) 1000)
+        graph  (data/db-with @conn (gen/generate g))
+        graph  (data/db-with graph (ng/ways (map :node/id (alg/nodes graph))))]
+    (reset! conn graph)
+    conn))
+
+(defrecord DevRouter [config networks]
+  component/Lifecycle
+  (start [this]
+    (when (:log config)
+      (timbre/info "starting dev router"))
+    (if (not-empty (:networks this)) this
+      (let [values (into #{} (map pedestrian-graph (:networks config)))
+            ag     (agent values :error-handler #(timbre/fatal %2 (deref %1))
+                                 :error-mode :fail)]
+        (assoc this :networks ag))))
+  (stop [this]
+    (when (:log config)
+      (timbre/info "stopping router"))
+    (assoc this :networks nil)))
 
 (defrecord Router [config networks]
   component/Lifecycle
@@ -99,7 +122,7 @@
     (if (not-empty (:networks this)) this
       (let [ag (agent #{} :error-handler #(timbre/fatal %2 (deref %1))
                           :error-mode :fail)]
-        (run! #(send-off ag exec! % (:dev config))
+        (run! #(send-off ag exec! %)
                (:networks config))
         (assoc this :networks ag))))
   (stop [this]
@@ -109,4 +132,7 @@
 (defn service
   "returns a Router record that will contain the config
    of and all the networks of the system as agents"
-  [] (map->Router {}))
+  [config]
+  (if (:dev config)
+    (map->DevRouter {})
+    (map->Router {})))
