@@ -7,7 +7,8 @@
             [hiposfer.kamal.libs.geometry :as geometry]
             [hiposfer.kamal.libs.fastq :as fastq]
             [hiposfer.kamal.services.routing.transit :as transit]
-            [datascript.core :as data])
+            [datascript.core :as data]
+            [taoensso.timbre :as timbre])
   (:import (java.time LocalDateTime)))
 
 (defn- validate
@@ -55,7 +56,6 @@
                         :message "No road segment could be matched for coordinates"}))))))
     (sweet/undocumented ;; returns a 404 when nothing matched
       (route/not-found (code/not-found "we couldnt find what you were looking for")))))
-
 
 ;; TESTS
 ;{"arguments":

@@ -12,7 +12,9 @@
             [hiposfer.kamal.libs.fastq :as fastq]
             [hiposfer.kamal.specs.mapbox.directions :as mapbox]
             [hiposfer.kamal.services.routing.transit :as transit]
-            [hiposfer.kamal.services.routing.directions :as dir]))
+            [hiposfer.kamal.services.routing.directions :as dir]
+            [com.stuartsierra.component :as component]
+            [expound.alpha :as expound]))
 
 ;; Example taken from
 ;; https://rosettacode.org/wiki/Dijkstra%27s_algorithm
@@ -96,34 +98,33 @@
 ; path(src,dst) = path(src, dst)
 (defspec deterministic
   100; tries
-  (prop/for-all [graph (gen/such-that not-empty (ng/graph 10) 1000)]
-    (let [network (data/create-conn router/schema)
-          _ (data/transact! network graph)
-          src  (rand-nth (alg/nodes @network))
-          dst  (rand-nth (alg/nodes @network))
-          coll (alg/dijkstra @network #{src} (opts @network))
-          results (for [_ (range 10)]
-                    (alg/shortest-path dst coll))]
-      (or (every? nil? results)
-          (and (apply = (map (comp key first) results))
-               (apply = (map (comp np/cost val first) results)))))))
+  (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
+    (let [graph   @(router/pedestrian-graph {:size i})
+          src      (rand-nth (alg/nodes graph))
+          dst      (rand-nth (alg/nodes graph))
+          coll     (alg/dijkstra graph #{src} (opts graph))
+          results  (for [_ (range 10)]
+                     (alg/shortest-path dst coll))]
+      (is (or (every? nil? results)
+              (and (apply = (map (comp key first) results))
+                   (apply = (map (comp np/cost val first) results))))
+          "not deterministic behavior"))))
 
 ; -------------------------------------------------------------------
 ; The Dijkstra algorithm cost is monotonic (increasing)
 ; https://en.wikipedia.org/wiki/Monotonic_function
 (defspec monotonic
   100; tries
-  (prop/for-all [graph (gen/such-that not-empty (ng/graph 10) 1000)]
-    (let [network (data/create-conn router/schema)
-          _ (data/transact! network graph)
-          src  (rand-nth (alg/nodes @network))
-          dst  (rand-nth (alg/nodes @network))
-          coll (alg/dijkstra @network #{src} (opts @network))
-          result (alg/shortest-path dst coll)]
-      (is (or (nil? result)
-              (apply >= (concat (map (comp np/cost val) result)
-                                [0])))
-          "returned path is not monotonic"))))
+  (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
+     (let [graph   @(router/pedestrian-graph {:size i})
+           src      (rand-nth (alg/nodes graph))
+           dst      (rand-nth (alg/nodes graph))
+           coll     (alg/dijkstra graph #{src} (opts graph))
+           result   (alg/shortest-path dst coll)]
+       (is (or (nil? result)
+               (apply >= (concat (map (comp np/cost val) result)
+                                 [0])))
+           "returned path is not monotonic"))))
 
 ; -------------------------------------------------------------------
 ; If the distance of two nodes is 0 and no edge has a 0 cost,
@@ -131,12 +132,11 @@
 ; Ddf(P,Q) = 0 if P = Q
 (defspec symmetry
   100; tries
-  (prop/for-all [graph (gen/such-that not-empty (ng/graph 10) 1000)]
-    (let [network (data/create-conn router/schema)
-          _ (data/transact! network graph)
-          src  (rand-nth (alg/nodes @network))
-          coll (alg/dijkstra @network #{src} (opts @network))
-          result (alg/shortest-path src coll)]
+  (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
+    (let [graph   @(router/pedestrian-graph {:size i})
+          src      (rand-nth (alg/nodes graph))
+          coll     (alg/dijkstra graph #{src} (opts graph))
+          result   (alg/shortest-path src coll)]
       (is (not-empty result)
           "no path from node to himself found")
       (is (= 1 (count result))
@@ -147,12 +147,11 @@
 ; as big as the original network
 (defspec components
   100; tries
-  (prop/for-all [graph (gen/such-that not-empty (ng/graph 10) 1000)]
-    (let [network (data/create-conn router/schema)
-          _ (data/transact! network graph)
-          r1      (alg/looners @network)
-          _ (data/transact! network (map #(vector :db.fn/retractEntity (:db/id %)) r1))
-          r2      (alg/looners @network)]
+  (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
+    (let [graph   @(router/pedestrian-graph {:size i})
+          r1      (alg/looners graph)
+          graph2  (data/db-with graph (for [i r1 ] [:db.fn/retractEntity (:db/id i)]))
+          r2      (alg/looners graph2)]
       (is (empty? r2)
           "looners should be empty for a strongly connected graph"))))
 
@@ -164,13 +163,12 @@
 ; this use to throw an exception so we leave it here for testing purposes :)
 (defspec routable-components
   100; tries
-  (prop/for-all [graph (gen/such-that not-empty (ng/graph 10) 1000)]
-    (let [network (data/create-conn router/schema)
-          _ (data/transact! network graph)
-          r1      (alg/looners @network)
-          _ (data/transact! network (map #(vector :db.fn/retractEntity (:db/id %)) r1))
-          src  (rand-nth (alg/nodes @network))
-          coll (alg/dijkstra @network #{src} (opts @network))]
+  (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
+    (let [graph   @(router/pedestrian-graph {:size i})
+          r1      (alg/looners graph)
+          graph2  (data/db-with graph (for [i r1 ] [:db.fn/retractEntity (:db/id i)]))
+          src     (rand-nth (alg/nodes graph2))
+          coll    (alg/dijkstra graph2 #{src} (opts graph2))]
       (is (seq? (reduce (fn [r v] v) nil coll))
           "biggest components should not contain links to nowhere"))))
 
@@ -178,13 +176,11 @@
 ; generative tests for the direction endpoint
 (defspec routable
   100; tries
-  (prop/for-all [graph (gen/such-that not-empty (ng/graph 100) 1000)]
-    (let [network (data/create-conn router/schema)
-          _ (data/transact! network graph)
-          _ (data/transact! network (ng/ways (map :node/id (alg/nodes @network))))
-          request (gen/generate (s/gen ::mapbox/args))
-          result (dir/direction @network request)]
+  (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
+    (let [graph   @(router/pedestrian-graph {:size i})
+          request  (gen/generate (s/gen ::mapbox/args))
+          result   (dir/direction graph request)]
       (is (s/valid? ::mapbox/response result)
-          (str (s/explain-str ::mapbox/response result))))))
+          (str (expound/expound-str ::mapbox/response result))))))
 
 ;(clojure.test/run-tests)

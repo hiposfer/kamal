@@ -6,9 +6,10 @@
             [clojure.spec.test.alpha :as st]
             [expound.alpha :as expound]
             [clojure.spec.alpha :as s]
-            [clojure.tools.namespace.repl :as repl]))
+            [clojure.tools.namespace.repl :as repl]
+            [taoensso.timbre :as timbre]))
 
-(def system nil)
+(defonce system nil)
 
 (defn init!
   "Constructs the current development system."
@@ -20,11 +21,13 @@
 (defn start!
   "Starts the current development system."
   []
+  (timbre/debug "Starting System")
   (alter-var-root #'system component/start))
 
 (defn stop!
   "Shuts down and destroys the current development system."
   []
+  (timbre/debug "Stopping System\n")
   (alter-var-root #'system (fn [s] (when s (component/stop s)))))
 
 (defn go!
@@ -33,7 +36,8 @@
   (stop!)
   (init!)
   (st/instrument)
-  (set! s/*explain-out* expound/printer)
+  (set! s/*explain-out* (expound/custom-printer {:theme :figwheel-theme
+                                                 :print-specs? false}))
   (start!))
 
 ;; WARN: this will fail if you just ran `lein uberjar` without

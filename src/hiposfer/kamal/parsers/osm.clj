@@ -131,11 +131,16 @@
                                 :node/successors #{[:node/id to]}})
                              (:way/nodes way)
                              (rest (:way/nodes way))))]
-    (concat nodes (for [way ways]
-                    (assoc way :way/nodes (map #(vector :node/id %) (:way/nodes way))))
-                  (sequence cat neighbours))))
+    (concat nodes
+            (sequence cat neighbours)
+            (for [way ways]
+              (assoc way :way/nodes
+                (for [n (:way/nodes way)]
+                  [:node/id n]))))))
 
-(def walking-speed  2.5);; m/s
+
+;; https://www.wikiwand.com/en/Preferred_walking_speed
+(def walking-speed  1.4);; m/s
 
 ;; LEARNINGS ----- resources/osm/saarland.osm
 ;; way count
