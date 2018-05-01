@@ -3,11 +3,11 @@
             [spec-tools.spec :as spec]
             [hiposfer.kamal.specs.gtfs :as gtfs]
             [clojure.java.io :as io]
-            [clojure.string :as str]
             [clojure.data.csv :as csv]
             [spec-tools.core :as st])
   (:import (java.time ZoneId Duration LocalDate)
-           (java.time.format DateTimeFormatter)))
+           (java.time.format DateTimeFormatter)
+           (java.util.zip ZipFile)))
 
 
 ;(System/getProperty "java.version") > 8
@@ -92,16 +92,19 @@
   "takes a filename and parses its content if supported by this parser.
    Entries that do not conform to the gtfs spec are removed. Returns
    a vector of conformed entries"
-  [filename]
-  (with-open [file (io/reader filename)]
-    (let [type    (get conformers (last (str/split filename #"/")))
+  [^ZipFile zipfile filename prepare]
+  (with-open [file (io/reader (.getInputStream zipfile (.getEntry zipfile filename)))]
+    (let [type    (get conformers filename)
           raw     (csv/read-csv file)
           head    (map keyword (first raw))
           content (map zipmap (repeat head) (rest raw))]
       (into []
         (for [row content
-              :let [trimmed (into {}  (remove #(empty? (second %))) row)]]
-          (let [result (st/conform type trimmed st/string-conforming)]
-            (if (not= result ::s/invalid) result
-              (do (st/explain type trimmed st/string-conforming)
-                  (throw (ex-info "coercion failed" trimmed))))))))))
+              :let [trimmed (into {}  (remove #(empty? (second %))) row)
+                    result (st/conform type trimmed st/string-conforming)]]
+            (when (not= result ::s/invalid)
+              (if (nil? prepare) result
+                (prepare result))))))))
+;; TODO: waiting for https://github.com/hiposfer/osmtogtfs/issues/69
+              ;(do (st/explain type trimmed st/string-conforming)
+              ;    (throw (ex-info "coercion failed" trimmed)))))))))
