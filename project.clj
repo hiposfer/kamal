@@ -37,8 +37,7 @@
                 *print-length* 100}
   ;;FIXME: https://github.com/technomancy/leiningen/issues/2173
   :monkeypatch-clojure-test false
-  :jvm-opts ["-Xmx1g" "-XX:-OmitStackTraceInFastThrow"
-             "-XX:+UseG1GC" "-XX:+UseStringDeduplication"]
+  :jvm-opts ["-Xmx1g" "-XX:-OmitStackTraceInFastThrow"]
   :repositories [["releases"  {:url      "https://clojars.org/repo"
                                :username :env/clojars_username
                                :password :env/clojars_password

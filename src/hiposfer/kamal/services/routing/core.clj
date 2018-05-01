@@ -7,7 +7,8 @@
             [com.stuartsierra.component :as component]
             [hiposfer.kamal.network.algorithms.core :as alg]
             [hiposfer.kamal.libs.fastq :as fastq]
-            [taoensso.timbre :as timbre]))
+            [taoensso.timbre :as timbre])
+  (:import (java.util.zip ZipFile)))
 
 ;; NOTE: we use :db/index true to replace the lack of :VAET index in datascript
 ;; This is for performance. In lots of cases we want to lookup back-references
@@ -81,13 +82,15 @@
   "builds a datascript in-memory db and conj's it into the passed agent"
   [ag area]
   (timbre/info "starting area router:" area)
-  (let [vehicle     (when (:gtfs area)
-                      (gtfs/datomize (:gtfs area)))
-        pedestrian  (time (osm/datomize (:osm area)))
-        conn        (data/create-conn schema)]
-    (time (data/transact! conn (concat pedestrian vehicle)))
-    (data/transact! conn (link-stops @conn))
-    (data/transact! conn (cache-stop-successors @conn))
+  (let [conn        (data/create-conn schema)
+        pedestrian  (osm/datomize (:osm area))
+        network     (data/db-with @conn pedestrian)
+        network2    (if (not (:gtfs area)) network
+                      (with-open [z (ZipFile. ^String (:gtfs area))]
+                        (data/db-with network (gtfs/datomize z))))
+        network3    (data/db-with network2 (link-stops network2))
+        network4    (data/db-with network3 (cache-stop-successors network3))]
+    (reset! conn network4)
     (conj ag conn)))
 
 (defn pedestrian-graph
@@ -123,8 +126,8 @@
     (if (not-empty (:networks this)) this
       (let [ag (agent #{} :error-handler #(timbre/fatal %2 (deref %1))
                           :error-mode :fail)]
-        (run! #(send-off ag exec! %)
-               (:networks config))
+        (run! (fn [area] (send-off ag #(time (exec! %1 %2)) area))
+              (:networks config))
         (assoc this :networks ag))))
   (stop [this]
     (timbre/info "stopping router")
