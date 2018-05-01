@@ -11,4 +11,4 @@ WORKDIR /usr/src/app
 COPY --from=builder /app/target/kamal.jar ./target/kamal.jar
 COPY --from=builder /app/resources/ ./resources
 EXPOSE 3000
-CMD ["java", "-Xmx500m", "-XX:+UseG1GC", "-XX:+UseStringDeduplication", "-Dclojure.compiler.direct-linking=true", "-Dclojure.compiler.elide-meta=\"[:doc :file :line :added]\"" , "-jar", "target/kamal.jar"]
+CMD ["java", "-Xmx500m", "-XX:+UseG1GC", "-XX:+UseStringDeduplication", "-jar", "target/kamal.jar"]
