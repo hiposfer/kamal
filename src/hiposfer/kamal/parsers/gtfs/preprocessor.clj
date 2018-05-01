@@ -101,10 +101,10 @@
       (into []
         (for [row content
               :let [trimmed (into {}  (remove #(empty? (second %))) row)
-                    result (st/conform type trimmed st/string-conforming)]]
-            (when (not= result ::s/invalid)
-              (if (nil? prepare) result
-                (prepare result))))))))
+                    result (st/conform type trimmed st/string-conforming)]
+              :when (not= result ::s/invalid)]
+          (if (nil? prepare) result
+            (prepare result)))))))
 ;; TODO: waiting for https://github.com/hiposfer/osmtogtfs/issues/69
               ;(do (st/explain type trimmed st/string-conforming)
               ;    (throw (ex-info "coercion failed" trimmed)))))))))
