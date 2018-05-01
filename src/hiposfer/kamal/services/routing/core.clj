@@ -78,7 +78,7 @@
       {:stop/id (:stop/id stop)
        :stop/successors (map :db/id neighbours)})))
 
-(defn- exec!
+(defn- network
   "builds a datascript in-memory db and conj's it into the passed agent"
   [ag area]
   (timbre/info "starting area router:" area)
@@ -126,7 +126,7 @@
     (if (not-empty (:networks this)) this
       (let [ag (agent #{} :error-handler #(timbre/fatal %2 (deref %1))
                           :error-mode :fail)]
-        (run! (fn [area] (send-off ag #(time (exec! %1 %2)) area))
+        (run! (fn [area] (send-off ag #(time (network %1 %2)) area))
               (:networks config))
         (assoc this :networks ag))))
   (stop [this]

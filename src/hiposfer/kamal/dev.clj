@@ -7,7 +7,10 @@
             [expound.alpha :as expound]
             [clojure.spec.alpha :as s]
             [clojure.tools.namespace.repl :as repl]
-            [taoensso.timbre :as timbre]))
+            [taoensso.timbre :as timbre]
+            [datascript.core :as data]
+            [clojure.edn :as edn])
+  (:import (java.io PushbackReader)))
 
 (defonce system nil)
 
@@ -54,4 +57,16 @@
 ;(set! *print-length* 50)
 ;(take 10 (:network @(:network (:grid system))))
 
-;(type (:networks (:router system)))
+;(type @(first @(:networks (:router system))))
+
+
+;(with-open [w (clojure.java.io/writer "resources/datascript.edn")]
+;  (binding [*out* w]
+;    (pr @(first @(:networks (:router system))))))
+;
+;(with-open [r (PushbackReader. (clojure.java.io/reader "resources/datascript.edn"))]
+;  (binding [*read-eval* false]
+;    (edn/read {:readers (merge data/data-readers
+;                               {'hiposfer.kamal.network.core.Location hiposfer.kamal.network.core/map->Location
+;                                'object identity})}
+;              r)))
