@@ -9,7 +9,8 @@
             [hiposfer.kamal.libs.geometry :as geometry]
             [hiposfer.kamal.services.routing.core :as router]
             [hiposfer.kamal.libs.fastq :as fastq]
-            [datascript.core :as data]))
+            [datascript.core :as data]
+            [taoensso.timbre :as timbre]))
 
 (defn opts [network] {:value-by #(transit/duration network %1 %2)
                       :successors fastq/node-successors})
@@ -24,8 +25,8 @@
         _       (data/transact! network dt)
         src     (rand-nth (alg/nodes @network))
         dst     (rand-nth (alg/nodes @network))]
-    (println "\n\nDIJKSTRA forward with:" (count (alg/nodes @network)) "nodes")
-    (println "**random graph")
+    (timbre/info "\n\nDIJKSTRA forward with:" (count (alg/nodes @network)) "nodes")
+    (timbre/info "**random graph")
     (c/quick-bench
       (let [coll (alg/dijkstra @network #{src} (opts @network))]
         (alg/shortest-path dst coll))
@@ -45,14 +46,14 @@
         dst  (last (alg/nodes @@network))
         r1   (alg/looners @@network)
         coll (alg/dijkstra @@network #{src} (opts @@network))]
-    (println "\n\nDIJKSTRA forward with:" (count (alg/nodes @@network)) "nodes")
-    (println "saarland graph:")
+    (timbre/info "\n\nDIJKSTRA forward with:" (count (alg/nodes @@network)) "nodes")
+    (timbre/info "saarland graph:")
     (c/quick-bench (alg/shortest-path dst coll)
       :os :runtime :verbose)
-    (println "--------")
-    (println "using only strongly connected components of the original graph")
+    (timbre/info "--------")
+    (timbre/info "using only strongly connected components of the original graph")
     (data/transact! @network (map #(vector :db.fn/retractEntity (:db/id %)) r1))
-    (println "with:" (count (alg/nodes @@network)) "nodes")
+    (timbre/info "with:" (count (alg/nodes @@network)) "nodes")
     (let [coll (alg/dijkstra @@network #{src} (opts @@network))]
       (c/quick-bench (alg/shortest-path dst coll)
         :os :runtime :verbose))))
@@ -62,8 +63,8 @@
 (test/deftest ^:benchmark nearest-neighbour-search
   (let [src   [7.038535 49.345088]
         point (:node/location (first (fastq/nearest-node @@network src)))]
-    (println "\n\nsaarland graph: nearest neighbour search with random src/dst")
-    (println "B+ tree with:" (count (data/datoms @@network :eavt)) "nodes")
-    (println "accuraccy: " (geometry/haversine src point) "meters")
+    (timbre/info "\n\nsaarland graph: nearest neighbour search with random src/dst")
+    (timbre/info "B+ tree with:" (count (data/datoms @@network :eavt)) "nodes")
+    (timbre/info "accuraccy: " (geometry/haversine src point) "meters")
     (c/quick-bench (:node/location (first (fastq/nearest-node @@network src)))
                    :os :runtime :verbose)))

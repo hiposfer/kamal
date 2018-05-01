@@ -75,25 +75,24 @@
 (def preparer
   "remove unnecessary information from the gtfs feed. Just to reduce the
   amount of datoms in datascript"
-  {:calendar (map service)
-   :routes   (map #(dissoc % :route_url))
-   :trips    (map #(dissoc % :shape_id))
-   :stops    (map (fn [stop]
-                    (let [removable [:stop_lat :stop_lon]
-                          ks (apply disj (set (keys stop)) removable)
-                          loc (network/->Location (:stop_lon stop) (:stop_lat stop))]
-                      (assoc (select-keys stop ks) :stop_location loc))))})
+  {:calendar service
+   :routes   #(dissoc % :route_url)
+   :trips    #(dissoc % :shape_id)
+   :stops    (fn [stop]
+               (let [removable [:stop_lat :stop_lon]
+                     ks (apply disj (set (keys stop)) removable)
+                     loc (network/->Location (:stop_lon stop) (:stop_lat stop))]
+                 (assoc (select-keys stop ks) :stop_location loc)))})
 
-;; TODO: deduplicate strings
 (defn datomize
   "takes a map of gtfs key-name -> content and returns a sequence
   of maps ready to be used for transact"
-  [dirname]
+  [zipfile]
   (for [[k ns] file-keys
-        :let [raw (pregtfs/parse (str dirname (name k) ".txt"))
-              content (if-not (contains? preparer k) raw
-                        (sequence (k preparer) raw))]
+        :let [filename (str (name k) ".txt")
+              content  (pregtfs/parse zipfile filename (get preparer k))]
          m content]
     (into {} (map link m (repeat ns)))))
 
-;(time (last (datomize "resources/gtfs/")))
+;(with-open [z (ZipFile. "resources/gtfs/saarland.zip")]
+;  (time (last (datomize z))))
