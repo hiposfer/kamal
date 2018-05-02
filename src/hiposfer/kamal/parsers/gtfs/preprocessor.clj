@@ -21,7 +21,8 @@
 ;; routes
 (s/def ::route_id spec/integer?)
 (s/def ::route_type spec/integer?)
-(s/def ::route (s/keys :req-un [::route_id ::gtfs/route_short_name ::route_type]
+(s/def ::route (s/keys :req-un [::route_id (or ::gtfs/route_short_name ::gtfs/route_long_name)
+                                ::route_type]
                        :opt-un [::agency_id]))
 
 ;; stops
@@ -101,10 +102,8 @@
       (into []
         (for [row content
               :let [trimmed (into {}  (remove #(empty? (second %))) row)
-                    result (st/conform type trimmed st/string-conforming)]
-              :when (not= result ::s/invalid)]
-          (if (nil? prepare) result
-            (prepare result)))))))
-;; TODO: waiting for https://github.com/hiposfer/osmtogtfs/issues/69
-              ;(do (st/explain type trimmed st/string-conforming)
-              ;    (throw (ex-info "coercion failed" trimmed)))))))))
+                    result (st/conform type trimmed st/string-conforming)]]
+          (if (= result ::s/invalid)
+            (throw (ex-info "validation failed" (st/explain-data type trimmed st/string-conforming)))
+            (if (nil? prepare) result
+              (prepare result))))))))
