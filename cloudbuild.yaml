@@ -1,0 +1,11 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ["build", "-t", "gcr.io/[PROJECT-ID]/[IMAGE]", "."]
+- name: 'gcr.io/cloud-builders/docker'
+  args: ["push", "gcr.io/[PROJECT-ID]/[IMAGE]"]
+- name: 'gcr.io/cloud-builders/gcloud'
+  args:
+  - app
+  - deploy
+  - --quiet
+  - --image-url=gcr.io/[PROJECT-ID]/[IMAGE]:[TAG]
