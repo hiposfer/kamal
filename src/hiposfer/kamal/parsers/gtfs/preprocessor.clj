@@ -21,7 +21,8 @@
 ;; routes
 (s/def ::route_id spec/integer?)
 (s/def ::route_type spec/integer?)
-(s/def ::route (s/keys :req-un [::route_id (or ::gtfs/route_short_name ::route_type)]
+(s/def ::route (s/keys :req-un [::route_id (or ::gtfs/route_short_name ::gtfs/route_long_name)
+                                ::route_type]
                        :opt-un [::agency_id]))
 
 ;; stops
