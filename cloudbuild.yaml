@@ -3,9 +3,14 @@ steps:
   args: ["build", "-t", "gcr.io/$PROJECT_ID/$REPO_NAME:$COMMIT_SHA", "."]
 - name: 'gcr.io/cloud-builders/docker'
   args: ["push", "gcr.io/$PROJECT_ID/$REPO_NAME:$COMMIT_SHA"]
+- name: gcr.io/cloud-builders/gsutil
+  args: ['cp', '${_DEPLOYABLE}', 'app.yaml']
 - name: 'gcr.io/cloud-builders/gcloud'
   args:
   - app
   - deploy
+  - app.yaml
   - --quiet
+  - --promote
+  - --stop-previous-version
   - --image-url=gcr.io/$PROJECT_ID/$REPO_NAME:$COMMIT_SHA
