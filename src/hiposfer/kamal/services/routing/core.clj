@@ -99,7 +99,8 @@
   [area]
   ;; we dont support fake GTFS data for development yet
   (let [conn   (data/create-conn schema)
-        g      (gen/such-that not-empty (ng/graph (:size area)) 1000)
+        size   (or (:size area) 100)
+        g      (gen/such-that not-empty (ng/graph size) 1000)
         graph  (data/db-with @conn (gen/generate g))
         graph  (data/db-with graph (ng/ways (map :node/id (alg/nodes graph))))]
     (reset! conn graph)
