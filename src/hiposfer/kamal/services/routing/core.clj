@@ -7,8 +7,9 @@
             [com.stuartsierra.component :as component]
             [hiposfer.kamal.network.algorithms.core :as alg]
             [hiposfer.kamal.libs.fastq :as fastq]
-            [taoensso.timbre :as timbre])
-  (:import (java.util.zip ZipFile)))
+            [taoensso.timbre :as timbre]
+            [clojure.java.io :as io])
+  (:import (java.util.zip ZipInputStream)))
 
 ;; NOTE: we use :db/index true to replace the lack of :VAET index in datascript
 ;; This is for performance. In lots of cases we want to lookup back-references
@@ -86,8 +87,8 @@
         pedestrian  (osm/datomize (:osm area))
         network     (data/db-with @conn pedestrian)
         network2    (if (not (:gtfs area)) network
-                      (with-open [z (ZipFile. ^String (:gtfs area))]
-                        (data/db-with network (gtfs/datomize z))))
+                                           (with-open [z (ZipInputStream. (io/input-stream (:gtfs area)))]
+                                             (data/db-with network (gtfs/datomize! z))))
         network3    (data/db-with network2 (link-stops network2))
         network4    (data/db-with network3 (cache-stop-successors network3))]
     (reset! conn network4)
