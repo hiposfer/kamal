@@ -1,6 +1,11 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: ["build", "-t", "gcr.io/$PROJECT_ID/$REPO_NAME:$TAG_NAME", "."]
+  args: 
+  - build
+  - --tag=gcr.io/$PROJECT_ID/$REPO_NAME:$TAG_NAME
+  - --tag=gcr.io/$PROJECT_ID/$REPO_NAME:latest
+  - --cache-from=gcr.io/$PROJECT_ID/$REPO_NAME:latest
+  - .
 - name: 'gcr.io/cloud-builders/docker'
   args: ["push", "gcr.io/$PROJECT_ID/$REPO_NAME:$TAG_NAME"]
 - name: gcr.io/cloud-builders/gsutil
@@ -13,5 +18,4 @@ steps:
   - --quiet
   - --promote
   - --stop-previous-version
-  - --version=$TAG_NAME
   - --image-url=gcr.io/$PROJECT_ID/$REPO_NAME:$TAG_NAME
