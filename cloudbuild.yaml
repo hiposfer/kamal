@@ -13,4 +13,5 @@ steps:
   - --quiet
   - --promote
   - --stop-previous-version
+  - --version=$TAG_NAME
   - --image-url=gcr.io/$PROJECT_ID/$REPO_NAME:$TAG_NAME
