@@ -1,10 +1,10 @@
 (ns hiposfer.kamal.services.routing.transit
+  (:refer-clojure :exclude [name])
   (:require [hiposfer.kamal.network.algorithms.protocols :as np]
             [hiposfer.kamal.libs.fastq :as fastq]
             [hiposfer.kamal.parsers.osm :as osm]
             [hiposfer.kamal.libs.geometry :as geometry]
-            [datascript.core :as data])
-  (:import (java.time LocalDate)))
+            [datascript.core :as data]))
 
 ;; https://developers.google.com/transit/gtfs/reference/#routestxt
 (def route-types
@@ -51,8 +51,16 @@
 (defn node? [e] (:node/id e))
 (defn way? [e] (:way/id e))
 (defn stop? [e] (:stop/id e))
-(defn stop.times? [e] (:stop.times/trip e))
+(defn stop-times? [e] (:stop.times/trip e))
 (defn trip-step? [o] (instance? TripStep o))
+
+(defn name
+  "returns a name that represents this entity in the network.
+   returns nil if the entity has no name"
+  [e]
+  (cond
+    (way? e) (:way/name e)
+    (stop-times? e) (:trip/headsign (:stop.times/trip e))))
 
 (defn successors
   "takes a network and an entity id and returns the successors of that entity"

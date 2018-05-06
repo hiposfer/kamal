@@ -3,7 +3,6 @@
             [hiposfer.kamal.network.algorithms.protocols :as np]
             [hiposfer.kamal.services.routing.transit :as transit]
             [hiposfer.kamal.libs.geometry :as geometry]
-            [datascript.core :as data]
             [clojure.set :as set]
             [hiposfer.kamal.libs.fastq :as fastq])
   (:import (java.time LocalDateTime Duration LocalTime)))
@@ -45,104 +44,114 @@
       (and (transit/stop? src) (transit/node? dst))
       (first (fastq/node-ways network src)))))
 
-(defn- via-name
-  "returns a name that represents this entity in the network"
-  [entity]
-  (cond
-    (transit/way? entity) (str (:way/name entity))
-    (transit/stop.times? entity) (str (:trip/headsign (:stop.times/trip entity)))))
-
 (defn- location [e] (or (:node/location e) (:stop/location e)))
 
 (defn- linestring
   "get a geojson linestring based on the route path"
   [entities]
-  (let [coordinates (sequence (comp (map location)
-                                    (map ->coordinates))
-                              entities)]
-    {:type "LineString"
-     :coordinates coordinates}))
+  {:type "LineString"
+   :coordinates (for [e entities] (->coordinates (location e)))})
+
+(defn- modifier
+  [angle _type]
+  (case _type
+    ("depart" "arrive") nil
+    ;; return the turn indication based on the angle
+    "turn") (val (last (subseq bearing-turns <= angle))))
 
 (defn- instruction
   "returns a human readable version of the maneuver to perform"
-  [modifier via]
-  (let [via-name (via-name via)]
+  [result via]
+  (let [modifier (:modifier result)
+        _type    (:type result)
+        via-name (transit/name via)]
     (cond
       ;; walking normally
-      (transit/way? via)
+      (and (transit/way? via) (= _type "turn"))
       (str "Take " modifier (when via-name (str " on " via-name)))
 
       ;; taking a trip on a public transport vehicle
-      (transit/stop.times? via)
+      (transit/stop-times? via)
       (let [trip  (:stop.times/trip via)
             route (:trip/route trip)
             vehicle (transit/route-types (:route/type route))]
         (str "HopOn " vehicle (or (:route/short_name route) (:route/long_name route))
-             "to " (:trip/headsign trip))))))
+             "to " (:trip/headsign trip)))
+      ;; This is the first instruction that the user gets
+      (= _type "depart")
+      (if (nil? via-name) "Depart"
+        (str "Head on to " via-name))
+      ;; This is the last instruction that the user gets
+      (= _type "arrive")
+      "You have arrived at your destination")))
+
+;; todo: implement maneuver type
+;https://www.mapbox.com/api-documentation/#maneuver-types
+(defn- maneuver-type
+  [prev-piece piece next-piece]
+  (cond
+    (= prev-piece piece) "depart"
+    (= piece next-piece) "arrive"
+    :else                "turn"))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
 (defn- maneuver ;; piece => [[trace via] ...]
-  "returns a step manuever"
-  [network prev-piece  piece next-piece]
+  "returns a step maneuver"
+  [prev-piece  piece next-piece]
   (let [position     (location (key (ffirst piece)))
         pre-bearing  (geometry/bearing (location (key (ffirst prev-piece)))
                                        (location (key (ffirst piece))))
         post-bearing (geometry/bearing (location (key (ffirst piece)))
                                        (location (key (ffirst next-piece))))
         angle        (mod (+ 360 (- post-bearing pre-bearing)) 360)
-        modifier     (val (last (subseq bearing-turns <= angle)))
-        text         (instruction modifier (second (first piece)))]
-    {:location (->coordinates position)
-     ;; todo: implement maneuver type
-     ;https://www.mapbox.com/api-documentation/#maneuver-types
-     :type     "turn"
-     :bearing_before pre-bearing
-     :bearing_after  post-bearing
-     :modifier       modifier
-     :instruction    text}))
+        _type        (maneuver-type prev-piece piece next-piece)
+        _modifier    (modifier angle _type)
+        result       {:location (->coordinates position)
+                      :bearing_before pre-bearing
+                      :bearing_after  post-bearing
+                      :type _type
+                      :modifier _modifier}]
+    (assoc result :instruction
+                  (instruction result (second (first piece))))))
 
 ;https://www.mapbox.com/api-documentation/#routestep-object
 (defn- step ;; piece => [[trace via] ...]
   "includes one StepManeuver object and travel to the following RouteStep"
-  [network prev-piece piece next-piece]
+  [prev-piece piece next-piece]
   (let [line (linestring (map (comp key first)
                               (concat piece [(first next-piece)])))]
     {:distance (geometry/arc-length (:coordinates line))
      :duration (- (val (ffirst next-piece))
                   (val (ffirst piece)))
      :geometry line
-     :name     (str (via-name (second (first piece))))
+     :name     (str (transit/name (second (first piece))))
      :mode     "walking" ;;TODO this should not be hardcoded
-     :maneuver (maneuver network prev-piece piece next-piece)
+     :maneuver (maneuver prev-piece piece next-piece)
      :intersections []})) ;; TODO
 
 (defn- route-steps
   "returns a route-steps vector or an empty vector if no steps are needed"
-  [network steps pieces]
-  (if (not steps) []
-    (let [;; add depart and arrival pieces into the calculation
-          pieces    (concat [(first pieces)] pieces [[(last (last pieces))]])
-          routes    (map step (repeat network) pieces (rest pieces) (rest (rest pieces)))
-          depart    (assoc-in (first routes) [:maneuver :type] "depart")
-          orig-last (last (butlast pieces))
-          arrive    (-> (step network orig-last (last pieces) (last pieces))
-                        (assoc-in     [:maneuver :type] "arrive"))]
-      (concat [depart] (rest routes) [arrive]))))
+  [steps pieces]
+  (if (not steps) [] ;; piece => [[trace via] ...]
+    (let [start     [(first pieces)] ;; add depart and arrival pieces into the calculation
+          end       (repeat 2 [(last (last pieces))]) ;; use only the last point as end - not the entire piece
+          extended  (concat start pieces end)]
+      (map step extended (rest extended) (rest (rest extended))))))
 
 ;https://www.mapbox.com/api-documentation/#routeleg-object
 (defn- route-leg
   "a route between only two waypoints
 
   WARNING: we dont support multiple waypoints yet !!"
-  [network steps trail]
+  [network steps trail];; trail => [trace ...]
   (if (= (count trail) 1) ;; a single trace is returned for src = dst
     {:distance 0 :duration 0 :steps [] :summary "" :annotation []}
     (let [vias        (map link (repeat network) trail (rest trail))
           traces&ways (map vector trail (concat vias [(last vias)]))
-          pieces      (partition-by #(via-name (second %)) traces&ways)]
+          pieces      (partition-by #(transit/name (second %)) traces&ways)]
       {:distance   (geometry/arc-length (:coordinates (linestring (map key trail))))
        :duration   (np/cost (val (last trail)))
-       :steps      (route-steps network steps pieces)
+       :steps      (route-steps steps pieces)
        :summary    "" ;; TODO
        :annotation []}))) ;; TODO
 
