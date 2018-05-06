@@ -32,7 +32,7 @@
 
 ;; a TripStep represents the transition between two stops in a GTFS feed
 ;; Both the source and destination stop.times are kept to avoid future lookups
-(defrecord TripStep [source destination ^Long value]
+(defrecord TripStep [start end ^Long value]
   np/Valuable
   (cost [_] value)
   (sum [this that] (assoc this :value (+ value (np/cost that)))))
@@ -65,12 +65,12 @@
 (defn successors
   "takes a network and an entity id and returns the successors of that entity"
   [network entity]
-  (let [id  (:db/id entity)
-        sus (eduction (fastq/index-lookup network id)
-                      (data/index-range network :node/successors id nil))]
+  (let [id           (:db/id entity)
+        predecessors (eduction (fastq/index-lookup network id)
+                               (data/index-range network :node/successors id nil))]
     (if (node? entity)
-      (concat sus (:node/successors entity))
-      (concat sus (:stop/successors entity)))))
+      (concat predecessors (:node/successors entity))
+      (concat predecessors (:stop/successors entity)))))
 
 (defn timetable-duration
   "provides routing calculations using both GTFS feed and OSM nodes. Returns
@@ -89,12 +89,17 @@
       ;; the user is trying to get into a vehicle. We need to find the next
       ;; coming trip
       (and (stop? src) (stop? dst) (not (trip-step? value)))
-      (let [[st1 st2] (fastq/find-trip network trips (:db/id src) (:db/id dst) now)]
-        (when (some? st2)
+      (let [[st1 st2] (fastq/find-trip network trips src dst now)]
+        (when (some? st2) ;; nil if no trip was found
+          ;(println {:src (:stop/name src)
+          ;          :dst (:stop/name dst)
+          ;          :route (:route/short_name (:trip/route (:stop.times/trip st1)))
+          ;          :duration (- (:stop.times/arrival_time st2) now)})
           (->TripStep st1 st2 (- (:stop.times/arrival_time st2) now))))
-      ;; the user is already in a trip. Just find that trip for the dst
+      ;; the user is already in a trip. Just find the trip going to dst
       :else
-      (let [st (fastq/continue-trip network (:db/id dst) (:db/id (:trip value)))]
+      (let [?trip (:stop.times/trip (:start value))
+            st    (fastq/continue-trip network dst ?trip)]
         (when (some? st)
-          (->TripStep (:destination value) st
-                      (- (:stop.times/arrival_time st) (np/cost value))))))))
+          (->TripStep (:end value) st
+                      (- (:stop.times/arrival_time st) now)))))))
