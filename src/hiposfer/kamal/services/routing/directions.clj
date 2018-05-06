@@ -39,7 +39,7 @@
       (first (fastq/node-ways network src))
       ;; on a trip
       (and (transit/stop? src) (transit/stop? dst))
-      (:source (val src-trace)) ;; TripStep
+      (:start (val src-trace)) ;; TripStep
       ;; leaving a trip
       (and (transit/stop? src) (transit/node? dst))
       (first (fastq/node-ways network src)))))
@@ -150,7 +150,8 @@
           traces&ways (map vector trail (concat vias [(last vias)]))
           pieces      (partition-by #(transit/name (second %)) traces&ways)]
       {:distance   (geometry/arc-length (:coordinates (linestring (map key trail))))
-       :duration   (np/cost (val (last trail)))
+       :duration   (- (np/cost (val (last trail)))
+                      (np/cost (val (first trail))))
        :steps      (route-steps steps pieces)
        :summary    "" ;; TODO
        :annotation []}))) ;; TODO
