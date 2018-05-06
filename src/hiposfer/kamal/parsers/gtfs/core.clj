@@ -52,17 +52,17 @@
               "stop_times.txt" :stop.times})
 
 (def preparer
-  "map of GTFS namespaces post-processing functions. Useful to remove unnecessary
-   information from the GTFS feed. Just to reduce the amount of datoms in
-   datascript"
-  {:calendar service
-   :routes   #(dissoc % :route_url)
-   :trips    #(dissoc % :shape_id)
-   :stops    (fn [stop]
-               (let [removable [:stop_lat :stop_lon]
-                     ks (apply disj (set (keys stop)) removable)
-                     loc (network/->Location (:stop_lon stop) (:stop_lat stop))]
-                 (assoc (select-keys stop ks) :stop_location loc)))})
+  "map of GTFS filenames to post-processing functions. Useful to remove
+   unnecessary information from the GTFS feed; just to reduce the amount
+    of datoms in datascript"
+  {"calendar.txt" service
+   "routes.txt"   #(dissoc % :route_url)
+   "trips.txt"    #(dissoc % :shape_id)
+   "stops.txt"    (fn [stop]
+                    (let [removable [:stop_lat :stop_lon]
+                          ks (apply disj (set (keys stop)) removable)
+                          loc (network/->Location (:stop_lon stop) (:stop_lat stop))]
+                      (assoc (select-keys stop ks) :stop_location loc)))})
 
 (defn respace
   "takes a keyword and a set of keywords and attempts to convert it into a
@@ -92,7 +92,7 @@
       :else [(keyword sbase (name nk)) v])))
 
 ;; TODO: we can process files this way because Clojure array-maps
-;; maintain the order of the elements. However this is only valid for
+;; maintains the order of the elements. However this is only valid for
 ;; up to 8 key-value pairs. Once we start processing more, we would need
 ;; to change the logic
 (defn datomize!
@@ -112,7 +112,7 @@
       :else
       (let [filename (.getName entry)
             ns-base  (get file-ns filename)
-            prepare  (get preparer ns-base)
+            prepare  (get preparer filename)
             content  (pregtfs/parse! zipstream filename prepare)
             ;; transform each entry into a valid datascript
             ;; transaction map
