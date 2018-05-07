@@ -28,8 +28,11 @@
   (when-let [conn  (first conns)]
     (let [nodes (map #(:node/location (first (fastq/nearest-node @conn %))) points)
           distances (map geometry/haversine points nodes)]
-      (if (every? #(< % max-distance) distances) @conn
-        (recur (rest conns) points)))))
+      (if (and
+            (every? #(not (nil? %)) nodes)
+            (every? #(< % max-distance) distances))
+          @conn
+          (recur (rest conns) points)))))
 
 ;; ring handlers are matched in order
 (defn create
