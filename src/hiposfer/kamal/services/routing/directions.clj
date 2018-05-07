@@ -109,8 +109,9 @@
         result       {:location (->coordinates position)
                       :bearing_before pre-bearing
                       :bearing_after  post-bearing
-                      :type _type
-                      :modifier _modifier}]
+                      :type _type}
+        result        (if (not= _type "turn") result
+                        (assoc result :modifier _modifier))]
     (assoc result :instruction
                   (instruction result (second (first piece))))))
 
