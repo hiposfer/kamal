@@ -136,10 +136,10 @@
                     (map :e))
               (data/seek-datoms network :avet :trip/service))))
 
-(defn- index-ref
+(defn- references
   "returns all entities that reference entity through attribute k"
   ([network k entity]
-   (index-ref network k entity (map identity)))
+   (references network k entity (map identity)))
   ([network k entity xform]
    (eduction (comp (index-lookup network (:db/id entity))
                    xform)
@@ -163,12 +163,12 @@
            [?se :stop/id ?id]]
   the previous query takes 145 milliseconds. This function takes 0.2 milliseconds"
   [network src]
-  (for [st1  (index-ref network :stop.times/stop src)
-        :let [stimes2 (index-ref network
-                                 :stop.times/trip
-                                 (:stop.times/trip st1)
-                                 (filter #(> (:stop.times/sequence %)
-                                             (:stop.times/sequence st1))))]
+  (for [st1  (references network :stop.times/stop src)
+        :let [stimes2 (references network
+                                  :stop.times/trip
+                                  (:stop.times/trip st1)
+                                  (filter #(> (:stop.times/sequence %)
+                                              (:stop.times/sequence st1))))]
         :when (not-empty stimes2)]
       (:stop.times/stop (apply min-key :stop.times/sequence stimes2))))
 
