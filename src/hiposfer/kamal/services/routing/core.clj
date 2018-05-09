@@ -79,9 +79,9 @@
       {:stop/id (:stop/id stop)
        :stop/successors (for [n neighbours] [:stop/id (:stop/id n)])})))
 
-(defn- network
+(defn network
   "builds a datascript in-memory db and conj's it into the passed agent"
-  [ag area]
+  [area]
   (timbre/info "starting area router:" area)
   (let [conn        (data/create-conn schema)
         pedestrian  (osm/datomize (:osm area))
@@ -92,7 +92,7 @@
         network3    (data/db-with network2 (link-stops network2))
         network4    (data/db-with network3 (cache-stop-successors network3))]
     (reset! conn network4)
-    (conj ag conn)))
+    conn))
 
 (defn pedestrian-graph
   "builds a datascript in-memory db and returns it. Only valid for
@@ -128,7 +128,7 @@
     (if (not-empty (:networks this)) this
       (let [ag (agent #{} :error-handler #(timbre/fatal %2 (deref %1))
                           :error-mode :fail)]
-        (run! (fn [area] (send-off ag #(time (network %1 %2)) area))
+        (run! (fn [area] (send-off ag #(time (conj %1 (network %2))) area))
               (:networks config))
         (assoc this :networks ag))))
   (stop [this]
