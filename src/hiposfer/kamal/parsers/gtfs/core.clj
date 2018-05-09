@@ -2,7 +2,8 @@
   (:require [hiposfer.kamal.parsers.gtfs.preprocessor :as pregtfs]
             [clojure.string :as str]
             [hiposfer.kamal.network.core :as network])
-  (:import (java.time DayOfWeek)))
+  (:import (java.time DayOfWeek)
+           (java.util.zip ZipInputStream)))
 
 ;; detailed diagram of files relations
 ;; http://tommaps.com/wp-content/uploads/2016/09/gtfs-feed-diagram.png
@@ -37,14 +38,31 @@
     (merge (select-keys calendar [:start_date :end_date :service_id])
            {:days (reduce-kv rf #{} (select-keys calendar (keys days)))})))
 
+;; set of keywords that are guarantee to define an identifiable element
+;; according to GTFS spec
 (def ns-keys #{:agency :service :route :stop :trip})
 (def links (into #{} (map #(keyword (name %) "id") ns-keys)))
-(def file-keys {:agency     :agency
-                :calendar   :service
-                :routes     :route
-                :trips      :trip
-                :stops      :stop
-                :stop_times :stop.times})
+;; map of filename to namespaces. Needed to transform the GTFS entries
+;; to Datascript datoms
+(def file-ns {"agency.txt"     :agency
+              "calendar.txt"   :service
+              "routes.txt"     :route
+              "trips.txt"      :trip
+              "stops.txt"      :stop
+              "stop_times.txt" :stop.times})
+
+(def preparer
+  "map of GTFS namespaces post-processing functions. Useful to remove unnecessary
+   information from the GTFS feed. Just to reduce the amount of datoms in
+   datascript"
+  {:calendar service
+   :routes   #(dissoc % :route_url)
+   :trips    #(dissoc % :shape_id)
+   :stops    (fn [stop]
+               (let [removable [:stop_lat :stop_lon]
+                     ks (apply disj (set (keys stop)) removable)
+                     loc (network/->Location (:stop_lon stop) (:stop_lat stop))]
+                 (assoc (select-keys stop ks) :stop_location loc)))})
 
 (defn respace
   "takes a keyword and a set of keywords and attempts to convert it into a
@@ -55,6 +73,7 @@
     (when-let [kt (first (filter #(str/starts-with? nk (name %)) ns-keys))]
       (let [nsk (name kt)]
         (keyword nsk (str/replace-first nk (re-pattern (str nsk "_")) ""))))))
+;; example
 ;(respace :stop_id ns-keys)
 
 (defn- link
@@ -72,27 +91,34 @@
       (contains? links nk) [(keyword sbase (namespace nk)) [nk v]]
       :else [(keyword sbase (name nk)) v])))
 
-(def preparer
-  "remove unnecessary information from the gtfs feed. Just to reduce the
-  amount of datoms in datascript"
-  {:calendar service
-   :routes   #(dissoc % :route_url)
-   :trips    #(dissoc % :shape_id)
-   :stops    (fn [stop]
-               (let [removable [:stop_lat :stop_lon]
-                     ks (apply disj (set (keys stop)) removable)
-                     loc (network/->Location (:stop_lon stop) (:stop_lat stop))]
-                 (assoc (select-keys stop ks) :stop_location loc)))})
-
-(defn datomize
+;; TODO: we can process files this way because Clojure array-maps
+;; maintain the order of the elements. However this is only valid for
+;; up to 8 key-value pairs. Once we start processing more, we would need
+;; to change the logic
+(defn datomize!
   "takes a map of gtfs key-name -> content and returns a sequence
   of maps ready to be used for transact"
-  [zipfile]
-  (for [[k ns] file-keys
-        :let [filename (str (name k) ".txt")
-              content  (pregtfs/parse zipfile filename (get preparer k))]
-         m content]
-    (into {} (map link m (repeat ns)))))
+  [^ZipInputStream zipstream]
+  (loop [entry (.getNextEntry zipstream)
+         result file-ns] ;; use file-ns array-map order
+    (cond
+      ;; nothing more to process return
+      (nil? entry)
+      (sequence cat (vals result))
+      ;; unknown file, ignore it
+      (not (contains? file-ns (.getName entry)))
+      (recur (.getNextEntry zipstream) result)
+      ;; important file -> parse and process it
+      :else
+      (let [filename (.getName entry)
+            ns-base  (get file-ns filename)
+            prepare  (get preparer ns-base)
+            content  (pregtfs/parse! zipstream filename prepare)
+            ;; transform each entry into a valid datascript
+            ;; transaction map
+            clean    (for [m content] (into {} (map link m (repeat ns-base))))]
+        (recur (.getNextEntry zipstream)
+               (assoc result filename clean))))))
 
 ;(with-open [z (ZipFile. "resources/gtfs/saarland.zip")]
 ;  (time (last (datomize z))))
