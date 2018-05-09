@@ -66,7 +66,7 @@
                    (data/datoms network :aevt :stop/id))]
     (let [node (first (fastq/nearest-node network (:stop/location stop)))]
       {:node/id (:node/id node)
-       :node/successors #{(:db/id stop)}})))
+       :node/successors #{[:stop/id (:stop/id stop)]}})))
 
 ;; this reduced my test query from 30 seconds to 8 seconds
 (defn- cache-stop-successors
@@ -75,9 +75,9 @@
   [network]
   (for [stop (map #(data/entity network (:e %))
                    (data/datoms network :aevt :stop/id))]
-    (let [neighbours (fastq/next-stops network stop)]
+    (let [neighbours (distinct (fastq/next-stops network stop))]
       {:stop/id (:stop/id stop)
-       :stop/successors (map :db/id neighbours)})))
+       :stop/successors (for [n neighbours] [:stop/id (:stop/id n)])})))
 
 (defn- network
   "builds a datascript in-memory db and conj's it into the passed agent"

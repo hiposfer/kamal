@@ -6,9 +6,7 @@
             [hiposfer.kamal.services.routing.directions :as dir]
             [hiposfer.kamal.libs.geometry :as geometry]
             [hiposfer.kamal.libs.fastq :as fastq]
-            [hiposfer.kamal.services.routing.transit :as transit]
-            [datascript.core :as data]
-            [taoensso.timbre :as timbre])
+            [datascript.core :as data])
   (:import (java.time LocalDateTime)))
 
 (defn- validate
@@ -61,24 +59,12 @@
       (route/not-found (code/not-found "we couldnt find what you were looking for")))))
 
 ;; TESTS
-;{"arguments":
-; {"coordinates": [[6.905707,49.398459],
-;                  [6.8992, 49.4509]]}}
-
 ;(fastq/nearest-node @(first @(:networks (:router hiposfer.kamal.dev/system)))
 ;                    [6.905707,49.398459])
 
 ;(time
-;  (dotimes [n 20]
-;    (dir/direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;                   {;:steps       true
-;                    :coordinates [[6.905707, 49.398459]
-;                                  [6.8992, 49.4509]]
-;                    :departure   (LocalDateTime/now)})))
-;
-;(time
 ;  (dir/direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;                 {;:steps       true
-;                  :coordinates [[6.905707, 49.398459]
-;                                [6.8992, 49.4509]]
-;                  :departure   (LocalDateTime/now)}))
+;                 {:coordinates [[8.645333, 50.087314]
+;                                [8.635897, 50.104172]]
+;                               :departure (LocalDateTime/parse "2018-05-07T10:15:30")
+;                  :steps true}))

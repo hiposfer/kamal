@@ -5,11 +5,11 @@
   By convention all queries here return Entities"
   (:require [datascript.core :as data]
             [hiposfer.kamal.libs.tool :as tool])
-  (:import (java.time Duration LocalTime LocalDate LocalDateTime)))
+  (:import (java.time LocalDate)))
 
 (defn index-lookup
   "returns a transducer that can be used together with index-range to get all
-  entities attribute k equals id"
+  entities whose value equals id i.e. the entities that have a reference to id"
   [network id]
   (comp (take-while #(= (:v %) id))
         (map #(data/entity network (:e %)))))
@@ -59,6 +59,8 @@
 (defn continue-trip
   "returns the :stop.times entity to reach ?dst-id via ?trip
 
+  Returns nil if no trip going to ?dst-id was found
+
   replaces:
   '[:find ?departure
     :in $ ?dst-id ?trip ?start
@@ -69,10 +71,12 @@
 
    The previous query takes around 50 milliseconds to execute. This function
    takes around 0.22 milliseconds to execute. Depends on :stop.times/trip index"
-  [network ?dst-id ?trip]
-  (tool/some #(= ?dst-id (:db/id (:stop.times/stop %)))
-             (eduction (index-lookup network ?trip)
-                       (data/index-range network :stop.times/trip ?trip nil))))
+  [network dst trip]
+  (let [?dst-id  (:db/id dst)
+        ?trip-id (:db/id trip)]
+    (tool/some #(= ?dst-id (:db/id (:stop.times/stop %)))
+               (eduction (index-lookup network ?trip-id)
+                         (data/index-range network :stop.times/trip ?trip-id nil)))))
 
 (defn- min-departure
   [result value]
@@ -82,7 +86,9 @@
 
 (defn find-trip
   "Returns a [src dst] stop.times pair for the next trip between ?src-id
-   and ?dst-id departing after ?now
+   and ?dst-id departing after ?now.
+
+   Returns nil if no trip was found
 
   replaces:
   '[:find ?trip ?departure
@@ -96,14 +102,15 @@
            [(hiposfer.kamal.libs.fastq/after? ?departure ?now)]]
 
   The previous query runs in 118 milliseconds. This function takes 4 milliseconds"
-  [network trips ?src-id ?dst-id ?now]
-  (let [sts  (seq (eduction (comp (index-lookup network ?src-id)
-                                  (filter #(and (> (:stop.times/departure_time %) ?now)
-                                                (contains? trips (:db/id (:stop.times/trip %))))))
-                            (data/index-range network :stop.times/stop ?src-id nil)))]
+  [network trips src dst now]
+  (let [?src-id (:db/id src)
+        sts  (eduction (comp (index-lookup network ?src-id)
+                             (filter #(and (> (:stop.times/departure_time %) now)
+                                           (contains? trips (:db/id (:stop.times/trip %))))))
+                       (data/index-range network :stop.times/stop ?src-id nil))]
     (when (seq sts)
-      (let [trip (reduce min-departure sts)]
-        [trip (continue-trip network ?dst-id (:db/id (:stop.times/trip trip)))]))))
+      (let [trip (reduce min-departure (first sts) sts)]
+        [trip (continue-trip network dst (:stop.times/trip trip))]))))
 
 ;(time
 ;  (dotimes [n 1000]
@@ -129,8 +136,19 @@
                     (map :e))
               (data/seek-datoms network :avet :trip/service))))
 
+(defn- references
+  "returns all entities that reference entity through attribute k"
+  ([network k entity]
+   (references network k entity (map identity)))
+  ([network k entity xform]
+   (eduction (comp (index-lookup network (:db/id entity))
+                   xform)
+             (data/index-range network k (:db/id entity) nil))))
+
 (defn next-stops
   "return the next stop entities for ?src-id based on stop.times
+
+  This function might return duplicates
 
   replaces:
   '[:find [?id ...]
@@ -144,18 +162,15 @@
            [?dst :stop.times/stop ?se]
            [?se :stop/id ?id]]
   the previous query takes 145 milliseconds. This function takes 0.2 milliseconds"
-  [network ?src]
-  (let [id         (:db/id ?src)
-        stop-times (sequence (index-lookup network id)
-                             (data/index-range network :stop.times/stop id nil))
-        stops      (for [st1  stop-times
-                         :let [trip-id (:db/id (:stop.times/trip st1))
-                               stimes2 (sequence (index-lookup network trip-id)
-                                                 (data/index-range network :stop.times/trip trip-id nil))]
-                         st2  stimes2
-                         :when (> (:stop.times/sequence st2) (:stop.times/sequence st1))]
-                     (:stop.times/stop st2))]
-    (distinct stops)))
+  [network src]
+  (for [st1  (references network :stop.times/stop src)
+        :let [stimes2 (references network
+                                  :stop.times/trip
+                                  (:stop.times/trip st1)
+                                  (filter #(> (:stop.times/sequence %)
+                                              (:stop.times/sequence st1))))]
+        :when (not-empty stimes2)]
+      (:stop.times/stop (apply min-key :stop.times/sequence stimes2))))
 
 ;(time
 ;  (dotimes [n 10000]
