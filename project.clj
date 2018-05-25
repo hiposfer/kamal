@@ -18,6 +18,7 @@
                  [org.clojure/data.csv "0.1.4"]
                  [datascript "0.16.4"]
                  [ch.hsr/geohash "1.3.0"]]
+  :aliases {"preprocess" ["trampoline" "run" "-m" "hiposfer.kamal.preprocessor"]}
   :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
                                   [expound "0.6.0"]
                                   [io.aviso/pretty "0.1.34"]

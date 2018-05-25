@@ -128,8 +128,8 @@
     (if (not-empty (:networks this)) this
       (let [ag (agent #{} :error-handler #(timbre/fatal %2 (deref %1))
                           :error-mode :fail)]
-        (run! (fn [area] (send-off ag #(time (conj %1 (network %2))) area))
-              (:networks config))
+        (doseq [area (:networks config)]
+          (send-off ag #(time (conj %1 (network %2))) area))
         (assoc this :networks ag))))
   (stop [this]
     (timbre/info "stopping router")
