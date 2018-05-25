@@ -1,7 +1,6 @@
 {:port    3000
  :dev false ;; use parsed OSM networks
  :join? true ;; block the main thread
- :networks #{{:osm "https://firebasestorage.googleapis.com/v0/b/hive-6c54a.appspot.com/o/kamal%2Fgermany%2Ffrankfurt.kamal.osm.bz2?alt=media&token=d6228917-f737-46df-b8b4-557e60f77931"
-              :gtfs "https://firebasestorage.googleapis.com/v0/b/hive-6c54a.appspot.com/o/kamal%2Fgermany%2Ffrankfurt-gtfs.zip?alt=media&token=788c1fa9-c9f4-4ddc-9e1a-e016a7591342"}
-             {:osm "resources/osm/saarland.min.osm.bz2"
-              :gtfs "resources/gtfs/saarland.zip"}}}
+ :networks #{{:edn "resources/saarland.edn.bz2"
+              :osm "resources/saarland.min.osm.bz2"
+              :gtfs "resources/saarland.gtfs.zip"}}}
