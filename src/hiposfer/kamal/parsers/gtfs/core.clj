@@ -1,4 +1,20 @@
 (ns hiposfer.kamal.parsers.gtfs.core
+  "namespace for parsing a GTFS feed into a Datascript transaction.
+
+  The algorithms coerces GTFS csv files into entities that reference
+  each other through IDs. The IDs are taken directly from GTFS.
+
+  A small dynamic renaming is performed to make it more compatible
+  with Datascript design. The renaming is based on the GTFS naming
+  convention, for example: stop_lon, stop_url, trip_id, trip_headsign, etc.
+
+  We transform those strings into: :stop/lon, :stop/url, :trip/id,
+  :trip/headsign.
+
+  This is important to be able to create relationships between entities through
+  transactions, for example {:trip/id 1, :trip/route [:route/id 1]}. This
+  allows us to create relationships between entities without actually having
+  them, i.e. thread them simply as data"
   (:require [hiposfer.kamal.parsers.gtfs.preprocessor :as pregtfs]
             [clojure.string :as str]
             [hiposfer.kamal.network.core :as network])

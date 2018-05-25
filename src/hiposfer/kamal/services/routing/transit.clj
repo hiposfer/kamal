@@ -1,4 +1,6 @@
 (ns hiposfer.kamal.services.routing.transit
+  "collection of functions related to the use of GTFS feed on routing
+  networks."
   (:refer-clojure :exclude [name])
   (:require [hiposfer.kamal.network.algorithms.protocols :as np]
             [hiposfer.kamal.libs.fastq :as fastq]
