@@ -1,16 +1,13 @@
 (ns hiposfer.kamal.network.algorithms.core
   (:require [hiposfer.kamal.network.algorithms.dijkstra :as djk]
             [hiposfer.kamal.libs.fastq :as fastq]
-            [clojure.set :as set]
             [datascript.core :as data]))
 
 (def defaults {:value-by (constantly 1)
                :comparator compare})
 
 (defn dijkstra
-  "returns a sequence of traversal-paths taken to reach each node. Each path is
-   composed of [key value] pairs with key=node-id, value=total-cost.
-  See Dijkstra algorithm
+  "returns a sequence of traversal-paths taken to reach each node
 
   Parameters:
    - graph: an collection of nodes over which the traversal will happen.
@@ -24,6 +21,7 @@
      :value-by -> a function of graph, node , trail -> cost
      :comparator -> a comparator function as defined by Clojure and Java.
                     defaults to clojure/compare
+
    NOTE: a Trail is a sequence of [id Valuable]. In other words it is the trail
          taken to get from the first settled node to the current one"
   [graph start-from opts]
