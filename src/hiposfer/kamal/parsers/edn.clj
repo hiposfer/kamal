@@ -26,15 +26,14 @@
 
 (defn parse
   "streams a zip file and creates a Datascript DB from each file inside the zip.
-  Returns a set of Datascript DB atoms."
+  Returns a Datascript Database"
   [filename]
   (with-open [stream (-> (io/input-stream filename)
                          (BZip2CompressorInputStream.)
                          (InputStreamReader.)
                          (PushbackReader.))]
-    (let [content (edn/read {:readers (merge data/data-readers local-readers)}
-                            stream)]
-      content)))
+    (edn/read {:readers (merge data/data-readers local-readers
+                            stream)})))
 
 ; example
 ;(time (last (parse "/Users/Camilo/Proyectos/kamal/resources/2122204427.gzip")))
