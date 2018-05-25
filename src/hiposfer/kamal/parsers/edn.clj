@@ -32,8 +32,8 @@
                          (BZip2CompressorInputStream.)
                          (InputStreamReader.)
                          (PushbackReader.))]
-    (edn/read {:readers (merge data/data-readers local-readers
-                            stream)})))
+    (edn/read {:readers (merge data/data-readers local-readers)}
+              stream)))
 
 ; example
 ;(time (last (parse "/Users/Camilo/Proyectos/kamal/resources/2122204427.gzip")))
