@@ -16,8 +16,8 @@
   "get the appropiate reader for the Java object and parse it. Throws a
   Null Pointer Exception on unknown class by design !"
   [[package _ value]]
-  (let [parse (get java-readers package)]
-    (parse value)))
+  (let [reader (get java-readers package)]
+    (reader value)))
 
 (def local-readers
   "qualified symbol to parsing function. Used to get datascript to understand local objects"
