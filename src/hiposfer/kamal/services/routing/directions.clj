@@ -1,4 +1,21 @@
 (ns hiposfer.kamal.services.routing.directions
+  "collection of functions to provide routing directions based on Open Street
+  Maps and General Transit Feed Specification data. It follows (as close)
+  as possible the MapBox v5 directions specification.
+
+  The algorithm provides a single route between the first and last coordinate.
+  It works as follows:
+  - create a Dijkstra collection to find the shortest path
+  - take the sequence and split it into 'pieces'
+   - each piece is a subsection of the complete route where the motion type
+    is considered, the same. Such as the points in a street (with the same name)
+    or a bus route
+  - take each piece and wrap it together with the previous and next piece to
+    provide context for human instructions
+  - prepend a copy of the first piece and two of the last point of the last piece
+    - we use the last point (instead of the complete piece) to have proper bearing
+      for the last piece
+  - create instructions based on each previous, current and next piece"
   (:require [hiposfer.kamal.network.algorithms.core :as alg]
             [hiposfer.kamal.network.algorithms.protocols :as np]
             [hiposfer.kamal.services.routing.transit :as transit]

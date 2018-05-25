@@ -23,8 +23,9 @@
 
 (defn- path
   "returns a lazy sequence of immutable map entries starting at from and
-  going back until no previous entry is found"
-  [^Map settled from]
+  going back until no previous entry is found. The sequence has the shape
+  [[id weight] ..."
+  [^Map settled from];; settled -> {id {weight {id prev}}}
   (let [entry ^Heap$Entry (.get settled from)
         prev-id           (val (.getValue entry))]
     (cons (trace from (.getKey entry))
