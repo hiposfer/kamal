@@ -3,8 +3,8 @@
             [clojure.edn :as edn]
             [datascript.core :as data])
   (:import (java.time ZoneId LocalDate DayOfWeek)
-           (java.util.zip GZIPInputStream)
-           (java.io PushbackReader InputStreamReader)))
+           (java.io PushbackReader InputStreamReader)
+           (org.apache.commons.compress.compressors.bzip2 BZip2CompressorInputStream)))
 
 (def java-readers
   "java class to parsing function. Useful to deserialize things from EDN"
@@ -29,7 +29,7 @@
   Returns a set of Datascript DB atoms."
   [filename]
   (with-open [stream (-> (io/input-stream filename)
-                         (GZIPInputStream.)
+                         (BZip2CompressorInputStream.)
                          (InputStreamReader.)
                          (PushbackReader.))]
     (let [content (edn/read {:readers (merge data/data-readers local-readers)}
