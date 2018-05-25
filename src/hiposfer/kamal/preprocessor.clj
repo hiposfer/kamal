@@ -22,7 +22,7 @@
 (defn -main
   "Script for preprocessing OSM and GTFS files into gzip files each with
   a Datascript EDN representation inside"
-  [[outdir]]
+  [outdir]
   (assert (not (nil? outdir)) "missing output file")
   (timbre/info "preprocessing OSM and GTFS files")
   (let [config (core/config {:dev false})] ;; just in case
