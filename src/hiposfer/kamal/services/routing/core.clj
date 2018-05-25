@@ -90,8 +90,9 @@
           pedestrian  (osm/datomize (:osm area))
           network     (data/db-with @conn pedestrian)
           network2    (if (not (:gtfs area)) network
-                                             (with-open [z (ZipInputStream. (io/input-stream (:gtfs area)))]
-                                               (data/db-with network (gtfs/datomize! z))))
+                        (with-open [z (-> (io/input-stream (:gtfs area))
+                                          (ZipInputStream.))]
+                          (data/db-with network (gtfs/datomize! z))))
           network3    (data/db-with network2 (link-stops network2))
           network4    (data/db-with network3 (cache-stop-successors network3))]
       (reset! conn network4)
