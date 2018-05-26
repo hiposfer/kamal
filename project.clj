@@ -7,7 +7,7 @@
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/data.xml "0.0.8"] ; parse xml lazily
                  [org.clojure/test.check "0.9.0"] ;; generators
-                 [metosin/compojure-api "2.0.0-alpha18"]
+                 [metosin/compojure-api "2.0.0-alpha20"]
                  [metosin/spec-tools "0.7.0"] ;;coercion
                  [hiposfer/geojson.specs "0.2.0"]
                  [com.taoensso/timbre "4.10.0"]
