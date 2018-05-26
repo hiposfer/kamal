@@ -3,7 +3,7 @@ FROM clojure AS builder
 WORKDIR /app
 COPY ./project.clj ./
 COPY . .
-RUN lein with-profile uberjar uberjar
+RUN lein with-profile release uberjar
 
 # second stage -- executable
 FROM openjdk:alpine

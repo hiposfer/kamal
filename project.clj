@@ -25,7 +25,7 @@
                                   [org.clojure/tools.namespace "0.2.11"]]
                    :plugins [[jonase/eastwood "0.2.5"]
                              [io.aviso/pretty "0.1.34"]]}
-             :uberjar {:aot [hiposfer.kamal.core] ;; compile the entry point and all of its dependencies}
+             :release {:aot [hiposfer.kamal.core] ;; compile the entry point and all of its dependencies}
                        :main hiposfer.kamal.core
                        :uberjar-name "kamal.jar"
                        :jar-exclusions [#".*\.bz2"]
