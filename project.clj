@@ -28,12 +28,11 @@
              :uberjar {:aot [hiposfer.kamal.core] ;; compile the entry point and all of its dependencies}
                        :main hiposfer.kamal.core
                        :uberjar-name "kamal.jar"
+                       :jar-exclusions [#".*\.bz2"]
+                       :uberjar-exclusions [#".*\.bz2"]
                        :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}}
-  :jar-exclusions [#".*\.bz2"]
-  :uberjar-exclusions [#".*\.bz2"]
   :test-selectors {:default (complement :benchmark)
                    :benchmark :benchmark}
-  :main hiposfer.kamal.core
   :global-vars {*warn-on-reflection* true
                 *print-length* 100}
   ;;FIXME: https://github.com/technomancy/leiningen/issues/2173
