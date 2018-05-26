@@ -1,4 +1,4 @@
-(defproject hiposfer/kamal "0.6.8"
+(defproject hiposfer/kamal "0.7.0"
   :description "An application that provides routing based on external sources and OSM data"
   :url "https://github.com/hiposfer/kamal"
   :license {:name "LGPLv3"
@@ -18,6 +18,7 @@
                  [org.clojure/data.csv "0.1.4"]
                  [datascript "0.16.4"]
                  [ch.hsr/geohash "1.3.0"]]
+  :aliases {"preprocess" ["trampoline" "run" "-m" "hiposfer.kamal.preprocessor"]}
   :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
                                   [expound "0.6.0"]
                                   [io.aviso/pretty "0.1.34"]
