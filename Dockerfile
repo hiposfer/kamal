@@ -11,4 +11,4 @@ WORKDIR /usr/src/app
 COPY --from=builder /app/target/kamal.jar ./target/kamal.jar
 COPY --from=builder /app/resources/ ./resources
 EXPOSE 3000
-CMD ["java", "-XX:+UnlockExperimentalVMOptions", "-XX:+UseCGroupMemoryLimitForHeap", "-XX:+PrintFlagsFinal", "-jar", "target/kamal.jar"]
+CMD java $JAVA_OPTIONS -XX:+PrintFlagsFinal -jar target/kamal.jar
