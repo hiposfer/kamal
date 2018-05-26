@@ -8,7 +8,8 @@
             [hiposfer.kamal.network.algorithms.core :as alg]
             [hiposfer.kamal.libs.fastq :as fastq]
             [taoensso.timbre :as timbre]
-            [clojure.java.io :as io])
+            [clojure.java.io :as io]
+            [hiposfer.kamal.parsers.edn :as edn])
   (:import (java.util.zip ZipInputStream)))
 
 ;; NOTE: we use :db/index true to replace the lack of :VAET index in datascript
@@ -79,20 +80,23 @@
       {:stop/id (:stop/id stop)
        :stop/successors (for [n neighbours] [:stop/id (:stop/id n)])})))
 
-(defn- exec!
+(defn network
   "builds a datascript in-memory db and conj's it into the passed agent"
-  [ag area]
+  [area]
   (timbre/info "starting area router:" area)
-  (let [conn        (data/create-conn schema)
-        pedestrian  (osm/datomize (:osm area))
-        network     (data/db-with @conn pedestrian)
-        network2    (if (not (:gtfs area)) network
-                                           (with-open [z (ZipInputStream. (io/input-stream (:gtfs area)))]
-                                             (data/db-with network (gtfs/datomize! z))))
-        network3    (data/db-with network2 (link-stops network2))
-        network4    (data/db-with network3 (cache-stop-successors network3))]
-    (reset! conn network4)
-    (conj ag conn)))
+  (if (:edn area)
+    (data/conn-from-db (edn/parse (:edn area)))
+    (let [conn        (data/create-conn schema)
+          pedestrian  (osm/datomize (:osm area))
+          network     (data/db-with @conn pedestrian)
+          network2    (if (not (:gtfs area)) network
+                        (with-open [z (-> (io/input-stream (:gtfs area))
+                                          (ZipInputStream.))]
+                          (data/db-with network (gtfs/datomize! z))))
+          network3    (data/db-with network2 (link-stops network2))
+          network4    (data/db-with network3 (cache-stop-successors network3))]
+      (reset! conn network4)
+      conn)))
 
 (defn pedestrian-graph
   "builds a datascript in-memory db and returns it. Only valid for
@@ -128,8 +132,8 @@
     (if (not-empty (:networks this)) this
       (let [ag (agent #{} :error-handler #(timbre/fatal %2 (deref %1))
                           :error-mode :fail)]
-        (run! (fn [area] (send-off ag #(time (exec! %1 %2)) area))
-              (:networks config))
+        (doseq [area (:networks config)]
+          (send-off ag #(time (conj %1 (network %2))) area))
         (assoc this :networks ag))))
   (stop [this]
     (timbre/info "stopping router")

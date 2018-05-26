@@ -4,14 +4,6 @@
             [clojure.java.io :as io])
   (:import (org.apache.commons.compress.compressors.bzip2 BZip2CompressorInputStream)))
 
-(defn- bz2-reader
-  "Returns a streaming Reader for the given compressed BZip2
-  file. Use within (with-open)."
-  [filename]
-  (-> (io/input-stream filename)
-      (BZip2CompressorInputStream.)
-      (io/reader)))
-
 ;;TODO: include routing attributes for penalties
 ;; bridge=yes      Also true/1/viaduct
 ;; tunnel=yes      Also true/1
@@ -114,7 +106,8 @@
    the shape of the connection and the ways are the metadata associated with
    the connections"
   [filename] ;; read all elements into memory
-  (let [nodes&ways    (with-open [file-rdr (bz2-reader filename)]
+  (let [nodes&ways    (with-open [file-rdr (-> (io/input-stream filename)
+                                               (BZip2CompressorInputStream.))]
                         (into [] (comp (map entries)
                                        (remove nil?))
                               (:content (xml/parse file-rdr))))

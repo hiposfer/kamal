@@ -136,5 +136,5 @@
         (recur (.getNextEntry zipstream)
                (assoc result filename clean))))))
 
-;(with-open [z (ZipFile. "resources/gtfs/saarland.zip")]
+;(with-open [z (ZipFile. "resources/gtfs/saarland.gtfs.zip")]
 ;  (time (last (datomize z))))
