@@ -126,11 +126,16 @@
       (timbre/info "stopping router"))
     (assoc this :networks nil)))
 
+(defn- stop-process
+  [agnt error]
+  (timbre/fatal error (deref agnt))
+  (System/exit 1)) ;; stop program execution
+
 (defrecord Router [config networks]
   component/Lifecycle
   (start [this]
     (if (not-empty (:networks this)) this
-      (let [ag (agent #{} :error-handler #(timbre/fatal %2 (deref %1))
+      (let [ag (agent #{} :error-handler stop-process
                           :error-mode :fail)]
         (doseq [area (:networks config)]
           (send-off ag #(time (conj %1 (network %2))) area))
