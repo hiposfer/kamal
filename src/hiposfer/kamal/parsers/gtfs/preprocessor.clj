@@ -102,8 +102,6 @@
     (into []
       (for [row content
             :let [trimmed (into {}  (remove #(empty? (second %))) row)
-                  result (st/conform type trimmed st/string-conforming)]]
-        (if (= result ::s/invalid)
-          (throw (ex-info "validation failed" (st/explain-data type trimmed st/string-conforming)))
-          (if (nil? prepare) result
-            (prepare result)))))))
+                  result (st/conform! type trimmed st/string-transformer)]]
+        (if (nil? prepare) result
+          (prepare result))))))
