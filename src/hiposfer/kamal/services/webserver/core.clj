@@ -12,7 +12,8 @@
   (start [this]
     (if (:server this) this
       (let [handler (handler/create router)
-            server  (jetty/run-jetty handler config)]
+            server  (jetty/run-jetty handler {:join? (:JOIN_THREAD config)
+                                              :port  (:PORT config)})]
         (timbre/info "-- Starting App server")
         (assoc this :server server))))
   (stop [this]
