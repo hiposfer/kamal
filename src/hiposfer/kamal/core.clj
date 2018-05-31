@@ -89,6 +89,6 @@
 
 (defn -main [& args]
   (timbre/info "\n\nWelcome to the hiposfer/kamal App")
-  (let [env-vars    (into {} (walk/keywordize-keys (System/getenv)))
+  (let [env-vars    (walk/keywordize-keys (into {} (System/getenv)))
         config      (st/conform! ::env env-vars st/string-transformer)]
     (component/start (system config))))
