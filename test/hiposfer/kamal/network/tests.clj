@@ -99,7 +99,7 @@
 (defspec deterministic
   100; tries
   (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
-    (let [graph   @(router/pedestrian-graph {:size i})
+    (let [graph   @(router/pedestrian-graph {:SIZE i})
           src      (rand-nth (alg/nodes graph))
           dst      (rand-nth (alg/nodes graph))
           coll     (alg/dijkstra graph #{src} (opts graph))
@@ -116,7 +116,7 @@
 (defspec monotonic
   100; tries
   (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
-     (let [graph   @(router/pedestrian-graph {:size i})
+     (let [graph   @(router/pedestrian-graph {:SIZE i})
            src      (rand-nth (alg/nodes graph))
            dst      (rand-nth (alg/nodes graph))
            coll     (alg/dijkstra graph #{src} (opts graph))
@@ -133,7 +133,7 @@
 (defspec symmetry
   100; tries
   (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
-    (let [graph   @(router/pedestrian-graph {:size i})
+    (let [graph   @(router/pedestrian-graph {:SIZE i})
           src      (rand-nth (alg/nodes graph))
           coll     (alg/dijkstra graph #{src} (opts graph))
           result   (alg/shortest-path src coll)]
@@ -148,7 +148,7 @@
 (defspec components
   100; tries
   (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
-    (let [graph   @(router/pedestrian-graph {:size i})
+    (let [graph   @(router/pedestrian-graph {:SIZE i})
           r1      (alg/looners graph)
           graph2  (data/db-with graph (for [i r1 ] [:db.fn/retractEntity (:db/id i)]))
           r2      (alg/looners graph2)]
@@ -164,7 +164,7 @@
 (defspec routable-components
   100; tries
   (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
-    (let [graph   @(router/pedestrian-graph {:size i})
+    (let [graph   @(router/pedestrian-graph {:SIZE i})
           r1      (alg/looners graph)
           graph2  (data/db-with graph (for [i r1 ] [:db.fn/retractEntity (:db/id i)]))
           src     (rand-nth (alg/nodes graph2))
@@ -177,7 +177,7 @@
 (defspec routable
   100; tries
   (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
-    (let [graph   @(router/pedestrian-graph {:size i})
+    (let [graph   @(router/pedestrian-graph {:SIZE i})
           request  (gen/generate (s/gen ::mapbox/args))
           result   (dir/direction graph request)]
       (is (s/valid? ::mapbox/response result)

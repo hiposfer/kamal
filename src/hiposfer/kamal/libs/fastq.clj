@@ -176,3 +176,26 @@
 ;  (dotimes [n 10000]
 ;    (next-stops @(first @(:networks (:router hiposfer.kamal.dev/system)))
 ;                (data/entity @(first @(:networks (:router hiposfer.kamal.dev/system))) 230963))))
+
+
+;; This might not be the best approach but it gets the job done for the time being
+(defn link-stops
+  "takes a network, looks up the nearest node for each stop and returns
+  a transaction that will link those"
+  [network]
+  (for [stop (map #(data/entity network (:e %))
+                  (data/datoms network :aevt :stop/id))]
+    (let [node (first (nearest-node network (:stop/location stop)))]
+      {:node/id (:node/id node)
+       :node/successors #{[:stop/id (:stop/id stop)]}})))
+
+;; this reduced my test query from 30 seconds to 8 seconds
+(defn cache-stop-successors
+  "computes the next-stops for each stop and returns a transaction
+  that will cache those results inside the :stop entities"
+  [network]
+  (for [stop (map #(data/entity network (:e %))
+                  (data/datoms network :aevt :stop/id))]
+    (let [neighbours (distinct (next-stops network stop))]
+      {:stop/id (:stop/id stop)
+       :stop/successors (for [n neighbours] [:stop/id (:stop/id n)])})))

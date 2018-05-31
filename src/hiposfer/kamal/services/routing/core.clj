@@ -58,45 +58,22 @@
              :stop.times/stop  {:db/type :db.type/ref
                                 :db/index true}})
 
-;; This might not be the best approach but it gets the job done for the time being
-(defn- link-stops
-  "takes a network, looks up the nearest node for each stop and returns
-  a transaction that will link those"
-  [network]
-  (for [stop (map #(data/entity network (:e %))
-                   (data/datoms network :aevt :stop/id))]
-    (let [node (first (fastq/nearest-node network (:stop/location stop)))]
-      {:node/id (:node/id node)
-       :node/successors #{[:stop/id (:stop/id stop)]}})))
-
-;; this reduced my test query from 30 seconds to 8 seconds
-(defn- cache-stop-successors
-  "computes the next-stops for each stop and returns a transaction
-  that will cache those results inside the :stop entities"
-  [network]
-  (for [stop (map #(data/entity network (:e %))
-                   (data/datoms network :aevt :stop/id))]
-    (let [neighbours (distinct (fastq/next-stops network stop))]
-      {:stop/id (:stop/id stop)
-       :stop/successors (for [n neighbours] [:stop/id (:stop/id n)])})))
-
 (defn network
   "builds a datascript in-memory db and conj's it into the passed agent"
   [area]
   (timbre/info "starting area router:" area)
-  (if (:edn area)
-    (data/conn-from-db (edn/parse (:edn area)))
+  (if (:area/edn area)
+    (data/conn-from-db (edn/parse (:area/edn area)))
     (let [conn        (data/create-conn schema)
-          pedestrian  (osm/datomize (:osm area))
+          pedestrian  (osm/datomize (:area/osm area))
           network     (data/db-with @conn pedestrian)
-          network2    (if (not (:gtfs area)) network
-                        (with-open [z (-> (io/input-stream (:gtfs area))
+          network2    (if (not (:area/gtfs area)) network
+                        (with-open [z (-> (io/input-stream (:area/gtfs area))
                                           (ZipInputStream.))]
                           (data/db-with network (gtfs/datomize! z))))
-          network3    (data/db-with network2 (link-stops network2))
-          network4    (data/db-with network3 (cache-stop-successors network3))]
-      (reset! conn network4)
-      conn)))
+          network3    (data/db-with network2 (fastq/link-stops network2))
+          network4    (data/db-with network3 (fastq/cache-stop-successors network3))]
+      (doto conn (reset! network4)))))
 
 (defn pedestrian-graph
   "builds a datascript in-memory db and returns it. Only valid for
@@ -104,26 +81,23 @@
   [area]
   ;; we dont support fake GTFS data for development yet
   (let [conn   (data/create-conn schema)
-        size   (or (:size area) 100)
+        size   (or (:SIZE area) 100)
         g      (gen/such-that not-empty (ng/graph size) 1000)
         graph  (data/db-with @conn (gen/generate g))
         graph  (data/db-with graph (ng/ways (map :node/id (alg/nodes graph))))]
-    (reset! conn graph)
-    conn))
+    (doto conn (reset! graph))))
 
 (defrecord DevRouter [config networks]
   component/Lifecycle
   (start [this]
-    (when (:log config)
-      (timbre/info "starting dev router with:" config))
+    (timbre/info "starting dev router with:" config)
     (if (not-empty (:networks this)) this
       (let [values (into #{} (map pedestrian-graph (:networks config)))
             ag     (agent values :error-handler #(timbre/fatal %2 (deref %1))
                                  :error-mode :fail)]
         (assoc this :networks ag))))
   (stop [this]
-    (when (:log config)
-      (timbre/info "stopping router"))
+    (timbre/info "stopping router")
     (assoc this :networks nil)))
 
 (defn- stop-process
@@ -148,6 +122,6 @@
   "returns a Router record that will contain the config
    of and all the networks of the system as agents"
   [config]
-  (if (:dev config)
+  (if (:USE_FAKE_NETWORK config)
     (map->DevRouter {})
     (map->Router {})))
