@@ -3,6 +3,7 @@
 A routing engine and API service based on Open data. Its current focus are flexibility,
 speed and stability in that order.
 
+
 ## Usage
 `kamal` creates an API server with a single endpoint, namely `directions`. It comes preloaded with
 Swagger interface for playing around with the API. For a demo see [try.hyposfer.com](http://try.hiposfer.com/index.html)
