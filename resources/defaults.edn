@@ -1,6 +1,0 @@
-{:port    3000
- :dev false ;; use parsed OSM networks
- :join? true ;; block the main thread
- :networks #{{:edn "resources/saarland.edn.bz2"
-              :osm "resources/saarland.min.osm.bz2"
-              :gtfs "resources/saarland.gtfs.zip"}}}
