@@ -2,7 +2,12 @@
   "Tools for interactive development with the REPL.
 
    WARNING:
-   This file should NOT be included in a production build of the application."
+     This file should NOT be included in a production build of the application
+
+   WARNNING:
+     using (refresh!) will fail if you just ran `lein uberjar`
+     without cleaning afterwards.
+     https://stackoverflow.com/questions/44246924/clojure-tools-namespace-refresh-fails-with-no-namespace-foo"
   (:require [com.stuartsierra.component :as component]
             [hiposfer.kamal.core :as core]
             [expound.alpha :as expound]
@@ -51,9 +56,6 @@
                                                  :print-specs? false}))
   (start!))
 
-;; WARN: this will fail if you just ran `lein uberjar` without
-;; cleaning afterwards. See
-;; https://stackoverflow.com/questions/44246924/clojure-tools-namespace-refresh-fails-with-no-namespace-foo
 (defn refresh!
   "reset the system to a fresh state. Prefer using this over go!"
   []
