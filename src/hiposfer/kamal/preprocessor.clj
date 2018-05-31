@@ -20,19 +20,19 @@
     (catch MalformedURLException _
       (second (re-find #"\/(\w+)\." text)))))
 
-;; "resources/data.zip"
+;; TODO: I think it would be best to have a separate spec for this as well
 (defn -main
   "Script for preprocessing OSM and GTFS files into gzip files each with
   a Datascript EDN representation inside"
   [outdir]
   (assert (not (nil? outdir)) "missing output file")
   (timbre/info "preprocessing OSM and GTFS files")
-  (let [env-vars    (into {} (walk/keywordize-keys (System/getenv)))
+  (let [env-vars    (walk/keywordize-keys (into {} (System/getenv)))
         config      (st/conform! ::core/env env-vars st/string-transformer)]
     (doseq [area (:networks config)]
       (let [value (routing/network (dissoc area :area/edn)) ;; just in case
-            ;; osm is mandatory, use it !!
-            path     (str outdir (filename (:area/osm area)) ".bz2")]
+            ;; osm is mandatory, use its filename !!
+            path     (str outdir (filename (:area/osm area)) "edn.bz2")]
         (with-open [w (-> (io/output-stream path)
                           (BZip2CompressorOutputStream.)
                           (io/writer))]
@@ -40,4 +40,4 @@
             (pr @value)))))))
 
 ;example
-;(-main ["resources/"])
+;(-main "resources/")
