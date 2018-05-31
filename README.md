@@ -33,8 +33,9 @@ also possible to create a system by providing the configuration directly.
 2. Load the `hiposfer.kamal.dev` namespace
 3. Run the `hiposfer.kamal.dev/refresh!` function
 4. Perform your changes
-..* if your changes modify the network build process. Repeat from `3.` 
-..* keep making your changes in the repl otherwise
+
+⋅⋅* if your changes modify the network build process. Repeat from `3.` 
+⋅⋅* keep making your changes in the repl otherwise
 
 In other words:
 ```
