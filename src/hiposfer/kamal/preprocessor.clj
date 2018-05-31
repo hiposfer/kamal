@@ -3,7 +3,9 @@
   (:require [clojure.java.io :as io]
             [taoensso.timbre :as timbre]
             [hiposfer.kamal.services.routing.core :as routing]
-            [hiposfer.kamal.core :as core])
+            [hiposfer.kamal.core :as core]
+            [spec-tools.core :as st]
+            [clojure.walk :as walk])
   (:import (org.apache.commons.compress.compressors.bzip2 BZip2CompressorOutputStream)
            (java.net MalformedURLException)))
 
@@ -25,11 +27,12 @@
   [outdir]
   (assert (not (nil? outdir)) "missing output file")
   (timbre/info "preprocessing OSM and GTFS files")
-  (let [config (core/config {:dev false})] ;; just in case
+  (let [env-vars    (into {} (walk/keywordize-keys (System/getenv)))
+        config      (st/conform! ::core/env env-vars st/string-transformer)]
     (doseq [area (:networks config)]
-      (let [value (routing/network area)
+      (let [value (routing/network (dissoc area :area/edn)) ;; just in case
             ;; osm is mandatory, use it !!
-            path     (str outdir (filename (:osm area)) ".bz2")]
+            path     (str outdir (filename (:area/osm area)) ".bz2")]
         (with-open [w (-> (io/output-stream path)
                           (BZip2CompressorOutputStream.)
                           (io/writer))]
