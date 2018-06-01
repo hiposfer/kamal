@@ -6,7 +6,8 @@
             [hiposfer.kamal.libs.fastq :as fastq]
             [hiposfer.kamal.parsers.osm :as osm]
             [hiposfer.kamal.libs.geometry :as geometry]
-            [datascript.core :as data]))
+            [datascript.core :as data]
+            [clojure.set :as set]))
 
 ;; https://developers.google.com/transit/gtfs/reference/#routestxt
 (def route-types
@@ -62,15 +63,37 @@
   [e]
   (cond
     (way? e) (:way/name e)
-    (stop-times? e) (:stop/name (:stop.times/stop e))))
+    (stop? e) (:stop/name e)))
 
-(defn via
-  "returns (second (first piece). This is just an utility function
-  to avoid repeating this over and over.
+(defn context
+  "Returns an entity holding the 'context' of the trace. For pedestrian routing
+  that is the road name. For transit routing it is the stop name
 
-  NOTE: a piece has a shape [[entity via]]"
-  [piece]
-  (second (first piece)))
+  WARNING: this is a stateful function. vprev is a volatile whose value is resetted
+  on every execution."
+  ([network trace vprev]
+   (let [origin (deref vprev)
+         src    (key origin)
+         dst    (key trace)]
+     (vreset! vprev trace)
+     (cond
+       ;; walking normally -> return the way
+       (and (node? src) (node? dst)) ;; XXX: do we need this?
+       (first (set/intersection (set (fastq/node-ways network src))
+                                (set (fastq/node-ways network dst))))
+       ;; getting into a trip -> return the way of the road
+       (and (node? src) (stop? dst))
+       (first (fastq/node-ways network src)) ;; XXX: are we guessing here?
+       ;; on a trip -> return the stop
+       (and (stop? src) (stop? dst))
+       src
+       ;; leaving a trip -> return the last stop
+       (and (stop? src) (node? dst))
+       src)))
+  ([network piece] ;; a piece already represents a context ;)
+   (let [e (key (first piece))]
+     (if-not (node? e) e
+       (first (fastq/node-ways network e)))))) ;; XXX: are we guessing here?
 
 (defn successors
   "takes a network and an entity id and returns the successors of that entity"
