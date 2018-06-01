@@ -62,7 +62,15 @@
   [e]
   (cond
     (way? e) (:way/name e)
-    (stop-times? e) (:trip/headsign (:stop.times/trip e))))
+    (stop-times? e) (:stop/name (:stop.times/stop e))))
+
+(defn via
+  "returns (second (first piece). This is just an utility function
+  to avoid repeating this over and over.
+
+  NOTE: a piece has a shape [[entity via]]"
+  [piece]
+  (second (first piece)))
 
 (defn successors
   "takes a network and an entity id and returns the successors of that entity"
