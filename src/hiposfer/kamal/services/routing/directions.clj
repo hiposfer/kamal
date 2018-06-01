@@ -39,28 +39,6 @@
 
 (def ->coordinates (juxt np/lon np/lat))
 
-(defn- link
-  "retuns a way or a stop.times entity that connects src and dst.
-  Useful for spliting the trail into pieces according to the name
-  provided by the connection"
-  [network src-trace dst-trace]
-  (let [src (key src-trace)
-        dst (key dst-trace)]
-    (cond
-      ;; walking normally
-      (and (transit/node? src) (transit/node? dst))
-      (first (set/intersection (set (fastq/node-ways network src))
-                               (set (fastq/node-ways network dst))))
-      ;; getting into a trip
-      (and (transit/node? src) (transit/stop? dst))
-      (first (fastq/node-ways network src))
-      ;; on a trip
-      (and (transit/stop? src) (transit/stop? dst))
-      (:start (val src-trace)) ;; TripStep
-      ;; leaving a trip
-      (and (transit/stop? src) (transit/node? dst))
-      (first (fastq/node-ways network src)))))
-
 (defn- location [e] (or (:node/location e) (:stop/location e)))
 
 (defn- linestring
@@ -78,72 +56,75 @@
 
 (defn- instruction
   "returns a human readable version of the maneuver to perform"
-  [result prev-piece piece next-piece]
-  (let [via      (transit/via piece)
+  [network result piece]
+  (let [context  (transit/context network piece)
         modifier (:modifier result)
-        _type    (:type result)
-        via-name (transit/name via)]
-    (cond
+        maneuver (:type result)
+        name     (transit/name context)]
+    (case maneuver
       ;; walking normally
-      (and (transit/way? via) (= _type "turn"))
-      (str "Take " modifier (when via-name (str " on " via-name)))
+      "turn" ;; only applies for walking
+      (str "Take " modifier (when name (str " on " name)))
 
       ;; taking a trip on a public transport vehicle
-      (transit/stop-times? via)
-      (let [trip  (:stop.times/trip via)
-            route (:trip/route trip)
+      "continue" ;; only applies to transit
+      (let [tstart  (:start (val (first piece)))
+            route   (:trip/route (:stop.times/trip tstart))
             vehicle (transit/route-types (:route/type route))
             id      (str vehicle " " (or (:route/short_name route)
                                          (:route/long_name route)))]
-        (if (= _type "continue") ;; notification otherwise
-          (str "Continue on " id)
-          (str "Hop on " id " to " (:trip/headsign trip))))
+        (str "Continue on " id))
 
-      ;; Walking to a transit stop. We faked the connection so there is
-      ;; no via name
-      (and (nil? via) (transit/stop-times? (transit/via next-piece)))
-      (str "Walk until " (transit/name (transit/via next-piece)))
+      "notification"
+      (let [tend    (:start (val (last piece)))
+            trip    (:stop.times/trip tend)
+            route   (:trip/route trip)
+            vehicle (transit/route-types (:route/type route))
+            id      (str vehicle " " (or (:route/short_name route)
+                                         (:route/long_name route)))]
+        (str "Hop on " id " to " (:trip/headsign trip)))
 
       ;; exiting a vehicle
-      (and (nil? via) (= _type "exit vehicle"))
+      "exit vehicle"
       (str "Exit the vehicle") ;(:stop/name (key (ffirst piece)))
            ;(when (transit/via next-piece)
             ; (str ", and walk towards " (transit/name (transit/via next-piece))))
       ;; This is the first instruction that the user gets
-      (= _type "depart")
-      (if (nil? via-name) "Depart"
-        (str "Head on to " via-name))
+      "depart"
+      (if (nil? name) "Depart"
+        (str "Head on to " name))
       ;; This is the last instruction that the user gets
-      (= _type "arrive")
+      "arrive"
       "You have arrived at your destination")))
 
 (defn- maneuver-type
-  [prev-piece piece next-piece]
-  (cond
-    (= prev-piece piece) "depart"
-    (= piece next-piece) "arrive"
-    (and (transit/stop-times? (transit/via prev-piece))
-         (transit/stop-times? (transit/via piece)))
-    "continue" ;; already on a transit trip, continue
-    (and (not (transit/stop-times? (transit/via prev-piece)))
-         (transit/stop-times? (transit/via piece)))
-    "notification" ;; change conditions, e.g. change of mode from walking to transit
-    (and (transit/stop-times? (transit/via prev-piece))
-         (not (transit/stop-times? (transit/via piece))))
-    "exit vehicle"
-    :else                "turn"))
+  [network prev-piece piece next-piece]
+  (let [last-context (transit/context network prev-piece)
+        context      (transit/context network piece)]
+    (cond
+      (= prev-piece piece) "depart"
+      (= piece next-piece) "arrive"
+
+      ;; already on a transit trip, continue
+      (and (transit/stop? last-context) (transit/stop? context)) "continue"
+
+      ;; change conditions, e.g. change of mode from walking to transit
+      (and (transit/node? last-context) (transit/stop? context)) "notification"
+
+      (and (transit/stop? last-context) (transit/node? context)) "exit vehicle"
+      :else                "turn")))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
-(defn- maneuver ;; piece => [[trace via] ...]
+(defn- maneuver ;; piece => [trace ...]
   "returns a step maneuver"
-  [prev-piece  piece next-piece]
-  (let [position     (location (key (ffirst piece)))
-        pre-bearing  (geometry/bearing (location (key (ffirst prev-piece)))
-                                       (location (key (ffirst piece))))
-        post-bearing (geometry/bearing (location (key (ffirst piece)))
-                                       (location (key (ffirst next-piece))))
+  [network prev-piece  piece next-piece]
+  (let [position     (location (key (first piece)))
+        pre-bearing  (geometry/bearing (location (key (first prev-piece)))
+                                       (location (key (first piece))))
+        post-bearing (geometry/bearing (location (key (first piece)))
+                                       (location (key (first next-piece))))
         angle        (mod (+ 360 (- post-bearing pre-bearing)) 360)
-        _type        (maneuver-type prev-piece piece next-piece)
+        _type        (maneuver-type network prev-piece piece next-piece)
         _modifier    (modifier angle _type)
         result       {:location (->coordinates position)
                       :bearing_before pre-bearing
@@ -151,54 +132,33 @@
                       :type _type}
         result        (if (not= _type "turn") result
                         (assoc result :modifier _modifier))
-        text          (instruction result prev-piece piece next-piece)]
+        text          (instruction network result piece)]
     (assoc result :instruction text)))
 
 
 ;https://www.mapbox.com/api-documentation/#routestep-object
-(defn- step ;; piece => [[trace via] ...]
+(defn- step ;; piece => [trace ...]
   "includes one StepManeuver object and travel to the following RouteStep"
-  [prev-piece piece next-piece]
-  (let [line (linestring (map (comp key first)
-                              (concat piece [(first next-piece)])))]
+  [network prev-piece piece next-piece]
+  (let [context (transit/context network piece)
+        line    (linestring (map key (concat piece [(first next-piece)])))]
     {:distance (geometry/arc-length (:coordinates line))
-     :duration (- (np/cost (val (ffirst next-piece)))
-                  (np/cost (val (ffirst piece))))
+     :duration (- (np/cost (val (first next-piece)))
+                  (np/cost (val (first piece))))
      :geometry line
-     :name     (str (transit/name (transit/via piece)))
-     :mode     (if (transit/stop-times? (transit/via piece)) "transit" "walking")
-     :maneuver (maneuver prev-piece piece next-piece)
+     :name     (str (transit/name context))
+     :mode     (if (transit/stop? context) "transit" "walking")
+     :maneuver (maneuver network prev-piece piece next-piece)
      :intersections []})) ;; TODO
 
 (defn- route-steps
   "returns a route-steps vector or an empty vector if no steps are needed"
-  [steps pieces]
+  [network steps pieces]
   (if (not steps) [] ;; piece => [[trace via] ...]
     (let [start     [(first pieces)] ;; add depart and arrival pieces into the calculation
           end       (repeat 2 [(last (last pieces))]) ;; use only the last point as end - not the entire piece
           extended  (concat start pieces end)]
-      (map step extended (rest extended) (rest (rest extended))))))
-
-;(defn- place-name
-;  [network trace]
-;  (let [src   (key trace)
-;        value (val trace)]
-;    (cond
-;      ;; walking normally
-;      (transit/node? (key trace))
-;      (first (fastq/node-ways network src)) ;; guess the way where the user is
-;      ;; getting into a trip
-;      (and (transit/stop? src) (not (transit/trip-step? value)))
-;      src
-;      ;; on a trip
-;      (and (transit/stop? src) (transit/stop? dst))
-;      (:start (val trace)) ;; TripStep
-;      ;; leaving a trip
-;      (and (transit/stop? src) (transit/node? dst))
-;      (first (fastq/node-ways network src))))
-;  (cond
-;    (way? e) (:way/name e)
-;    (stop-times? e) (:stop/name (:stop.times/stop e))))
+      (map step (repeat network) extended (rest extended) (rest (rest extended))))))
 
 ;https://www.mapbox.com/api-documentation/#routeleg-object
 (defn- route-leg
@@ -208,13 +168,13 @@
   [network steps trail];; trail => [trace ...]
   (if (= (count trail) 1) ;; a single trace is returned for src = dst
     {:distance 0 :duration 0 :steps [] :summary "" :annotation []}
-    (let [vias        (map link (repeat network) trail (rest trail))
-          traces&ways (map vector trail (concat vias [(last vias)]))
-          pieces      (partition-by #(transit/name (second %)) traces&ways)]
+    (let [previous    (volatile! (first trail))
+          pieces      (partition-by #(transit/name (transit/context network % previous))
+                                     (rest trail))]
       {:distance   (geometry/arc-length (:coordinates (linestring (map key trail))))
        :duration   (- (np/cost (val (last trail)))
                       (np/cost (val (first trail))))
-       :steps      (route-steps steps pieces)
+       :steps      (route-steps network steps pieces)
        :summary    "" ;; TODO
        :annotation []}))) ;; TODO
 
