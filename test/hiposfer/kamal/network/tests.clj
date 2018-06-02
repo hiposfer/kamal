@@ -184,7 +184,7 @@
 ; -----------------------------------------------------------------
 ; generative tests for the direction endpoint
 
-(def network (delay (router/network {:area/edn "resources/saarland.edn.bz2"})))
+(def network (delay (time (router/network {:area/edn "resources/saarland.edn.bz2"}))))
 
 (defspec saarland-directions
   30; tries -> expensive test
