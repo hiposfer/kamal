@@ -109,9 +109,9 @@
       (and (transit/stop? last-context) (transit/stop? context)) "continue"
 
       ;; change conditions, e.g. change of mode from walking to transit
-      (and (transit/node? last-context) (transit/stop? context)) "notification"
+      (and (transit/way? last-context) (transit/stop? context)) "notification"
 
-      (and (transit/stop? last-context) (transit/node? context)) "exit vehicle"
+      (and (transit/stop? last-context) (transit/way? context)) "exit vehicle"
       :else                "turn")))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
@@ -141,14 +141,17 @@
   "includes one StepManeuver object and travel to the following RouteStep"
   [network prev-piece piece next-piece]
   (let [context (transit/context network piece)
-        line    (linestring (map key (concat piece [(first next-piece)])))]
+        line    (linestring (map key (concat piece [(first next-piece)])))
+        man     (maneuver network prev-piece piece next-piece)]
     {:distance (geometry/arc-length (:coordinates line))
      :duration (- (np/cost (val (first next-piece)))
                   (np/cost (val (first piece))))
      :geometry line
-     :name     (str (transit/name context))
+     :name     (str (if (= "exit vehicle" (:type man))
+                      (transit/name (key (last prev-piece)))
+                      (transit/name context)))
      :mode     (if (transit/stop? context) "transit" "walking")
-     :maneuver (maneuver network prev-piece piece next-piece)
+     :maneuver man
      :intersections []})) ;; TODO
 
 (defn- route-steps
