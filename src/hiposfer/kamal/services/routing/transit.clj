@@ -86,13 +86,13 @@
     (vreset! vprev trace)
     (cond
       ;; walking normally -> return the way
-      (and (node? current) (node? previous))
-      (common-road network current previous)
+      (and (node? previous) (node? current))
+      (common-road network previous current)
       ;; getting into a trip -> return the way of the road
       (and (node? previous) (stop? current))
       (common-road network previous);;  guessing here
       ;; on a trip -> return the stop
-      (and (stop? current) (stop? previous))
+      (and (stop? previous) (stop? current))
       current
       ;; leaving a trip -> return the last stop
       (and (stop? previous) (node? current))
