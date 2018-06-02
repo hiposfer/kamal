@@ -186,12 +186,13 @@
 
 (def network (delay (router/network {:area/edn "resources/saarland.edn.bz2"})))
 
-(defspec generative-directions
-  100; tries
-  (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
+(defspec saarland-directions
+  30; tries -> expensive test
+  (prop/for-all [i (gen/large-integer* {:min 0 :max 100})]
     (let [graph    (deref (deref network)) ;; delay atom
-          src      (dir/->coordinates (:node/location (rand-nth (alg/nodes graph))))
-          dst      (dir/->coordinates (:node/location (rand-nth (alg/nodes graph))))
+          nodes    (alg/nodes graph)
+          src      (dir/->coordinates (:node/location (nth nodes i)))
+          dst      (dir/->coordinates (:node/location (nth nodes (* 2 i))))
           depart   (gen/generate (s/gen ::mapbox/departure))
           args     {:coordinates [src dst] :departure depart :steps true}
           result   (dir/direction graph args)]
