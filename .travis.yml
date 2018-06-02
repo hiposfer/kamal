@@ -2,9 +2,11 @@ language: clojure
 jdk:
 - oraclejdk8
 script:
-- lein do clean, compile, check, test, uberjar
+- lein trampoline do clean, compile, check
+# test requires quite some memory so free it afterwards
+- lein trampoline test
 # linter
-- lein eastwood '{:exclude-namespaces [hiposfer.kamal.network.specs hiposfer.kamal.specs.mapbox.directions hiposfer.kamal.network.graph.specs]}'
+- lein trampoline eastwood '{:exclude-namespaces [hiposfer.kamal.network.specs hiposfer.kamal.specs.mapbox.directions hiposfer.kamal.network.graph.specs]}'
 notifications:
   email:
     on_success: change
