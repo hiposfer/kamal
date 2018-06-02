@@ -7,28 +7,25 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; RESPONSE
 
-(defn natural? "positive or zero number" [number] (or (pos? number) (zero? number)))
-
 ;; todo ::annotation => https://www.mapbox.com/api-documentation/#routeleg-object
-(s/def ::code        string?);;it actually should be an enum i.e. one of "bla bla" or "foo"
+(s/def ::code        #{"OK" "NoRoute" "NoSegment"})
 (s/def ::name        string?)
 (s/def ::summary     string?)
-(s/def ::type        string?);;it actually should be an enum i.e. one of "bla bla" or "foo"
-(s/def ::mode        string?);;it actually should be an enum i.e. one of "bla bla" or "foo"
-(s/def ::instruction string?)
+(s/def ::type        #{"turn" "exit vehicle" "notification" "continue" "depart" "arrive"})
+(s/def ::mode        #{"walking" "transit"})
+(s/def ::instruction (s/and string? not-empty))
 (s/def ::modifier    string?)
 (s/def ::bearing     (s/and spec/number? #(<= 0 % 360)))
 (s/def ::bearing_before ::bearing)
 (s/def ::bearing_after  ::bearing)
 (s/def ::location    ::geojson/position)
-(s/def ::duration    (s/and spec/number? natural?))
-(s/def ::distance    (s/and spec/number? natural?))
-(s/def ::weight      (s/and spec/number? natural?)) ;; a negative weight doesnt make sense
+(s/def ::duration    (s/and spec/number? nat-int?))
+(s/def ::distance    (s/and spec/number? nat-int?))
+(s/def ::weight      (s/and spec/number? nat-int?)) ;; a negative weight doesnt make sense
 (s/def ::weight_name string?)
 ;; structures
-(s/def ::maneuver    (s/keys :req-un [::location      ::bearing_before
-                                      ::bearing_after ::instruction
-                                      ::type]
+(s/def ::maneuver    (s/keys :req-un [::location ::bearing_before ::bearing_after
+                                      ::instruction ::type]
                              :opt-un [::modifier]))
 (s/def ::route-step  (s/keys :req-un [::distance ::duration ::geometry
                                       ::name     ::mode     ::maneuver]))
