@@ -1,26 +1,20 @@
 (ns hiposfer.kamal.services.routing.directions
   "collection of functions to provide routing directions based on Open Street
-  Maps and General Transit Feed Specification data. It follows (as close)
-  as possible the MapBox v5 directions specification.
+  Maps and General Transit Feed Specification data. It follows (as close
+  as possible) the MapBox v5 directions specification.
 
   The algorithm provides a single route between the first and last coordinate.
   It works as follows:
   - create a Dijkstra collection to find the shortest path
   - take the sequence and split it into 'pieces'
-   - each piece is a subsection of the complete route where the motion type
-    is considered, the same. Such as the points in a street (with the same name)
-    or a bus route
-  - take each piece and wrap it together with the previous and next piece to
-    provide context for human instructions
-  - prepend a copy of the first piece and two of the last point of the last piece
-    - we use the last point (instead of the complete piece) to have proper bearing
-      for the last piece
-  - create instructions based on each previous, current and next piece"
+   - each piece is a subsection of the complete route with a common 'context'.
+    The 'context' is the road name or the stop name
+  - loop over the pieces to create instructions based on each previous, current
+    and next piece"
   (:require [hiposfer.kamal.network.algorithms.core :as alg]
             [hiposfer.kamal.network.algorithms.protocols :as np]
             [hiposfer.kamal.services.routing.transit :as transit]
             [hiposfer.kamal.libs.geometry :as geometry]
-            [clojure.set :as set]
             [hiposfer.kamal.libs.fastq :as fastq])
   (:import (java.time LocalDateTime Duration LocalTime)))
 
@@ -54,6 +48,7 @@
     ;; return the turn indication based on the angle
     "turn") (val (last (subseq bearing-turns <= angle))))
 
+;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
 (defn- instruction
   "returns a human readable version of the maneuver to perform"
   [network result piece next-piece]
@@ -86,17 +81,20 @@
 
       ;; exiting a vehicle
       "exit vehicle"
-      (str "Exit the vehicle") ;(:stop/name (key (ffirst piece)))
-           ;(when (transit/via next-piece)
-            ; (str ", and walk towards " (transit/name (transit/via next-piece))))
+      (str "Exit the vehicle")
+
       ;; This is the first instruction that the user gets
       "depart"
-      (if (nil? name) "Depart"
-        (str "Head on to " name))
+      (let [n2 (transit/name (transit/context network next-piece))]
+        (if (or name n2)
+          (str "Head on to " (or name n2))
+          "Depart"))
+
       ;; This is the last instruction that the user gets
       "arrive"
       "You have arrived at your destination")))
 
+;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
 (defn- maneuver-type
   [network prev-piece piece next-piece]
   (let [last-context (transit/context network prev-piece)
@@ -107,13 +105,16 @@
       (= piece next-piece) "arrive"
 
       ;; change conditions, e.g. change of mode from walking to transit
-      (and (transit/way? last-context) (transit/stop? context)) "notification"
+      (and (not (transit/stop? last-context)) (transit/stop? context))
+      "notification"
 
       ;; already on a transit trip, continue
-      (and (transit/stop? context) (transit/stop? next-context)) "continue"
+      (and (transit/stop? context) (transit/stop? next-context))
+      "continue"
 
       ;; change of conditions -> exit vehicle
-      (and (transit/stop? context) (transit/way? next-context)) "exit vehicle"
+      (and (transit/stop? context) (not (transit/stop? next-context)))
+      "exit vehicle"
 
       :else                "turn")))
 
@@ -233,3 +234,10 @@
       {:code "NoRoute"
        :message "There was no route found for the given coordinates. Check for
                        impossible routes (e.g. routes over oceans without ferry connections)."})))
+
+;(time
+;  (direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;             {:coordinates [[8.645333, 50.087314]
+;                            [8.635897, 50.104172]]
+;              :departure (LocalDateTime/parse "2018-05-07T10:15:30")
+;              :steps true}))
