@@ -65,35 +65,37 @@
     (way? e) (:way/name e)
     (stop? e) (:stop/name e)))
 
-(defn context
+(defn context!
   "Returns an entity holding the 'context' of the trace. For pedestrian routing
-  that is the road name. For transit routing it is the stop name
+  that is the road name. For transit routing it is the stop name"
+  [network trace vprev]
+  (let [previous (key (deref vprev))
+        current  (key trace)]
+    (vreset! vprev trace)
+    (cond
+      ;; walking normally -> return the way
+      (and (node? current) (node? previous)) ;; XXX: do we need this?
+      (first (set/intersection (set (fastq/node-ways network current))
+                               (set (fastq/node-ways network previous))))
+      ;; getting into a trip -> return the way of the road
+      (and (node? previous) (stop? current))
+      (first (fastq/node-ways network previous)) ;; XXX: are we guessing here?
+      ;; on a trip -> return the stop
+      (and (stop? current) (stop? previous))
+      current
+      ;; leaving a trip -> return the last stop
+      (and (stop? previous) (node? current))
+      previous)))
 
-  WARNING: this is a stateful function. vprev is a volatile whose value is resetted
-  on every execution."
-  ([network trace vprev]
-   (let [origin (deref vprev)
-         src    (key origin)
-         dst    (key trace)]
-     (vreset! vprev trace)
-     (cond
-       ;; walking normally -> return the way
-       (and (node? src) (node? dst)) ;; XXX: do we need this?
-       (first (set/intersection (set (fastq/node-ways network src))
-                                (set (fastq/node-ways network dst))))
-       ;; getting into a trip -> return the way of the road
-       (and (node? src) (stop? dst))
-       (first (fastq/node-ways network src)) ;; XXX: are we guessing here?
-       ;; on a trip -> return the stop
-       (and (stop? src) (stop? dst))
-       src
-       ;; leaving a trip -> return the last stop
-       (and (stop? src) (node? dst))
-       src)))
-  ([network piece] ;; a piece already represents a context ;)
-   (let [e (key (first piece))]
-     (if-not (node? e) e
-       (first (fastq/node-ways network e)))))) ;; XXX: are we guessing here?
+(defn context
+  "utility function to give a common name to the repetitive execution of
+  (key (first piece)) to retrieve the previously computed context
+
+  Returns a stop or a way"
+  [network piece] ;; a piece already represents a context ;)
+  (let [e (key (first piece))]
+    (if-not (node? e) e
+      (first (fastq/node-ways network e))))) ;; XXX: are we guessing here?
 
 (defn successors
   "takes a network and an entity id and returns the successors of that entity"

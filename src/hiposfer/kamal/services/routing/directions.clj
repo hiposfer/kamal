@@ -56,7 +56,7 @@
 
 (defn- instruction
   "returns a human readable version of the maneuver to perform"
-  [network result piece]
+  [network result piece next-piece]
   (let [context  (transit/context network piece)
         modifier (:modifier result)
         maneuver (:type result)
@@ -76,7 +76,7 @@
         (str "Continue on " id))
 
       "notification"
-      (let [tend    (:start (val (last piece)))
+      (let [tend    (:start (val (first next-piece)))
             trip    (:stop.times/trip tend)
             route   (:trip/route trip)
             vehicle (transit/route-types (:route/type route))
@@ -100,18 +100,21 @@
 (defn- maneuver-type
   [network prev-piece piece next-piece]
   (let [last-context (transit/context network prev-piece)
-        context      (transit/context network piece)]
+        context      (transit/context network piece)
+        next-context (transit/context network next-piece)]
     (cond
       (= prev-piece piece) "depart"
       (= piece next-piece) "arrive"
 
-      ;; already on a transit trip, continue
-      (and (transit/stop? last-context) (transit/stop? context)) "continue"
-
       ;; change conditions, e.g. change of mode from walking to transit
       (and (transit/way? last-context) (transit/stop? context)) "notification"
 
-      (and (transit/stop? last-context) (transit/way? context)) "exit vehicle"
+      ;; already on a transit trip, continue
+      (and (transit/stop? context) (transit/stop? next-context)) "continue"
+
+      ;; change of conditions -> exit vehicle
+      (and (transit/stop? context) (transit/way? next-context)) "exit vehicle"
+
       :else                "turn")))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
@@ -132,7 +135,7 @@
                       :type _type}
         result        (if (not= _type "turn") result
                         (assoc result :modifier _modifier))
-        text          (instruction network result piece)]
+        text          (instruction network result piece next-piece)]
     (assoc result :instruction text)))
 
 
@@ -147,9 +150,7 @@
      :duration (- (np/cost (val (first next-piece)))
                   (np/cost (val (first piece))))
      :geometry line
-     :name     (str (if (= "exit vehicle" (:type man))
-                      (transit/name (key (last prev-piece)))
-                      (transit/name context)))
+     :name     (str (transit/name context))
      :mode     (if (transit/stop? context) "transit" "walking")
      :maneuver man
      :intersections []})) ;; TODO
@@ -172,8 +173,8 @@
   (if (= (count trail) 1) ;; a single trace is returned for src = dst
     {:distance 0 :duration 0 :steps [] :summary "" :annotation []}
     (let [previous    (volatile! (first trail))
-          pieces      (partition-by #(transit/name (transit/context network % previous))
-                                     (rest trail))]
+          pieces      (partition-by #(transit/name (transit/context! network % previous))
+                                     trail)]
       {:distance   (geometry/arc-length (:coordinates (linestring (map key trail))))
        :duration   (- (np/cost (val (last trail)))
                       (np/cost (val (first trail))))
@@ -232,10 +233,3 @@
       {:code "NoRoute"
        :message "There was no route found for the given coordinates. Check for
                        impossible routes (e.g. routes over oceans without ferry connections)."})))
-
-;(time
-;  (direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;             {:coordinates [[8.645333, 50.087314]
-;                            [8.635897, 50.104172]]
-;              :departure (LocalDateTime/parse "2018-05-07T10:15:30")
-;              :steps true}))
