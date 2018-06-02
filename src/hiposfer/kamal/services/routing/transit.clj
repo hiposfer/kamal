@@ -7,7 +7,8 @@
             [hiposfer.kamal.parsers.osm :as osm]
             [hiposfer.kamal.libs.geometry :as geometry]
             [datascript.core :as data]
-            [clojure.set :as set]))
+            [clojure.set :as set]
+            [hiposfer.kamal.libs.tool :as tool]))
 
 ;; https://developers.google.com/transit/gtfs/reference/#routestxt
 (def route-types
@@ -65,6 +66,17 @@
     (way? e) (:way/name e)
     (stop? e) (:stop/name e)))
 
+(defn- common-road
+  "attempt to find the way that connect the passed arguments. Performs
+  a best guess otherwise"
+  ([network e1 e2]
+   (let [s1 (fastq/node-ways network e1)
+         s2 (fastq/node-ways network e2)
+         ss (set/intersection (set s1) (set s2))]
+     (tool/some :way/name ss)))
+  ([network e1] ;; make the best guest
+   (tool/some :way/name (fastq/node-ways network e1))))
+
 (defn context!
   "Returns an entity holding the 'context' of the trace. For pedestrian routing
   that is the road name. For transit routing it is the stop name"
@@ -74,12 +86,11 @@
     (vreset! vprev trace)
     (cond
       ;; walking normally -> return the way
-      (and (node? current) (node? previous)) ;; XXX: do we need this?
-      (first (set/intersection (set (fastq/node-ways network current))
-                               (set (fastq/node-ways network previous))))
+      (and (node? current) (node? previous))
+      (common-road network current previous)
       ;; getting into a trip -> return the way of the road
       (and (node? previous) (stop? current))
-      (first (fastq/node-ways network previous)) ;; XXX: are we guessing here?
+      (common-road network previous);;  guessing here
       ;; on a trip -> return the stop
       (and (stop? current) (stop? previous))
       current
@@ -94,8 +105,10 @@
   Returns a stop or a way"
   [network piece] ;; a piece already represents a context ;)
   (let [e (key (first piece))]
-    (if-not (node? e) e
-      (first (fastq/node-ways network e))))) ;; XXX: are we guessing here?
+    (if (stop? e) e ;; node otherwise
+      (if (> 1 (count piece)) ;; TODO: can this be improved?
+        (common-road network (key (first piece)) (key (second piece)))
+        (common-road network (key (first piece)))))))
 
 (defn successors
   "takes a network and an entity id and returns the successors of that entity"
