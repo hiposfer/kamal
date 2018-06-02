@@ -57,9 +57,10 @@
 (s/def ::radiuses (s/coll-of (s/or :string #{"unlimited"} :number (s/and int? pos?))))
 (s/def ::language string?)
 
+;; 2017 -> 1483228800
 (defn localdatetime-gen []
   (gen/fmap #(java.time.LocalDateTime/ofEpochSecond % 0 java.time.ZoneOffset/UTC)
-            (gen/large-integer* {:min 0 :max 365241780471})))
+            (gen/large-integer* {:min 1483228800 :max 365241780471})))
 
 (s/def ::departure
   (s/with-gen
