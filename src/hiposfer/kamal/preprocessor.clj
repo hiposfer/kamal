@@ -32,7 +32,7 @@
     (doseq [area (:networks config)]
       (let [value (routing/network (dissoc area :area/edn)) ;; just in case
             ;; osm is mandatory, use its filename !!
-            path     (str outdir (filename (:area/osm area)) "edn.bz2")]
+            path     (str outdir (filename (:area/osm area)) ".edn.bz2")]
         (with-open [w (-> (io/output-stream path)
                           (BZip2CompressorOutputStream.)
                           (io/writer))]
