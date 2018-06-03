@@ -5,7 +5,6 @@
             [clojure.test :refer [is deftest]]
             [hiposfer.kamal.network.algorithms.core :as alg]
             [hiposfer.kamal.network.algorithms.protocols :as np]
-            [hiposfer.kamal.network.generators :as ng]
             [datascript.core :as data]
             [hiposfer.kamal.services.routing.core :as router]
             [clojure.spec.alpha :as s]
@@ -13,7 +12,6 @@
             [hiposfer.kamal.specs.mapbox.directions :as mapbox]
             [hiposfer.kamal.services.routing.transit :as transit]
             [hiposfer.kamal.services.routing.directions :as dir]
-            [com.stuartsierra.component :as component]
             [expound.alpha :as expound]))
 
 ;; Example taken from
@@ -174,12 +172,30 @@
 
 ; -----------------------------------------------------------------
 ; generative tests for the direction endpoint
-(defspec routable
+(defspec generative-directions
   100; tries
   (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
-    (let [graph   @(router/pedestrian-graph {:SIZE i})
-          request  (gen/generate (s/gen ::mapbox/args))
-          result   (dir/direction graph request)]
+   (let [graph   @(router/pedestrian-graph {:SIZE i})
+         request  (gen/generate (s/gen ::mapbox/args))
+         result   (dir/direction graph request)]
+     (is (s/valid? ::mapbox/response result)
+         (str (expound/expound-str ::mapbox/response result))))))
+
+; -----------------------------------------------------------------
+; generative tests for the direction endpoint
+
+(def network (delay (time (router/network {:area/edn "resources/saarland.edn.bz2"}))))
+
+(defspec saarland-directions
+  30; tries -> expensive test
+  (prop/for-all [i (gen/large-integer* {:min 0 :max 100})]
+    (let [graph    (deref (deref network)) ;; delay atom
+          nodes    (alg/nodes graph)
+          src      (dir/->coordinates (:node/location (nth nodes i)))
+          dst      (dir/->coordinates (:node/location (nth nodes (* 2 i))))
+          depart   (gen/generate (s/gen ::mapbox/departure))
+          args     {:coordinates [src dst] :departure depart :steps true}
+          result   (dir/direction graph args)]
       (is (s/valid? ::mapbox/response result)
           (str (expound/expound-str ::mapbox/response result))))))
 
