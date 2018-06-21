@@ -4,7 +4,7 @@
             [hiposfer.geojson.specs :as geojson]
             [clojure.spec.gen.alpha :as gen]
             [hiposfer.kamal.services.routing.directions :as dir])
-  (:import (java.time LocalDateTime)))
+  (:import (java.time LocalDateTime ZoneOffset)))
 
 ;; TODO: these functions look ugly as hell. I dont think we are modelling it
 ;; the right way but it gets the job done for the time being.
@@ -71,7 +71,7 @@
 
 ;; 2017 -> 1483228800
 (defn localdatetime-gen []
-  (gen/fmap #(java.time.LocalDateTime/ofEpochSecond % 0 java.time.ZoneOffset/UTC)
+  (gen/fmap #(LocalDateTime/ofEpochSecond % 0 ZoneOffset/UTC)
             (gen/large-integer* {:min 1483228800 :max 365241780471})))
 
 (s/def ::departure
