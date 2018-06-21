@@ -54,6 +54,8 @@
   (clojure.spec.test.alpha/instrument)
   (set! s/*explain-out* (expound/custom-printer {:theme :figwheel-theme
                                                  :print-specs? false}))
+  (set! *warn-on-reflection* true)
+  (set! *print-length* 100)
   (start!))
 
 (defn refresh!
