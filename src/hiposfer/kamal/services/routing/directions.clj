@@ -144,7 +144,7 @@
       (= _type "turn")      (assoc :modifier (modifier angle _type))
       (= "notification" _type) (assoc :wait (wait-time piece next-piece))
       (= "notification" _type) (assoc :trip (:trip/id (:stop.times/trip (:start (val (first next-piece))))))
-      :else (as-> $ (assoc $ :instruction (instruction network $ piece next-piece))))))
+      :always (as-> $ (assoc $ :instruction (instruction network $ piece next-piece))))))
 
 ;https://www.mapbox.com/api-documentation/#routestep-object
 (defn- step ;; piece => [trace ...]
