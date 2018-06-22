@@ -118,6 +118,13 @@
 
       :else                "turn")))
 
+(defn- wait-time
+  [piece next-piece]
+  (let [trip-step (val (first next-piece))
+        arrival   (np/cost (val (first piece)))]
+    (- (:stop.times/departure_time (:start trip-step))
+       arrival)))
+
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
 (defn- maneuver ;; piece => [trace ...]
   "returns a step maneuver"
@@ -129,16 +136,15 @@
                                        (location (key (first next-piece))))
         angle        (mod (+ 360 (- post-bearing pre-bearing)) 360)
         _type        (maneuver-type network prev-piece piece next-piece)
-        _modifier    (modifier angle _type)
         result       {:location (->coordinates position)
                       :bearing_before pre-bearing
                       :bearing_after  post-bearing
-                      :type _type}
-        result        (if (not= _type "turn") result
-                        (assoc result :modifier _modifier))
-        text          (instruction network result piece next-piece)]
-    (assoc result :instruction text)))
-
+                      :type _type}]
+    (cond-> result ;; conditionally add values to the result
+      (= _type "turn")      (assoc :modifier (modifier angle _type))
+      (= "notification" _type) (assoc :wait (wait-time piece next-piece))
+      (= "notification" _type) (assoc :trip (:trip/id (:stop.times/trip (:start (val (first next-piece))))))
+      :always (as-> $ (assoc $ :instruction (instruction network $ piece next-piece))))))
 
 ;https://www.mapbox.com/api-documentation/#routestep-object
 (defn- step ;; piece => [trace ...]
@@ -154,7 +160,7 @@
      :name     (str (transit/name context))
      :mode     (if (transit/stop? context) "transit" "walking")
      :maneuver man
-     :intersections []})) ;; TODO
+     :intersections []}))
 
 (defn- route-steps
   "returns a route-steps vector or an empty vector if no steps are needed"
