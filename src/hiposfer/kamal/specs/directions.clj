@@ -59,7 +59,7 @@
 (s/def ::waypoint    (s/keys :req-un [::name ::location]))
 (s/def ::waypoints   (s/coll-of ::waypoint :kind sequential? :min-count 2))
 (s/def ::geometry    ::geojson/linestring)
-(s/def ::route       (s/keys :req-un [::geometry ::duration    ::distance
+(s/def ::route       (s/keys :req-un [::duration ::distance
                                       ::weight   ::weight_name ::legs]))
 (s/def ::routes      (s/coll-of ::route :kind sequential?))
 (s/def ::response   (s/keys :req-un [::code] :opt-un [::waypoints ::routes]))
