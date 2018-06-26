@@ -9,7 +9,7 @@
             [hiposfer.kamal.services.routing.core :as router]
             [clojure.spec.alpha :as s]
             [hiposfer.kamal.libs.fastq :as fastq]
-            [hiposfer.kamal.specs.mapbox.directions :as mapbox]
+            [hiposfer.kamal.specs.directions :as dataspecs]
             [hiposfer.kamal.services.routing.transit :as transit]
             [hiposfer.kamal.services.routing.directions :as dir]
             [expound.alpha :as expound]))
@@ -175,11 +175,11 @@
 (defspec generative-directions
   100; tries
   (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
-   (let [graph   @(router/pedestrian-graph {:SIZE i})
-         request  (gen/generate (s/gen ::mapbox/args))
-         result   (dir/direction graph request)]
-     (is (s/valid? ::mapbox/response result)
-         (str (expound/expound-str ::mapbox/response result))))))
+    (let [graph   @(router/pedestrian-graph {:SIZE i})
+          request  (gen/generate (s/gen ::dataspecs/args))
+          result   (dir/direction graph request)]
+      (is (s/valid? ::dataspecs/response result)
+          (str (expound/expound-str ::dataspecs/response result))))))
 
 ; -----------------------------------------------------------------
 ; generative tests for the direction endpoint
@@ -193,10 +193,10 @@
           nodes    (alg/nodes graph)
           src      (dir/->coordinates (:node/location (nth nodes i)))
           dst      (dir/->coordinates (:node/location (nth nodes (* 2 i))))
-          depart   (gen/generate (s/gen ::mapbox/departure))
+          depart   (gen/generate (s/gen ::dataspecs/departure))
           args     {:coordinates [src dst] :departure depart :steps true}
           result   (dir/direction graph args)]
-      (is (s/valid? ::mapbox/response result)
-          (str (expound/expound-str ::mapbox/response result))))))
+      (is (s/valid? ::dataspecs/response result)
+          (str (expound/expound-str ::dataspecs/response result))))))
 
 ;(clojure.test/run-tests)
