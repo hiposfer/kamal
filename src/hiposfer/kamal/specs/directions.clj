@@ -85,3 +85,6 @@
       ; definitely wrong, but doesn't work otherwise.
       identity)
     localdatetime-gen))
+
+(s/def ::args (s/keys :req-un [:hiposfer.geojson.specs.multipoint/coordinates
+                               ::departure]))
