@@ -1,4 +1,4 @@
-(ns hiposfer.kamal.specs.mapbox.directions
+(ns hiposfer.kamal.specs.directions
   (:require [clojure.spec.alpha :as s]
             [spec-tools.spec :as spec]
             [hiposfer.geojson.specs :as geojson]
@@ -66,8 +66,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;; REQUEST
 
-(s/def ::radiuses (s/coll-of (s/or :string #{"unlimited"} :number (s/and int? pos?))))
-(s/def ::language string?)
+;(s/def ::radiuses (s/coll-of (s/or :string #{"unlimited"} :number (s/and int? pos?))))
+;(s/def ::language string?)
 
 ;; 2017 -> 1483228800
 (defn localdatetime-gen []
@@ -85,14 +85,3 @@
       ; definitely wrong, but doesn't work otherwise.
       identity)
     localdatetime-gen))
-
-
-  ;; TODO: dirty hack to avoid separating namespaces
-(s/def :mapbox.directions.request/steps boolean?)
-
-(s/def ::args (s/keys :req-un [:hiposfer.geojson.specs.multipoint/coordinates
-                               ::departure]
-                      :opt-un [::radiuses
-                               :mapbox.directions.request/steps]))
-
-;; TODO: pull syntax for filtering data before sending response
