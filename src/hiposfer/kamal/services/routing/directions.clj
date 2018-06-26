@@ -164,19 +164,18 @@
 
 (defn- route-steps
   "returns a route-steps vector or an empty vector if no steps are needed"
-  [network steps pieces]
-  (if (not steps) [] ;; piece => [[trace via] ...]
-    (let [start     [(first pieces)] ;; add depart and arrival pieces into the calculation
-          end       (repeat 2 [(last (last pieces))]) ;; use only the last point as end - not the entire piece
-          extended  (concat start pieces end)]
-      (map step (repeat network) extended (rest extended) (rest (rest extended))))))
+  [network pieces] ;; piece => [[trace via] ...]
+  (let [start     [(first pieces)] ;; add depart and arrival pieces into the calculation
+        end       (repeat 2 [(last (last pieces))]) ;; use only the last point as end - not the entire piece
+        extended  (concat start pieces end)]
+    (map step (repeat network) extended (rest extended) (rest (rest extended)))))
 
 ;https://www.mapbox.com/api-documentation/#routeleg-object
 (defn- route-leg
   "a route between only two waypoints
 
   WARNING: we dont support multiple waypoints yet !!"
-  [network steps trail];; trail => [trace ...]
+  [network trail];; trail => [trace ...]
   (if (= (count trail) 1) ;; a single trace is returned for src = dst
     {:distance 0 :duration 0 :steps [] :summary "" :annotation []}
     (let [previous    (volatile! (first trail))
@@ -185,7 +184,7 @@
       {:distance   (geometry/arc-length (:coordinates (linestring (map key trail))))
        :duration   (- (np/cost (val (last trail)))
                       (np/cost (val (first trail))))
-       :steps      (route-steps network steps pieces)
+       :steps      (route-steps network pieces)
        :summary    "" ;; TODO
        :annotation []}))) ;; TODO
 
@@ -194,12 +193,10 @@
   "a route through (potentially multiple) waypoints
 
   WARNING: we dont support multiple waypoints yet !!"
-  [network steps rtrail]
+  [network rtrail]
   (let [trail  (rseq (into [] rtrail))
-        leg    (route-leg network steps trail)
-        trail  (if (= (count trail) 1) (repeat 2 (first trail)) trail)]
-    {:geometry    (linestring (map key trail))
-     :duration    (:duration leg)
+        leg    (route-leg network trail)]
+    {:duration    (:duration leg)
      :distance    (:distance leg)
      :weight      (:duration leg)
      :weight_name "time"
@@ -217,7 +214,7 @@
    Example:
    (direction network :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
   [network params]
-  (let [{:keys [coordinates steps ^LocalDateTime departure]} params
+  (let [{:keys [coordinates ^LocalDateTime departure]} params
         date       (.toLocalDate departure)
         trips      (fastq/day-trips network date)
         start      (Duration/between (LocalTime/MIDNIGHT)
@@ -232,7 +229,7 @@
         rtrail     (alg/shortest-path dst traversal)]
     (if (some? rtrail)
       {:code "Ok"
-       :routes [(route network steps rtrail)]
+       :routes [(route network rtrail)]
        :waypoints [{:name (str (some :way/name (fastq/node-ways network src)))
                     :location (->coordinates (:node/location src))}
                    {:name (str (some :way/name (fastq/node-ways network dst)))
