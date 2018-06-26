@@ -24,7 +24,8 @@
 ;; This is a hack !! but it works :)
 ;; Thanks datascript
 
-(def schema {;; Open Street Map - entities
+(def schema {:area/id         {:db.unique :db.unique/identity}
+             ;; Open Street Map - entities
              :node/id         {:db.unique :db.unique/identity}
              :node/location   {:db/index true}
              :node/successors {:db.type        :db.type/ref
@@ -61,19 +62,21 @@
 (defn network
   "builds a datascript in-memory db and conj's it into the passed agent"
   [area]
-  (timbre/info "starting area router:" area)
   (if (:area/edn area)
-    (data/conn-from-db (edn/parse (:area/edn area)))
-    (let [conn        (data/create-conn schema)
-          pedestrian  (osm/datomize (:area/osm area))
-          network     (data/db-with @conn pedestrian)
-          network2    (if (not (:area/gtfs area)) network
-                        (with-open [z (-> (io/input-stream (:area/gtfs area))
-                                          (ZipInputStream.))]
-                          (data/db-with network (gtfs/datomize! z))))
-          network3    (data/db-with network2 (fastq/link-stops network2))
-          network4    (data/db-with network3 (fastq/cache-stop-successors network3))]
-      (doto conn (reset! network4)))))
+    ;; re-build the network from the file
+    (as-> (edn/parse (:area/edn area)) $
+          (data/db-with $ [area]) ;; add the area as transaction
+          (data/conn-from-db $))
+    ;; progressively build up the network from the pieces
+    (with-open [z (-> (io/input-stream (:area/gtfs area))
+                      (ZipInputStream.))]
+      (as-> (data/empty-db schema) $
+            (data/db-with $ (osm/datomize (:area/osm area)))
+            (data/db-with $ (gtfs/datomize! z))
+            (data/db-with $ (fastq/link-stops $))
+            (data/db-with $ (fastq/cache-stop-successors $))
+            (data/db-with $ [area]) ;; add the area as transaction
+            (data/conn-from-db $)))))
 
 (defn pedestrian-graph
   "builds a datascript in-memory db and returns it. Only valid for
@@ -112,6 +115,7 @@
       (let [ag (agent #{} :error-handler stop-process
                           :error-mode :fail)]
         (doseq [area (:networks config)]
+          (timbre/info "starting area router:" area)
           (send-off ag #(time (conj %1 (network %2))) area))
         (assoc this :networks ag))))
   (stop [this]
