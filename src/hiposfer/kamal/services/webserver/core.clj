@@ -4,8 +4,19 @@
             [ring.adapter.jetty :as jetty]
             [taoensso.timbre :as timbre]
             [compojure.handler :as compojure]
-            [ring.middleware.json :as json])
+            [ring.middleware.json :as json]
+            [ring.util.http-response :as code])
   (:import (org.eclipse.jetty.server Server)))
+
+(defn- inject-networks
+  "inject the networks (agent current value) into the request"
+  [handler conn]
+  (fn inject-networks*
+    [request]
+    (let [regions @conn]
+      (if (empty? regions)
+        (code/service-unavailable "routers have not started yet")
+        (handler (assoc request :kamal/networks regions))))))
 
 ;; --------
 ;; A Jetty WebServer +  compojure api
@@ -13,9 +24,10 @@
   component/Lifecycle
   (start [this]
     (if (:server this) this
-      (let [handler (-> (handler/create router)
+      (let [handler (-> (handler/create)
                         (compojure/api) ;; standard api middleware
-                        (json/wrap-json-response))
+                        (json/wrap-json-response)
+                        (inject-networks (:networks router)))
             server  (jetty/run-jetty handler {:join? (:JOIN_THREAD config)
                                               :port  (:PORT config)})]
         (timbre/info "-- Starting App server")
