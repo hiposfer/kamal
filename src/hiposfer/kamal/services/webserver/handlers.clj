@@ -42,6 +42,12 @@
   "creates an API handler with a closure around the router"
   [router]
   (api/routes
+    (api/GET "/area" []
+      (let [regions    @(:networks router)
+            ids         (for [conn regions]
+                          {:id (data/q '[:find ?id . :where [_ :area/id ?id]] @conn)
+                           :type :area})]
+        (code/ok {:data ids})))
     (api/GET "/area/:id/directions" request
       (if-let [missing (tool/keys? (:params request) ::dirspecs/params)]
         (code/bad-request {:missing missing})
