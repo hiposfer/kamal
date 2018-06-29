@@ -13,17 +13,6 @@
             [clojure.string :as str])
   (:import (java.time LocalDateTime)))
 
-;; we are not really using this so I deactivated it for the moment
-;; TODO: bring back this functionality once it makes sense
-;(defn- validate
-;  "validates that the coordinates and the radiuses conform to the mapbox specification.
-;  Returns an http response object if validation fails or nil otherwise."
-;  [coordinates radiuses]
-;  (when (and (not-empty radiuses) (not= (count radiuses) (count coordinates)))
-;    (code/unprocessable-entity
-;      {:code "InvalidInput"
-;       :message "The same amount of radiuses and coordinates must be provided"})))
-
 (def max-distance 1000) ;; meters
 
 (defn- select
@@ -48,58 +37,66 @@
         (when (not-empty cords)
           network)))))
 
-;; TODO: create a middleware to check that
-;; (if (empty? regions)
-;              (code/service-unavailable)
+(defn preprocess
+  "checks that the passed request conforms to spec and coerce its params
+  if so. Returns a possibly modified request.
 
-;; TODO: create middleware to validate and coerce the request data
+  We do it like this instead of creating a middleware for readability. We
+  need access to the path parameters which are only added after the route
+  has been matched.
+
+  See: https://groups.google.com/forum/?hl=en#!topic/compojure/o5l9m7nbGlE"
+  [request spec coercer]
+  (if-let [missing (tool/keys? (:params request) spec)]
+    (code/bad-request {:missing missing})
+    (let [params      (tool/update* (:params request) coercer)
+          errors      (tool/assert params spec)]
+      (if (empty? errors)
+        (assoc request :params params)
+        (assoc request :params params :kamal/errors errors)))))
 
 (defn- get-area
   [request]
   (let [regions    (:kamal/networks request)
-        ids         (for [conn regions]
-                      {:id (data/q '[:find ?id . :where [_ :area/id ?id]] @conn)
-                       :type :area})]
+        ids        (for [conn regions]
+                     {:id (data/q '[:find ?id . :where [_ :area/id ?id]] @conn)
+                      :type :area})]
     (code/ok {:data ids})))
+
+(def directions-coercer {:id          str/upper-case
+                         :coordinates edn/read-string
+                         :departure   #(LocalDateTime/parse %)})
 
 (defn- get-directions
   [request]
-  (if-let [missing (tool/keys? (:params request) ::dirspecs/params)]
-    (code/bad-request {:missing missing})
-    (let [regions    (:kamal/networks request)
-          params      (tool/update* (:params request)
-                                {:id          str/upper-case
-                                         :coordinates edn/read-string
-                                         :departure   #(LocalDateTime/parse %)})
-          errors      (tool/assert params ::dirspecs/params)]
-      (if (not-empty errors)
-        (code/bad-request errors)
-        (if-let [network (select-inside? regions params)]
-          (code/ok (dir/direction network params))
-          (code/ok {:code "NoSegment"
-                    :message "No road segment could be matched for coordinates"}))))))
+  (if (some? (:kamal/errors request))
+    (code/bad-request (:kamal/errors request))
+    (let [regions (:kamal/networks request)]
+      (if-let [network (select-inside? regions (:params request))]
+        (code/ok (dir/direction network (:params request)))
+        (code/ok {:code "NoSegment"
+                  :message "No road segment could be matched for coordinates"})))))
 
 (defn- get-resource
   [request]
-  (if-let [missing (tool/keys? (:params request) ::resource/params)]
-    (code/bad-request {:missing missing})
-    (let [regions    (:kamal/networks request)
-          params      (tool/update* (:params request) {:id str/upper-case})
-          errors      (tool/assert params ::resource/params)]
-      (if (not-empty errors) (code/bad-request errors)
-        (if-let [network (select regions params)]
-          "foo"
-          (code/service-unavailable {:code "NoSegment"
-                                     :message "No matching area found"}))))))
+  (if (some? (:kamal/errors request))
+    (code/bad-request (:kamal/errors request))
+    (let [regions (:kamal/networks request)]
+      (if-let [network (select regions (:params request))]
+        "foo"
+        (code/service-unavailable {:code "NoSegment"
+                                   :message "No matching area found"})))))
 
 ;; ring handlers are matched in order
 (defn create
   "creates an API handler with a closure around the router"
   []
   (api/routes
-    (api/GET "/area" request get-area)
-    (api/GET "/area/:id/directions" request get-directions)
-    (api/GET "/area/:id/:type/:name" request get-resource)
+    (api/GET "/area" request (get-area request))
+    (api/GET "/area/:id/directions" request
+      (get-directions (preprocess request ::dirspecs/params directions-coercer)))
+    (api/GET "/area/:id/:type/:name" request
+      (get-resource (preprocess request ::resource/params {:id str/upper-case})))
     (route/not-found
       (code/not-found "we couldnt find what you were looking for"))))
 

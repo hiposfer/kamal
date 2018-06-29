@@ -25,9 +25,9 @@
   (start [this]
     (if (:server this) this
       (let [handler (-> (handler/create)
-                        (compojure/api) ;; standard api middleware
+                        (inject-networks (:networks router))
                         (json/wrap-json-response)
-                        (inject-networks (:networks router)))
+                        (compojure/api))
             server  (jetty/run-jetty handler {:join? (:JOIN_THREAD config)
                                               :port  (:PORT config)})]
         (timbre/info "-- Starting App server")
