@@ -3,12 +3,14 @@
             [compojure.core :as api]
             [compojure.route :as route]
             [hiposfer.kamal.specs.directions :as dirspecs]
+            [hiposfer.kamal.specs.resources :as resource]
             [hiposfer.kamal.services.routing.directions :as dir]
             [hiposfer.kamal.libs.geometry :as geometry]
             [hiposfer.kamal.libs.fastq :as fastq]
             [datascript.core :as data]
             [clojure.edn :as edn]
-            [hiposfer.kamal.libs.tool :as tool])
+            [hiposfer.kamal.libs.tool :as tool]
+            [clojure.string :as str])
   (:import (java.time LocalDateTime)))
 
 ;; we are not really using this so I deactivated it for the moment
@@ -30,40 +32,74 @@
   (when-let [conn (first conns)]
     (if (not (some? (data/entity @conn [:area/id (:id params)])))
       (recur (rest conns) params)
-      (let [nodes (map #(:node/location (first (fastq/nearest-node @conn %)))
-                        (:coordinates params))
-            distances (map geometry/haversine (:coordinates params) nodes)]
-        (when (and (every? #(not (nil? %)) nodes)
-                   (every? #(< % max-distance) distances))
-            @conn)))))
+      @conn)))
+
+(defn- select-inside?
+  "checks that the provided network contains the coordinates inside it"
+  [conns params]
+  (let [network (select conns params)]
+    (when (not (nil? network))
+      (let [cords (for [coord (:coordinates params)
+                        :let [node (:node/location (first (fastq/nearest-node network coord)))]
+                        :when (not (nil? node))
+                        :let [dist (geometry/haversine coord node)]
+                        :when (< dist max-distance)]
+                    coord)]
+        (when (not-empty cords)
+          network)))))
+
+;; TODO: create a middleware to check that
+;; (if (empty? regions)
+;              (code/service-unavailable)
+
+;; TODO: create middleware to validate and coerce the request data
+
+(defn- get-area
+  [request]
+  (let [regions    (:kamal/networks request)
+        ids         (for [conn regions]
+                      {:id (data/q '[:find ?id . :where [_ :area/id ?id]] @conn)
+                       :type :area})]
+    (code/ok {:data ids})))
+
+(defn- get-directions
+  [request]
+  (if-let [missing (tool/keys? (:params request) ::dirspecs/params)]
+    (code/bad-request {:missing missing})
+    (let [regions    (:kamal/networks request)
+          params      (tool/update* (:params request)
+                                {:id          str/upper-case
+                                         :coordinates edn/read-string
+                                         :departure   #(LocalDateTime/parse %)})
+          errors      (tool/assert params ::dirspecs/params)]
+      (if (not-empty errors)
+        (code/bad-request errors)
+        (if-let [network (select-inside? regions params)]
+          (code/ok (dir/direction network params))
+          (code/ok {:code "NoSegment"
+                    :message "No road segment could be matched for coordinates"}))))))
+
+(defn- get-resource
+  [request]
+  (if-let [missing (tool/keys? (:params request) ::resource/params)]
+    (code/bad-request {:missing missing})
+    (let [regions    (:kamal/networks request)
+          params      (tool/update* (:params request) {:id str/upper-case})
+          errors      (tool/assert params ::resource/params)]
+      (if (not-empty errors) (code/bad-request errors)
+        (if-let [network (select regions params)]
+          "foo"
+          (code/service-unavailable {:code "NoSegment"
+                                     :message "No matching area found"}))))))
 
 ;; ring handlers are matched in order
 (defn create
   "creates an API handler with a closure around the router"
-  [router]
+  []
   (api/routes
-    (api/GET "/area" []
-      (let [regions    @(:networks router)
-            ids         (for [conn regions]
-                          {:id (data/q '[:find ?id . :where [_ :area/id ?id]] @conn)
-                           :type :area})]
-        (code/ok {:data ids})))
-    (api/GET "/area/:id/directions" request
-      (if-let [missing (tool/keys? (:params request) ::dirspecs/params)]
-        (code/bad-request {:missing missing})
-        (let [regions    @(:networks router)
-              params      (tool/update* (:params request)
-                                  {:coordinates edn/read-string
-                                   :departure #(LocalDateTime/parse %)})
-              errors      (tool/assert params ::dirspecs/params)]
-          (if (not-empty errors)
-            (code/bad-request errors)
-            (if (empty? regions)
-              (code/service-unavailable)
-              (if-let [network (select regions params)]
-                (code/ok (dir/direction network params))
-                (code/ok {:code "NoSegment"
-                          :message "No road segment could be matched for coordinates"})))))))
+    (api/GET "/area" request get-area)
+    (api/GET "/area/:id/directions" request get-directions)
+    (api/GET "/area/:id/:type/:name" request get-resource)
     (route/not-found
       (code/not-found "we couldnt find what you were looking for"))))
 
