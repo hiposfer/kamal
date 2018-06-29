@@ -81,6 +81,6 @@
 
 (s/def ::id string?)
 
-(s/def ::params (s/keys :req-un [:hiposfer.geojson.specs.multipoint/coordinates
+(s/def ::params (s/keys :req-un [:hiposfer.geojson.specs.linestring/coordinates
                                  ::departure
                                  ::id]))
