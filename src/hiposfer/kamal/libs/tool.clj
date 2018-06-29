@@ -1,7 +1,8 @@
 (ns hiposfer.kamal.libs.tool
   "useful functions that have not found a proper place yet"
-  (:refer-clojure :rename {some some*})
-  (:require [datascript.core :as data]))
+  (:refer-clojure :rename {some some*} :exclude [assert])
+  (:require [datascript.core :as data]
+            [clojure.spec.alpha :as s]))
 
 
 (defn unique-by
@@ -48,3 +49,30 @@
   (reduce (fn [_ value] (when (pred? value) (reduced value)))
           nil
           coll))
+
+(defn keys?
+  "checks that the map m contains the required keys specified in keys-spec.
+  Only the keys are checked not the values. Returns nil on error"
+  [m keys-spec]
+  (let [reqs (apply hash-map (drop 1 (s/form keys-spec)))
+        unq  (map keyword (map name (:req-un reqs)))]
+    (reduce (fn [_ k] (when (nil? (k m)) (reduced k)))
+            nil
+            (concat unq (:req reqs)))))
+
+(defn assert
+  "checks that m conforms to spec. Returns an error message on error or nil
+  otherwise"
+  [m spec]
+  (when (not (s/valid? spec m))
+    (s/explain-str spec m)))
+
+(defn update*
+  "takes a map and a mapping of keyword to a 1 argument function. Recursively
+   transforms m by updating its value through the passed functions."
+  [m mfs]
+  (reduce-kv (fn [result k v] (update result k v))
+             m
+             mfs))
+
+;(keys? {:id 2 :departure 3 :coordinates 4} ::params)

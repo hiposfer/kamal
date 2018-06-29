@@ -7,7 +7,8 @@
             [hiposfer.kamal.libs.geometry :as geometry]
             [hiposfer.kamal.libs.fastq :as fastq]
             [datascript.core :as data]
-            [clojure.edn :as edn])
+            [clojure.edn :as edn]
+            [hiposfer.kamal.libs.tool :as tool])
   (:import (java.time LocalDateTime)))
 
 ;; we are not really using this so I deactivated it for the moment
@@ -42,13 +43,13 @@
   [router]
   (api/routes
     (api/GET "/area/:id/directions" request
-      (if-let [missing (dirspecs/keys? (:params request) ::dirspecs/params)]
+      (if-let [missing (tool/keys? (:params request) ::dirspecs/params)]
         (code/bad-request {:missing missing})
         (let [regions    @(:networks router)
-              params      (update (:params request)
-                                  :coordinates edn/read-string
-                                  :departure #(LocalDateTime/parse %))
-              errors      (dirspecs/assert params ::dirspecs/params)]
+              params      (tool/update* (:params request)
+                                  {:coordinates edn/read-string
+                                   :departure #(LocalDateTime/parse %)})
+              errors      (tool/assert params ::dirspecs/params)]
           (if (not-empty errors)
             (code/bad-request errors)
             (if (empty? regions)
