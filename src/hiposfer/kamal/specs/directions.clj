@@ -84,5 +84,3 @@
 (s/def ::params (s/keys :req-un [:hiposfer.geojson.specs.multipoint/coordinates
                                  ::departure
                                  ::id]))
-
-;(s/explain-str ::params {:id 2})
