@@ -1,8 +1,7 @@
 (ns hiposfer.kamal.libs.tool
   "useful functions that have not found a proper place yet"
   (:refer-clojure :rename {some some*} :exclude [assert])
-  (:require [datascript.core :as data]
-            [clojure.spec.alpha :as s]))
+  (:require [clojure.spec.alpha :as s]))
 
 
 (defn unique-by
