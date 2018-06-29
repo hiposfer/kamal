@@ -1,13 +1,13 @@
 (ns hiposfer.kamal.services.webserver.handlers
   (:require [ring.util.http-response :as code]
-            [compojure.api.sweet :as sweet]
+            [compojure.core :as api]
             [compojure.route :as route]
-            [hiposfer.kamal.specs.directions :as dataspecs]
+            [hiposfer.kamal.specs.directions :as dirspecs]
             [hiposfer.kamal.services.routing.directions :as dir]
             [hiposfer.kamal.libs.geometry :as geometry]
             [hiposfer.kamal.libs.fastq :as fastq]
-            [clojure.spec.alpha :as s]
-            [datascript.core :as data])
+            [datascript.core :as data]
+            [clojure.edn :as edn])
   (:import (java.time LocalDateTime)))
 
 ;; we are not really using this so I deactivated it for the moment
@@ -25,11 +25,13 @@
 
 (defn- select
   "returns a network whose bounding box contains all points"
-  [conns area points]
+  [conns params]
   (when-let [conn (first conns)]
-    (when (some? (data/entity @conn [:area/id area]))
-      (let [nodes (map #(:node/location (first (fastq/nearest-node @conn %))) points)
-            distances (map geometry/haversine points nodes)]
+    (if (not (some? (data/entity @conn [:area/id (:id params)])))
+      (recur (rest conns) params)
+      (let [nodes (map #(:node/location (first (fastq/nearest-node @conn %)))
+                        (:coordinates params))
+            distances (map geometry/haversine (:coordinates params) nodes)]
         (when (and (every? #(not (nil? %)) nodes)
                    (every? #(< % max-distance) distances))
             @conn)))))
@@ -38,28 +40,25 @@
 (defn create
   "creates an API handler with a closure around the router"
   [router]
-  (sweet/api {:swagger {:ui "/"
-                        :spec "/swagger.json"
-                        :data {:info {:title "kamal"
-                                      :description "Routing for hippos"}}}
-              :api {:invalid-routes-fn compojure.api.routes/fail-on-invalid-child-routes}}
-    (sweet/POST "area/:id/directions" []
-      :coercion :spec
-      :summary "directions with clojure.spec"
-      :path-params [id :- string?]
-      :query-params [coordinates :- :hiposfer.geojson.specs.multipoint/coordinates
-                     departure   :- ::dataspecs/departure]
-      :return ::mapbox/response
-      ;(validate (:coordinates arguments) (:radiuses arguments))
-      (let [regions @(:networks router)]
-        (if (empty? regions) (code/service-unavailable)
-          (if-let [network (select regions id coordinates)]
-            (code/ok (dir/direction network {:coordinates coordinates
-                                             :departure departure}))
-            (code/ok {:code "NoSegment"
-                      :message "No road segment could be matched for coordinates"})))))
-    (sweet/undocumented ;; returns a 404 when nothing matched
-      (route/not-found (code/not-found "we couldnt find what you were looking for")))))
+  (api/routes
+    (api/GET "/area/:id/directions" request
+      (if-let [missing (dirspecs/keys? (:params request) ::dirspecs/params)]
+        (code/bad-request {:missing missing})
+        (let [regions    @(:networks router)
+              params      (update (:params request)
+                                  :coordinates edn/read-string
+                                  :departure #(LocalDateTime/parse %))
+              errors      (dirspecs/assert params ::dirspecs/params)]
+          (if (not-empty errors)
+            (code/bad-request errors)
+            (if (empty? regions)
+              (code/service-unavailable)
+              (if-let [network (select regions params)]
+                (code/ok (dir/direction network params))
+                (code/ok {:code "NoSegment"
+                          :message "No road segment could be matched for coordinates"})))))))
+    (route/not-found
+      (code/not-found "we couldnt find what you were looking for"))))
 
 ;; TESTS
 ;(fastq/nearest-node @(first @(:networks (:router hiposfer.kamal.dev/system)))

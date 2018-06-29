@@ -1,9 +1,11 @@
 (ns hiposfer.kamal.specs.directions
+  (:refer-clojure :exclude [assert])
   (:require [clojure.spec.alpha :as s]
             [spec-tools.spec :as spec]
             [hiposfer.geojson.specs :as geojson]
             [clojure.spec.gen.alpha :as gen]
-            [hiposfer.kamal.services.routing.directions :as dir])
+            [hiposfer.kamal.services.routing.directions :as dir]
+            [clojure.edn :as edn])
   (:import (java.time LocalDateTime ZoneOffset)))
 
 ;; TODO: these functions look ugly as hell. I dont think we are modelling it
@@ -75,16 +77,30 @@
             (gen/large-integer* {:min 1483228800 :max 365241780471})))
 
 (s/def ::departure
-  (s/with-gen
-    (s/conformer
-      (fn [data]
-        (if (instance? LocalDateTime data) data
-          (try
-            (LocalDateTime/parse data)
-            (catch Exception e :clojure.spec.alpha/invalid))))
-      ; definitely wrong, but doesn't work otherwise.
-      identity)
-    localdatetime-gen))
+  (s/with-gen #(instance? LocalDateTime %)
+               localdatetime-gen))
 
-(s/def ::args (s/keys :req-un [:hiposfer.geojson.specs.multipoint/coordinates
-                               ::departure]))
+(s/def ::id string?)
+
+(s/def ::params (s/keys :req-un [:hiposfer.geojson.specs.multipoint/coordinates
+                                 ::departure
+                                 ::id]))
+
+(defn keys?
+  "checks that the map m contains the required keys specified in keys-spec.
+  Only the keys are checked not the values. Returns nil on error"
+  [m keys-spec]
+  (let [reqs (apply hash-map (drop 1 (s/form keys-spec)))
+        unq  (map keyword (map name (:req-un reqs)))]
+    (reduce (fn [_ k] (when (nil? (k m)) (reduced k)))
+            nil
+            (concat unq (:req reqs)))))
+
+(defn assert
+  "checks that m conforms to spec. Returns an error message on error or nil
+  otherwise"
+  [m spec]
+  (when (not (s/valid? spec m))
+    (s/explain-str spec m)))
+
+(keys? {:id 2 :departure 3 :coordinates 4} ::params)

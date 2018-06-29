@@ -2,7 +2,9 @@
   (:require [com.stuartsierra.component :as component]
             [hiposfer.kamal.services.webserver.handlers :as handler]
             [ring.adapter.jetty :as jetty]
-            [taoensso.timbre :as timbre])
+            [taoensso.timbre :as timbre]
+            [compojure.handler :as compojure]
+            [ring.middleware.json :as json])
   (:import (org.eclipse.jetty.server Server)))
 
 ;; --------
@@ -11,7 +13,9 @@
   component/Lifecycle
   (start [this]
     (if (:server this) this
-      (let [handler (handler/create router)
+      (let [handler (-> (handler/create router)
+                        (compojure/api) ;; standard api middleware
+                        (json/wrap-json-response))
             server  (jetty/run-jetty handler {:join? (:JOIN_THREAD config)
                                               :port  (:PORT config)})]
         (timbre/info "-- Starting App server")
