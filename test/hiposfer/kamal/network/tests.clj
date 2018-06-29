@@ -176,7 +176,7 @@
   100; tries
   (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
     (let [graph   @(router/pedestrian-graph {:SIZE i})
-          request  (gen/generate (s/gen ::dataspecs/args))
+          request  (gen/generate (s/gen ::dataspecs/params))
           result   (dir/direction graph request)]
       (is (s/valid? ::dataspecs/response result)
           (str (expound/expound-str ::dataspecs/response result))))))
