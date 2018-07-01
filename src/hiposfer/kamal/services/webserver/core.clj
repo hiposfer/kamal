@@ -3,10 +3,18 @@
             [hiposfer.kamal.services.webserver.handlers :as handler]
             [ring.adapter.jetty :as jetty]
             [taoensso.timbre :as timbre]
+            [cheshire.generate :as cheshire]
+            [cheshire.custom :as custom]
             [compojure.handler :as compojure]
             [ring.middleware.json :as json]
             [ring.util.http-response :as code])
-  (:import (org.eclipse.jetty.server Server)))
+  (:import (org.eclipse.jetty.server Server)
+           (java.time ZoneRegion LocalDateTime DayOfWeek)))
+
+;; First, add a custom encoder for a class:
+(cheshire/add-encoder ZoneRegion custom/encode-str)
+(cheshire/add-encoder LocalDateTime custom/encode-str)
+(cheshire/add-encoder DayOfWeek custom/encode-str)
 
 (defn- inject-networks
   "inject the networks (agent current value) into the request"
