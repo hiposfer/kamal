@@ -8,10 +8,12 @@
             [hiposfer.kamal.libs.geometry :as geometry]
             [hiposfer.kamal.libs.fastq :as fastq]
             [datascript.core :as data]
+            [datascript.impl.entity :as dentity]
             [clojure.edn :as edn]
             [hiposfer.kamal.libs.tool :as tool]
             [clojure.string :as str]
-            [clojure.walk :as walk])
+            [clojure.walk :as walk]
+            [clojure.spec.alpha :as s])
   (:import (java.time LocalDateTime)))
 
 (def max-distance 1000) ;; meters
@@ -39,6 +41,21 @@
   (let [coords (match-coordinates network params)]
     (when (= (count (:coordinates params)) coords)
       coords)))
+
+(defn- prepare-entity
+  "takes an entity and checks if any of its values are entities, if so replaces
+  them by their unique identity value. Then stringifies all keys.
+
+  WARNING: this works only for GTFS entities, since those obey the :name/id
+  pattern. Any other reference entity is not guarantee to work"
+  [entity]
+  (->> (for [[k v] entity]
+         (if (not (dentity/entity? v)) [k v]
+           (let [n  (name k)
+                 nk (keyword n "id")]
+             [k (nk v)])))
+       (into {})
+       (walk/stringify-keys)))
 
 (defn- entity
   "try to retrieve an entity from Datascript. Since we dont know if the id is a
@@ -91,6 +108,14 @@
           (code/ok {:code "NoSegment"
                     :message "No road segment could be matched for coordinates"}))))))
 
+(defn- get-schema
+  [request]
+  (if (some? (:kamal/errors request))
+    (code/bad-request (:kamal/errors request))
+    (let [regions (:kamal/networks request)]
+      (when-let [network (select regions (:params request))]
+        (code/ok (:schema network))))))
+
 (defn- get-resource
   [request]
   (if (some? (:kamal/errors request))
@@ -98,7 +123,7 @@
     (let [regions (:kamal/networks request)]
       (when-let [network (select regions (:params request))]
         (when-let [e (entity network (:params request))]
-          (code/ok {:data (walk/stringify-keys (into {} e))}))))))
+          (code/ok {:data (prepare-entity e)}))))))
 
 ;; ring handlers are matched in order
 (defn create
@@ -106,6 +131,8 @@
   []
   (api/routes
     (api/GET "/area" request (get-area request))
+    (api/GET "/area/:area/schema" request
+      (get-schema (preprocess request (s/keys :req-un [::area]) directions-coercer)))
     (api/GET "/area/:area/directions" request
       (get-directions (preprocess request ::dirspecs/params directions-coercer)))
     (api/GET "/area/:area/:type/:id" request
@@ -123,3 +150,6 @@
 ;                                [8.635897, 50.104172]]
 ;                               :departure (LocalDateTime/parse "2018-05-07T10:15:30")
 ;                  :steps true}))
+
+;(data/entity @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;              [:route/id 57297])
