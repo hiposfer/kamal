@@ -5,7 +5,9 @@
             [taoensso.timbre :as timbre]
             [cheshire.generate :as cheshire]
             [cheshire.custom :as custom]
-            [compojure.handler :as compojure]
+            [ring.middleware.keyword-params :refer [wrap-keyword-params]]
+            [ring.middleware.nested-params :refer [wrap-nested-params]]
+            [ring.middleware.params :refer [wrap-params]]
             [ring.middleware.json :as json]
             [ring.util.http-response :as code])
   (:import (org.eclipse.jetty.server Server)
@@ -35,7 +37,9 @@
       (let [handler (-> (handler/create)
                         (inject-networks (:networks router))
                         (json/wrap-json-response)
-                        (compojure/api))
+                        (wrap-keyword-params)
+                        (wrap-nested-params)
+                        (wrap-params))
             server  (jetty/run-jetty handler {:join? (:JOIN_THREAD config)
                                               :port  (:PORT config)})]
         (timbre/info "-- Starting App server")
