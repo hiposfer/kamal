@@ -11,7 +11,7 @@
   (:import (org.eclipse.jetty.server Server)
            (java.time ZoneRegion LocalDateTime DayOfWeek)))
 
-;; First, add a custom encoder for a class:
+;; add custom encoders for Java Time classes
 (cheshire/add-encoder ZoneRegion custom/encode-str)
 (cheshire/add-encoder LocalDateTime custom/encode-str)
 (cheshire/add-encoder DayOfWeek custom/encode-str)
