@@ -137,6 +137,9 @@
       (get-directions (preprocess request ::dirspecs/params directions-coercer)))
     (api/GET "/area/:area/:type/:id" request
       (get-resource (preprocess request ::resource/params {:area str/upper-case})))
+    ;; TODO: implement some persistency for user suggestions
+    ;; (api/PUT "/area/:area/suggestions" request
+    ;;  (put-suggestions (preprocess request ::dirspecs/params directions-coercer)))
     (route/not-found
       (code/not-found "we couldnt find what you were looking for"))))
 
