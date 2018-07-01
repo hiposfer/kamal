@@ -79,8 +79,8 @@
   (s/with-gen #(instance? LocalDateTime %)
                localdatetime-gen))
 
-(s/def ::id string?)
+(s/def ::area string?)
 
 (s/def ::params (s/keys :req-un [:hiposfer.geojson.specs.linestring/coordinates
                                  ::departure
-                                 ::id]))
+                                 ::area]))

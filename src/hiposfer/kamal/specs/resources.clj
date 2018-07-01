@@ -17,8 +17,8 @@
 
 ;;;; REQUEST
 
-(s/def ::name ::id)
-(s/def ::params (s/keys :req-un [::id ::type ::name]))
+(s/def ::area ::id)
+(s/def ::params (s/keys :req-un [::area ::type ::id]))
 
 ;;;; RESPONSE
 

@@ -19,23 +19,37 @@
   "returns a network whose bounding box contains all points"
   [conns params]
   (when-let [conn (first conns)]
-    (if (not (some? (data/entity @conn [:area/id (:id params)])))
+    (if (not (some? (data/entity @conn [:area/id (:area params)])))
       (recur (rest conns) params)
       @conn)))
 
-(defn- select-inside?
-  "checks that the provided network contains the coordinates inside it"
-  [conns params]
-  (let [network (select conns params)]
-    (when (not (nil? network))
-      (let [cords (for [coord (:coordinates params)
-                        :let [node (:node/location (first (fastq/nearest-node network coord)))]
-                        :when (not (nil? node))
-                        :let [dist (geometry/haversine coord node)]
-                        :when (< dist max-distance)]
-                    coord)]
-        (when (not-empty cords)
-          network)))))
+(defn- match-coordinates
+  [network params]
+  (for [coord (:coordinates params)
+        :let [node (:node/location (first (fastq/nearest-node network coord)))]
+        :when (not (nil? node))
+        :let [dist (geometry/haversine coord node)]
+        :when (< dist max-distance)]
+    coord))
+
+(defn- inside?
+  "returns a sequence of coordinates matched to the provided ones"
+  [network params]
+  (let [coords (match-coordinates network params)]
+    (when (= (count (:coordinates params)) coords)
+      coords)))
+
+(defn- entity
+  "try to retrieve an entity from Datascript. Since we dont know if the id is a
+  string or a number, we just try both and which one works"
+  [network params]
+  (let [k (keyword (:type params) "id")]
+    (try
+      (data/entity network [k (edn/read-string (:id params))])
+      (catch Exception _
+        (try
+          (data/entity network [k (:id params)])
+          (catch Exception _ nil))))))
 
 (defn preprocess
   "checks that the passed request conforms to spec and coerce its params
@@ -47,13 +61,11 @@
 
   See: https://groups.google.com/forum/?hl=en#!topic/compojure/o5l9m7nbGlE"
   [request spec coercer]
-  (if-let [missing (tool/keys? (:params request) spec)]
-    (code/bad-request {:missing missing})
-    (let [params      (tool/update* (:params request) coercer)
-          errors      (tool/assert params spec)]
-      (if (empty? errors)
-        (assoc request :params params)
-        (assoc request :params params :kamal/errors errors)))))
+  (let [params      (tool/coerce (:params request) coercer)
+        errors      (tool/assert params spec)]
+    (if (empty? errors)
+      (assoc request :params params)
+      (assoc request :params params :kamal/errors errors))))
 
 (defn- get-area
   [request]
@@ -63,7 +75,7 @@
                       :type :area})]
     (code/ok {:data ids})))
 
-(def directions-coercer {:id          str/upper-case
+(def directions-coercer {:area        str/upper-case
                          :coordinates edn/read-string
                          :departure   #(LocalDateTime/parse %)})
 
@@ -72,20 +84,20 @@
   (if (some? (:kamal/errors request))
     (code/bad-request (:kamal/errors request))
     (let [regions (:kamal/networks request)]
-      (if-let [network (select-inside? regions (:params request))]
-        (code/ok (dir/direction network (:params request)))
-        (code/ok {:code "NoSegment"
-                  :message "No road segment could be matched for coordinates"})))))
+      (when-let [network (select regions (:params request))]
+        (if (inside? regions (:params request))
+          (code/ok (dir/direction network (:params request)))
+          (code/ok {:code "NoSegment"
+                    :message "No road segment could be matched for coordinates"}))))))
 
 (defn- get-resource
   [request]
   (if (some? (:kamal/errors request))
     (code/bad-request (:kamal/errors request))
     (let [regions (:kamal/networks request)]
-      (if-let [network (select regions (:params request))]
-        "foo"
-        (code/service-unavailable {:code "NoSegment"
-                                   :message "No matching area found"})))))
+      (when-let [network (select regions (:params request))]
+        (when-let [e (entity network (:params request))]
+          (code/ok {:data (into {} e)}))))))
 
 ;; ring handlers are matched in order
 (defn create
@@ -93,10 +105,10 @@
   []
   (api/routes
     (api/GET "/area" request (get-area request))
-    (api/GET "/area/:id/directions" request
+    (api/GET "/area/:area/directions" request
       (get-directions (preprocess request ::dirspecs/params directions-coercer)))
-    (api/GET "/area/:id/:type/:name" request
-      (get-resource (preprocess request ::resource/params {:id str/upper-case})))
+    (api/GET "/area/:area/:type/:id" request
+      (get-resource (preprocess request ::resource/params {:area str/upper-case})))
     (route/not-found
       (code/not-found "we couldnt find what you were looking for"))))
 
