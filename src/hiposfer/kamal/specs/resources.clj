@@ -6,7 +6,7 @@
 (s/def ::id (s/or :text (s/and string? not-empty)
                   :number number?))
 
-(s/def ::type (set (for [[k v] routing/schema
+(s/def ::name (set (for [[k v] routing/schema
                          :when (contains? v :db.unique)]
                      (namespace k))))
 
@@ -15,9 +15,14 @@
 ;;;; REQUEST
 
 (s/def ::area ::id)
-(s/def ::params (s/keys :req-un [::area ::type ::id]))
+(s/def ::params (s/keys :req-un [::area ::name ::id]))
 
 ;;;; RESPONSE
 
-(s/def ::data (s/merge ::resource (s/map-of simple-keyword? any?)))
+(s/def ::type string?)
+(s/def ::value string?)
+(s/def ::json-type (s/keys :req-un [::type ::value]))
+(s/def ::value (s/or :text string? :number number? :type ::json-type
+                     :array (s/coll-of ::value)))
+(s/def ::data (s/merge ::resource (s/map-of simple-keyword? ::value)))
 (s/def ::response (s/map-of simple-keyword? ::data :count 1))
