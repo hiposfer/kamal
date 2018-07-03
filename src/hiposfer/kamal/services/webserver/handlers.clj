@@ -42,20 +42,21 @@
     (when (= (count (:coordinates params)) coords)
       coords)))
 
-(defn- prepare-entity
+(defn- prefix
   "takes an entity and checks if any of its values are entities, if so replaces
   them by their unique identity value. Then stringifies all keys.
 
   WARNING: this works only for GTFS entities, since those obey the :name/id
   pattern. Any other reference entity is not guarantee to work"
-  [entity]
-  (->> (for [[k v] entity]
-         (if (not (dentity/entity? v)) [k v]
-           (let [n  (name k)
-                 nk (keyword n "id")]
-             [k (nk v)])))
-       (into {})
-       (walk/stringify-keys)))
+  [entity params]
+  (let [key-ns (:type params)
+        data (for [[k v] entity]
+               (let [suffix (name k)
+                     ident  (keyword suffix "id")]
+                 (if (dentity/entity? v)
+                   [suffix {:id (get v ident)}]
+                   [suffix v])))]
+    {key-ns (into {} data)}))
 
 (defn- entity
   "try to retrieve an entity from Datascript. Since we dont know if the id is a
@@ -89,9 +90,8 @@
   [request]
   (let [regions    (:kamal/networks request)
         ids        (for [conn regions]
-                     {:id (data/q '[:find ?id . :where [_ :area/id ?id]] @conn)
-                      :type :area})]
-    (code/ok {:data ids})))
+                     {:id (data/q '[:find ?id . :where [_ :area/id ?id]] @conn)})]
+    (code/ok {:area ids})))
 
 (def directions-coercer {:area        str/upper-case
                          :coordinates edn/read-string
@@ -108,14 +108,6 @@
           (code/ok {:code "NoSegment"
                     :message "No road segment could be matched for coordinates"}))))))
 
-(defn- get-schema
-  [request]
-  (if (some? (:kamal/errors request))
-    (code/bad-request (:kamal/errors request))
-    (let [regions (:kamal/networks request)]
-      (when-let [network (select regions (:params request))]
-        (code/ok (:schema network))))))
-
 (defn- get-resource
   [request]
   (if (some? (:kamal/errors request))
@@ -123,7 +115,7 @@
     (let [regions (:kamal/networks request)]
       (when-let [network (select regions (:params request))]
         (when-let [e (entity network (:params request))]
-          (code/ok {:data (prepare-entity e)}))))))
+          (code/ok (prefix e (:params request))))))))
 
 ;; ring handlers are matched in order
 (defn create
@@ -131,8 +123,6 @@
   []
   (api/routes
     (api/GET "/area" request (get-area request))
-    (api/GET "/area/:area/schema" request
-      (get-schema (preprocess request (s/keys :req-un [::area]) directions-coercer)))
     (api/GET "/area/:area/directions" request
       (get-directions (preprocess request ::dirspecs/params directions-coercer)))
     (api/GET "/area/:area/:type/:id" request
@@ -154,5 +144,7 @@
 ;                               :departure (LocalDateTime/parse "2018-05-07T10:15:30")
 ;                  :steps true}))
 
-;(data/entity @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;              [:route/id 57297])
+;(data/q '[:find ?id .
+;          :where [_ :trip/id ?id]]
+;         @(first @(:networks (:router hiposfer.kamal.dev/system))))
+;
