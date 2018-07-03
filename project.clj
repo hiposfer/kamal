@@ -8,12 +8,13 @@
                  [org.clojure/data.xml "0.0.8"] ; parse xml lazily
                  [org.clojure/test.check "0.9.0"] ;; generators
                  [compojure "1.6.1"]
-                 [metosin/ring-http-response "0.9.0"]
                  [ring/ring-json "0.4.0"]
+                 [fogus/ring-edn "0.3.0"]
+                 [ring/ring-jetty-adapter "1.6.3"]
+                 [metosin/ring-http-response "0.9.0"]
                  [metosin/spec-tools "0.7.0"] ;;coercion
                  [hiposfer/geojson.specs "0.2.0"]
                  [com.taoensso/timbre "4.10.0"]
-                 [ring/ring-jetty-adapter "1.6.3"]
                  [com.stuartsierra/component "0.3.2"]
                  [org.apache.commons/commons-compress "1.17"] ;;bz2 files read
                  [org.teneighty/java-heaps "1.0.0"]

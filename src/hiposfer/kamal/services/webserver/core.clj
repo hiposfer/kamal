@@ -9,6 +9,7 @@
             [ring.middleware.nested-params :refer [wrap-nested-params]]
             [ring.middleware.params :refer [wrap-params]]
             [ring.middleware.json :as json]
+            [ring.middleware.edn :as medn]
             [ring.util.http-response :as code])
   (:import (org.eclipse.jetty.server Server)
            (java.time ZoneRegion LocalDateTime DayOfWeek)))
@@ -36,7 +37,9 @@
     (if (:server this) this
       (let [handler (-> (handler/create)
                         (inject-networks (:networks router))
+                        (medn/wrap-edn-params)
                         (json/wrap-json-response)
+                        (json/wrap-json-params)
                         (wrap-keyword-params)
                         (wrap-nested-params)
                         (wrap-params))
