@@ -49,7 +49,7 @@
   WARNING: this works only for GTFS entities, since those obey the :name/id
   pattern. Any other reference entity is not guarantee to work"
   [entity params]
-  (let [key-ns (:type params)
+  (let [key-ns (:name params)
         data (for [[k v] entity]
                (let [suffix (name k)
                      ident  (keyword suffix "id")]
@@ -62,7 +62,7 @@
   "try to retrieve an entity from Datascript. Since we dont know if the id is a
   string or a number, we just try both and which one works"
   [network params]
-  (let [k (keyword (:type params) "id")]
+  (let [k (keyword (:name params) "id")]
     (try
       (data/entity network [k (edn/read-string (:id params))])
       (catch Exception _
@@ -125,7 +125,7 @@
     (api/GET "/area" request (get-area request))
     (api/GET "/area/:area/directions" request
       (get-directions (preprocess request ::dirspecs/params directions-coercer)))
-    (api/GET "/area/:area/:type/:id" request
+    (api/GET "/area/:area/:name/:id" request
       (get-resource (preprocess request ::resource/params {:area str/upper-case})))
     ;; TODO: implement some persistency for user suggestions
     ;; (api/PUT "/area/:area/suggestions" request
