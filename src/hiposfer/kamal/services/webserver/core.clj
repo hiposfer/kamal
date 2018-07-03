@@ -3,21 +3,34 @@
             [hiposfer.kamal.services.webserver.handlers :as handler]
             [ring.adapter.jetty :as jetty]
             [taoensso.timbre :as timbre]
-            [cheshire.generate :as cheshire]
-            [cheshire.custom :as custom]
             [ring.middleware.keyword-params :refer [wrap-keyword-params]]
             [ring.middleware.nested-params :refer [wrap-nested-params]]
             [ring.middleware.params :refer [wrap-params]]
             [ring.middleware.json :as json]
             [ring.middleware.edn :as medn]
-            [ring.util.http-response :as code])
+            [ring.util.http-response :as code]
+            [clojure.walk :as walk])
   (:import (org.eclipse.jetty.server Server)
-           (java.time ZoneRegion LocalDateTime DayOfWeek)))
+           (java.time LocalDateTime DayOfWeek LocalDate ZoneId)))
 
-;; add custom encoders for Java Time classes
-(cheshire/add-encoder ZoneRegion custom/encode-str)
-(cheshire/add-encoder LocalDateTime custom/encode-str)
-(cheshire/add-encoder DayOfWeek custom/encode-str)
+(def customs #{ZoneId LocalDateTime LocalDate DayOfWeek})
+
+(defn- verbose
+  [v]
+  (if (not (some #(instance? % v) customs)) v
+    {:type (.getCanonicalName ^Class (.getClass ^Object v))
+     :value (str v)}))
+
+(defn- json-type
+  "transform registered Classes into a :type :value map to
+  identify its type at the other end"
+  [handler]
+  (fn json-type*
+    [request]
+    (let [response (handler request)]
+      (if (coll? (:body response))
+        (assoc response :body (walk/postwalk verbose (:body response)))
+        response))))
 
 (defn- inject-networks
   "inject the networks (agent current value) into the request"
@@ -36,9 +49,10 @@
   (start [this]
     (if (:server this) this
       (let [handler (-> (handler/create)
+                        (json-type)
                         (inject-networks (:networks router))
                         (medn/wrap-edn-params)
-                        (json/wrap-json-response)
+                        (json/wrap-json-response) ;; note efficient but works
                         (json/wrap-json-params)
                         (wrap-keyword-params)
                         (wrap-nested-params)

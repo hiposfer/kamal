@@ -3,17 +3,14 @@
             [hiposfer.kamal.services.routing.core :as routing]))
 
 ;; according to json api both type and id MUST be strings
-(s/def ::id string?)
+(s/def ::id (s/or :text (s/and string? not-empty)
+                  :number number?))
+
 (s/def ::type (set (for [[k v] routing/schema
                          :when (contains? v :db.unique)]
                      (namespace k))))
-(s/def ::attributes (s/map-of keyword? any?))
-(s/def ::relationships (s/keys :req-un [::data])) ;; data or links or meta
 
-(s/def ::resource (s/keys :req-un [::type ::id]
-                          :opt-un [::attributes ::relationships]))
-
-(s/def ::data (s/nilable ::resource))
+(s/def ::resource (s/keys :req-un [::id]))
 
 ;;;; REQUEST
 
@@ -22,5 +19,5 @@
 
 ;;;; RESPONSE
 
-(s/def ::response   (s/keys :req-un [::data]))
-
+(s/def ::data (s/merge ::resource (s/map-of simple-keyword? any?)))
+(s/def ::response (s/map-of simple-keyword? ::data :count 1))
