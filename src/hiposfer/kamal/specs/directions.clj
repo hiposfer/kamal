@@ -27,10 +27,9 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; RESPONSE
 
-;; todo ::annotation => https://www.mapbox.com/api-documentation/#routeleg-object
 (s/def ::code        #{"Ok" "NoRoute" "NoSegment"})
 (s/def ::name        string?)
-(s/def ::summary     string?)
+;;(s/def ::summary     string?)
 (s/def ::type        #{"turn" "exit vehicle" "notification" "continue" "depart" "arrive"})
 (s/def ::mode        #{"walking" "transit"})
 (s/def ::instruction (s/and string? not-empty))
@@ -52,18 +51,18 @@
                                     :opt-un [::modifier])
                             vehicle-info?))
 (s/def ::route-step  (s/and (s/keys :req-un [::distance ::duration ::geometry
-                                             ::name     ::mode     ::maneuver])
+                                             ::mode     ::maneuver]
+                                    :opt-un [::name])
                             consistent-maneuver?))
 (s/def ::steps       (s/coll-of ::route-step :kind sequential?))
-(s/def ::route-leg   (s/keys :req-un [::distance ::duration ::steps ::summary]))
-(s/def ::legs        (s/coll-of ::route-leg :kind sequential?))
+;;(s/def ::leg         (s/keys :req-un [::distance ::duration ::steps])) ;;::summary]))
+;;(s/def ::legs        (s/coll-of ::route-leg :kind sequential?))
 (s/def ::waypoint    (s/keys :req-un [::name ::location]))
 (s/def ::waypoints   (s/coll-of ::waypoint :kind sequential? :min-count 2))
 (s/def ::geometry    ::geojson/linestring)
-(s/def ::route       (s/keys :req-un [::duration ::distance
-                                      ::weight   ::weight_name ::legs]))
-(s/def ::routes      (s/coll-of ::route :kind sequential?))
-(s/def ::response   (s/keys :req-un [::code] :opt-un [::waypoints ::routes]))
+(s/def ::route       (s/keys :req-un [::distance ::duration ::steps]))
+;;(s/def ::routes      (s/coll-of ::route :kind sequential?))
+(s/def ::response   (s/keys :req-un [::code] :opt-un [::waypoints ::route]))
 
 ;;;;;;;;;;;;;;;;;;;;; REQUEST
 
