@@ -2,10 +2,9 @@
   "useful functions that have not found a proper place yet"
   (:refer-clojure :rename {some some*} :exclude [assert])
   (:require [clojure.spec.alpha :as s]
-            [hiposfer.kamal.parsers.edn :as edn]
             [clojure.string :as str]
-            [datascript.impl.entity :as dentity])
-  (:import (java.time ZoneId)))
+            [datascript.impl.entity :as dentity]
+            [hiposfer.kamal.parsers.gtfs.core :as gtfs]))
 
 (defn unique-by
   "Returns a lazy sequence of the elements of coll with duplicates attributes removed.
@@ -119,8 +118,15 @@
 ;                (keys edn/java-readers))))
 ;(split-keyword :b.v)
 
+(defn- references
+  [k v]
+  (let [suffix (name k)
+        ident  (keyword suffix "id")]
+    [k {:id (get v ident)}]))
 
-(defn reshape
+(def gtfs-ns (set (vals gtfs/file-ns)))
+
+(defn gtfs-resource
   "takes an entity and checks if any of its values are entities, if so replaces
   them by their unique identity value.
 
@@ -128,9 +134,13 @@
   pattern. Any other reference entity is not guarantee to work"
   [entity]
   (let [data (for [[k v] entity]
-               (if (dentity/entity? v)
-                 (let [suffix (name k)
-                       ident  (keyword suffix "id")]
-                   [k {:id (get v ident)}])
-                 [k v]))]
-    (into {} data)))
+               (cond
+                 (dentity/entity? v)
+                 (references k v)
+
+                 (and (set? v) (every? dentity/entity? v))
+                 (when (contains? gtfs-ns (keyword (name k)))
+                   (map #(references k %) v))
+
+                 :else [k v]))]
+    (into {} (remove nil?) data)))

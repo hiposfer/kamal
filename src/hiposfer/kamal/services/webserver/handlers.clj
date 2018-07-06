@@ -96,7 +96,7 @@
     (let [regions (:kamal/networks request)]
       (when-let [network (select regions (:params request))]
         (when-let [e (entity network (:params request))]
-          (code/ok (tool/reshape e)))))))
+          (code/ok (tool/gtfs-resource e)))))))
 
 ;; ring handlers are matched in order
 (defn create
