@@ -9,9 +9,9 @@
                  [org.clojure/test.check "0.9.0"] ;; generators
                  [compojure "1.6.1"]
                  [ring/ring-json "0.4.0"]
-                 [fogus/ring-edn "0.3.0"]
                  [ring/ring-jetty-adapter "1.6.3"]
                  [metosin/ring-http-response "0.9.0"]
+                 [ring-middleware-accept "2.0.3"]
                  [metosin/spec-tools "0.7.0"] ;;coercion
                  [hiposfer/geojson.specs "0.2.0"]
                  [com.taoensso/timbre "4.10.0"]
