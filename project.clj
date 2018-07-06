@@ -1,4 +1,4 @@
-(defproject hiposfer/kamal "0.9.0"
+(defproject hiposfer/kamal "0.10.0"
   :description "An application that provides routing based on external sources and OSM data"
   :url "https://github.com/hiposfer/kamal"
   :license {:name "LGPLv3"
