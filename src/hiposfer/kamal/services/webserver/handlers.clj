@@ -37,7 +37,7 @@
   "returns a sequence of coordinates matched to the provided ones"
   [network params]
   (let [coords (match-coordinates network params)]
-    (when (= (count (:coordinates params)) coords)
+    (when (= (count (:coordinates params)) (count coords))
       coords)))
 
 (defn- references
@@ -98,11 +98,11 @@
   [request]
   (if (some? (:kamal/errors request))
     (code/bad-request (:kamal/errors request))
-    (let [regions (:kamal/networks request)]
-      (when-let [network (select regions (:params request))]
-        (if (inside? regions (:params request))
+    (let [networks (:kamal/networks request)]
+      (when-let [network (select networks (:params request))]
+        (if (inside? network (:params request))
           (code/ok (dir/direction network (:params request)))
-          (code/ok {:code "NoSegment"
+          (code/ok {:code    "NoSegment"
                     :message "No road segment could be matched for coordinates"}))))))
 
 (defn- get-resource

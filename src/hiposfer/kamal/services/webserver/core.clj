@@ -17,10 +17,10 @@
   [handler conn]
   (fn inject-networks*
     [request]
-    (let [regions @conn]
-      (if (empty? regions)
+    (let [networks @conn]
+      (if (empty? networks)
         (code/service-unavailable "routers have not started yet")
-        (handler (assoc request :kamal/networks regions))))))
+        (handler (assoc request :kamal/networks networks))))))
 
 (defn- shape-response
   [handler]
