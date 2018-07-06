@@ -158,8 +158,8 @@
         {:arrival_time (np/cost (val (first piece)))})
       (when (= "transit" mode)
         (if (= "exit vehicle" (man :type))
-          (tool/reshape (:end (val (first piece))))
-          (tool/reshape (:start (val (first next-piece)))))))))
+          (tool/gtfs-resource (:end (val (first piece))))
+          (tool/gtfs-resource (:start (val (first next-piece)))))))))
 
 (defn- route-steps
   "returns a route-steps vector or an empty vector if no steps are needed"
