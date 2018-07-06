@@ -143,9 +143,10 @@
   [network prev-piece piece next-piece]
   (let [context (transit/context network piece)
         line    (linestring (map key (concat piece [(first next-piece)])))
-        man     (maneuver network prev-piece piece next-piece)]
+        man     (maneuver network prev-piece piece next-piece)
+        mode    (if (transit/stop? context) "transit" "walking")]
     (merge
-      {:mode     (if (transit/stop? context) "transit" "walking")
+      {:mode     mode
        :maneuver man
        :distance (geometry/arc-length (:coordinates line))
        :duration (- (np/cost (val (first next-piece)))
@@ -153,10 +154,12 @@
        :geometry line}
       (when (some? (transit/name context))
         {:name (transit/name context)})
-      (when (= "notification" (:type man))
-        {:arrival_time (val (first piece))})
-      (when (transit/stop? context)
-        (tool/reshape (:start (val (first next-piece))))))))
+      (when (= "notification" (man :type))
+        {:arrival_time (np/cost (val (first piece)))})
+      (when (= "transit" mode)
+        (if (= "exit vehicle" (man :type))
+          (tool/reshape (:end (val (first piece))))
+          (tool/reshape (:start (val (first next-piece)))))))))
 
 (defn- route-steps
   "returns a route-steps vector or an empty vector if no steps are needed"

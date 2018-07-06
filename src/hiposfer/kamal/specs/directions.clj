@@ -2,32 +2,31 @@
   (:require [clojure.spec.alpha :as s]
             [spec-tools.spec :as spec]
             [hiposfer.geojson.specs :as geojson]
+            [hiposfer.kamal.specs.resources :as res]
             [clojure.spec.gen.alpha :as gen]
             [hiposfer.kamal.services.routing.directions :as dir])
   (:import (java.time LocalDateTime ZoneOffset)))
 
-;; TODO: these functions look ugly as hell. I dont think we are modelling it
-;; the right way but it gets the job done for the time being.
-(defn- consistent-maneuver?
-  [step]
-  (case (:mode step)
-    "transit" (contains? #{"notification" "continue" "exit vehicle"}
-                         (:type (:maneuver step)))
-    "walking" (contains? #{"depart" "arrive" "turn"}
-                         (:type (:maneuver step)))))
-
-(defn- natural? [n] (>= n 0))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;; RESPONSE
+;;TODO this is a copy/paste of the gtfs spec but it gets the job done
+(s/def :stop_times/stop ::res/resource)
+(s/def :stop_times/trip ::res/resource)
+(s/def :stop_times/sequence spec/integer?)
+(s/def :stop_times/arrival_time nat-int?)
+(s/def :stop_times/departure_time nat-int?)
+(s/def ::stop_time (s/keys :req [:stop_times/trip :stop_times/arrival_time
+                                 :stop_times/departure_time :stop_times/stop
+                                 :stop_times/sequence]))
 
 (s/def ::code        #{"Ok" "NoRoute" "NoSegment"})
 (s/def ::name        string?)
 ;;(s/def ::summary     string?)
-(s/def ::type        #{"turn" "exit vehicle" "notification" "continue" "depart" "arrive"})
-(s/def ::mode        #{"walking" "transit"})
+(s/def :walk/type    #{"turn" "depart" "arrive"})
+(s/def :transit/type #{"exit vehicle" "notification" "continue"})
+(s/def :walk/mode    #{"walking"})
+(s/def :transit/mode #{"transit"})
 (s/def ::instruction (s/and string? not-empty))
 (s/def ::modifier    (set (vals dir/bearing-turns)))
-(s/def ::positive    (s/and spec/number? natural?))
+(s/def ::positive    (s/and spec/number? #(>= % 0)))
 (s/def ::bearing     (s/and spec/number? #(<= 0 % 360)))
 (s/def ::bearing_before ::bearing)
 (s/def ::bearing_after  ::bearing)
@@ -36,14 +35,26 @@
 (s/def ::weight      ::positive)
 (s/def ::weight_name string?)
 ;; structures
-(s/def ::maneuver    (s/keys :req-un [::bearing_before ::bearing_after
-                                          ::instruction ::type]
+(s/def :maneuver/base    (s/keys :req-un [::bearing_before ::bearing_after
+                                          ::instruction]
                                  :opt-un [::modifier]))
-(s/def ::route-step  (s/and (s/keys :req-un [::distance ::duration ::geometry
-                                             ::mode     ::maneuver]
-                                    :opt-un [::name])
-                            consistent-maneuver?))
-(s/def ::steps       (s/coll-of ::route-step :kind sequential?))
+
+(s/def :walk/maneuver    (s/merge :maneuver/base (s/keys :req-un [:walk/type])))
+(s/def :transit/maneuver (s/merge :maneuver/base (s/keys :req-un [:transit/type])))
+
+(s/def :step/base  (s/keys :req-un [::distance ::duration ::geometry]
+                           :opt-un [::name]))
+
+(s/def :walk/step  (s/merge (s/keys :req-un [:walk/mode :walk/maneuver])
+                            :step/base))
+
+(s/def :transit/step (s/merge (s/keys :req-un [:transit/mode :transit/maneuver])
+                              :step/base
+                              ::stop_time))
+
+(s/def ::step        (s/or :transit :transit/step
+                           :walk :walk/step))
+(s/def ::steps       (s/coll-of ::step :kind sequential?))
 ;;(s/def ::leg         (s/keys :req-un [::distance ::duration ::steps])) ;;::summary]))
 ;;(s/def ::legs        (s/coll-of ::route-leg :kind sequential?))
 (s/def ::waypoint    (s/keys :req-un [::name ::location]))
