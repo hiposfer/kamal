@@ -106,7 +106,8 @@
 
     (keyword? value) (split value)
 
-    (str/starts-with? (.getCanonicalName (.getClass ^Object value)) "java")
+    (and (str/starts-with? (.getCanonicalName (.getClass ^Object value)) "java")
+         (not (str/includes? (.getCanonicalName (.getClass ^Object value)) "lang")))
     (str value)
 
     :else value))
