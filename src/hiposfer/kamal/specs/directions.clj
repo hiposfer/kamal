@@ -39,13 +39,12 @@
 (s/def ::bearing     (s/and spec/number? #(<= 0 % 360)))
 (s/def ::bearing_before ::bearing)
 (s/def ::bearing_after  ::bearing)
-(s/def ::location    ::geojson/position)
 (s/def ::duration    ::positive)
 (s/def ::distance    ::positive)
 (s/def ::weight      ::positive)
 (s/def ::weight_name string?)
 ;; structures
-(s/def ::maneuver    (s/and (s/keys :req-un [::location ::bearing_before ::bearing_after
+(s/def ::maneuver    (s/and (s/keys :req-un [::bearing_before ::bearing_after
                                              ::instruction ::type]
                                     :opt-un [::modifier])
                             vehicle-info?))
