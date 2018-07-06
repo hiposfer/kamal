@@ -8,7 +8,6 @@
             [hiposfer.kamal.libs.geometry :as geometry]
             [hiposfer.kamal.libs.fastq :as fastq]
             [datascript.core :as data]
-            [datascript.impl.entity :as dentity]
             [clojure.edn :as edn]
             [hiposfer.kamal.libs.tool :as tool]
             [clojure.string :as str])
@@ -39,21 +38,6 @@
   (let [coords (match-coordinates network params)]
     (when (= (count (:coordinates params)) (count coords))
       coords)))
-
-(defn- references
-  "takes an entity and checks if any of its values are entities, if so replaces
-  them by their unique identity value. Then stringifies all keys.
-
-  WARNING: this works only for GTFS entities, since those obey the :name/id
-  pattern. Any other reference entity is not guarantee to work"
-  [entity]
-  (let [data (for [[k v] entity]
-               (if (dentity/entity? v)
-                 (let [suffix (name k)
-                       ident  (keyword suffix "id")]
-                     [k {:id (get v ident)}])
-                 [k v]))]
-    (into {} data)))
 
 (defn- entity
   "try to retrieve an entity from Datascript. Since we dont know if the id is a
@@ -112,7 +96,7 @@
     (let [regions (:kamal/networks request)]
       (when-let [network (select regions (:params request))]
         (when-let [e (entity network (:params request))]
-          (code/ok (references e)))))))
+          (code/ok (tool/reshape e)))))))
 
 ;; ring handlers are matched in order
 (defn create

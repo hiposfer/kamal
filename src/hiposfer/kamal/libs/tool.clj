@@ -3,7 +3,8 @@
   (:refer-clojure :rename {some some*} :exclude [assert])
   (:require [clojure.spec.alpha :as s]
             [hiposfer.kamal.parsers.edn :as edn]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [datascript.impl.entity :as dentity])
   (:import (java.time ZoneId)))
 
 (defn unique-by
@@ -95,6 +96,8 @@
    => {:a \"Europe/Berlin\", :c {:b ((:d :e) (:f :g))}} "
   [value]
   (cond
+    (nil? value) nil
+
     (map? value)
     (reduce-kv (fn [res k v]
                  (assoc-in res (split k) (json-namespace v)))
@@ -107,7 +110,7 @@
     (keyword? value) (split value)
 
     (and (str/starts-with? (.getCanonicalName (.getClass ^Object value)) "java")
-         (not (str/includes? (.getCanonicalName (.getClass ^Object value)) "lang")))
+         (not (str/starts-with? (.getCanonicalName (.getClass ^Object value)) "java.lang")))
     (str value)
 
     :else value))
@@ -115,3 +118,19 @@
 ;(json-namespace {:a (ZoneId/of "Europe/Berlin") :c/b [:d.e :f/g]}
 ;                (keys edn/java-readers))))
 ;(split-keyword :b.v)
+
+
+(defn reshape
+  "takes an entity and checks if any of its values are entities, if so replaces
+  them by their unique identity value.
+
+  WARNING: this works only for GTFS entities, since those obey the :name/id
+  pattern. Any other reference entity is not guarantee to work"
+  [entity]
+  (let [data (for [[k v] entity]
+               (if (dentity/entity? v)
+                 (let [suffix (name k)
+                       ident  (keyword suffix "id")]
+                   [k {:id (get v ident)}])
+                 [k v]))]
+    (into {} data)))
