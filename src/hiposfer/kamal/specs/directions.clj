@@ -3,8 +3,7 @@
             [spec-tools.spec :as spec]
             [hiposfer.geojson.specs :as geojson]
             [clojure.spec.gen.alpha :as gen]
-            [hiposfer.kamal.services.routing.directions :as dir]
-            [clojure.edn :as edn])
+            [hiposfer.kamal.services.routing.directions :as dir])
   (:import (java.time LocalDateTime ZoneOffset)))
 
 ;; TODO: these functions look ugly as hell. I dont think we are modelling it

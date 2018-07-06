@@ -54,9 +54,9 @@
                                :db.cardinality :db.cardinality/many}
              :stop/location   {:db/index true}
 
-             :stop.times/trip  {:db/type :db.type/ref
+             :stop_times/trip  {:db/type :db.type/ref
                                 :db/index true}
-             :stop.times/stop  {:db/type :db.type/ref
+             :stop_times/stop  {:db/type :db.type/ref
                                 :db/index true}})
 
 (defn network

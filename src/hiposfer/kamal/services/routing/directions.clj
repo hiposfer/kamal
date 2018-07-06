@@ -66,7 +66,7 @@
       ;; taking a trip on a public transport vehicle
       "continue" ;; only applies to transit
       (let [tstart  (:start (val (first piece)))
-            route   (:trip/route (:stop.times/trip tstart))
+            route   (:trip/route (:stop_times/trip tstart))
             vehicle (transit/route-types (:route/type route))
             id      (str vehicle " " (or (:route/short_name route)
                                          (:route/long_name route)))]
@@ -74,7 +74,7 @@
 
       "notification"
       (let [tend    (:start (val (first next-piece)))
-            trip    (:stop.times/trip tend)
+            trip    (:stop_times/trip tend)
             route   (:trip/route trip)
             vehicle (transit/route-types (:route/type route))
             id      (str vehicle " " (or (:route/short_name route)

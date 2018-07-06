@@ -35,7 +35,7 @@
   (walk-time (key (first trail)) next-entity))
 
 ;; a TripStep represents the transition between two stops in a GTFS feed
-;; Both the source and destination stop.times are kept to avoid future lookups
+;; Both the source and destination :stop_times are kept to avoid future lookups
 (defrecord TripStep [start end ^Long value]
   np/Valuable
   (cost [_] value)
@@ -55,7 +55,7 @@
 (defn node? [e] (:node/id e))
 (defn way? [e] (:way/id e))
 (defn stop? [e] (:stop/id e))
-(defn stop-times? [e] (:stop.times/trip e))
+(defn stop-times? [e] (:stop_times/trip e))
 (defn trip-step? [o] (instance? TripStep o))
 
 (defn name
@@ -141,13 +141,13 @@
         (when (some? st2) ;; nil if no trip was found
           ;(println {:src (:stop/name src)
           ;          :dst (:stop/name dst)
-          ;          :route (:route/short_name (:trip/route (:stop.times/trip st1)))
-          ;          :duration (- (:stop.times/arrival_time st2) now)})
-          (->TripStep st1 st2 (- (:stop.times/arrival_time st2) now))))
+          ;          :route (:route/short_name (:trip/route (:stop_times/trip st1)))
+          ;          :duration (- (:stop_times/arrival_time st2) now)})
+          (->TripStep st1 st2 (- (:stop_times/arrival_time st2) now))))
       ;; the user is already in a trip. Just find the trip going to dst
       :else
-      (let [?trip (:stop.times/trip (:start value))
+      (let [?trip (:stop_times/trip (:start value))
             st    (fastq/continue-trip network dst ?trip)]
         (when (some? st)
           (->TripStep (:end value) st
-                      (- (:stop.times/arrival_time st) now)))))))
+                      (- (:stop_times/arrival_time st) now)))))))
