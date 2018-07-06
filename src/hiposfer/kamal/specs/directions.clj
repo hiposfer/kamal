@@ -16,12 +16,6 @@
     "walking" (contains? #{"depart" "arrive" "turn"}
                          (:type (:maneuver step)))))
 
-(defn- vehicle-info?
-  [man]
-  (if (not= "notification" (:type man)) true
-    (and (s/valid? ::wait (:wait man))
-         (s/valid? ::trip (:trip man)))))
-
 (defn- natural? [n] (>= n 0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; RESPONSE
@@ -34,8 +28,6 @@
 (s/def ::instruction (s/and string? not-empty))
 (s/def ::modifier    (set (vals dir/bearing-turns)))
 (s/def ::positive    (s/and spec/number? natural?))
-(s/def ::wait        ::positive)
-(s/def ::trip        double?)
 (s/def ::bearing     (s/and spec/number? #(<= 0 % 360)))
 (s/def ::bearing_before ::bearing)
 (s/def ::bearing_after  ::bearing)
@@ -44,10 +36,9 @@
 (s/def ::weight      ::positive)
 (s/def ::weight_name string?)
 ;; structures
-(s/def ::maneuver    (s/and (s/keys :req-un [::bearing_before ::bearing_after
-                                             ::instruction ::type]
-                                    :opt-un [::modifier])
-                            vehicle-info?))
+(s/def ::maneuver    (s/keys :req-un [::bearing_before ::bearing_after
+                                          ::instruction ::type]
+                                 :opt-un [::modifier]))
 (s/def ::route-step  (s/and (s/keys :req-un [::distance ::duration ::geometry
                                              ::mode     ::maneuver]
                                     :opt-un [::name])
