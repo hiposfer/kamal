@@ -16,13 +16,3 @@
 
 (s/def ::area ::id)
 (s/def ::params (s/keys :req-un [::area ::name ::id]))
-
-;;;; RESPONSE
-
-(s/def ::type string?)
-(s/def ::value string?)
-(s/def ::json-type (s/keys :req-un [::type ::value]))
-(s/def ::value (s/or :text string? :number number? :type ::json-type
-                     :array (s/coll-of ::value)))
-(s/def ::data (s/merge ::resource (s/map-of simple-keyword? ::value)))
-(s/def ::response (s/map-of simple-keyword? ::data :count 1))
