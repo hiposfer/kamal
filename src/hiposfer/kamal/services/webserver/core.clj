@@ -7,30 +7,10 @@
             [ring.middleware.nested-params :refer [wrap-nested-params]]
             [ring.middleware.params :refer [wrap-params]]
             [ring.middleware.json :as json]
-            [ring.middleware.edn :as medn]
             [ring.util.http-response :as code]
-            [clojure.walk :as walk])
-  (:import (org.eclipse.jetty.server Server)
-           (java.time LocalDateTime DayOfWeek LocalDate ZoneId)))
-
-(def customs #{ZoneId LocalDateTime LocalDate DayOfWeek})
-
-(defn- verbose
-  [v]
-  (if (not (some #(instance? % v) customs)) v
-    {:type (.getCanonicalName ^Class (.getClass ^Object v))
-     :value (str v)}))
-
-(defn- json-type
-  "transform registered Classes into a :type :value map to
-  identify its type at the other end"
-  [handler]
-  (fn json-type*
-    [request]
-    (let [response (handler request)]
-      (if (coll? (:body response))
-        (assoc response :body (walk/postwalk verbose (:body response)))
-        response))))
+            [ring.middleware.accept :as accept]
+            [hiposfer.kamal.libs.tool :as tool])
+  (:import (org.eclipse.jetty.server Server)))
 
 (defn- inject-networks
   "inject the networks (agent current value) into the request"
@@ -42,6 +22,17 @@
         (code/service-unavailable "routers have not started yet")
         (handler (assoc request :kamal/networks regions))))))
 
+(defn- shape-response
+  [handler]
+  (fn shape-response*
+    [request]
+    (let [response (handler request)]
+      (if (string? (response :body))
+        response
+        (case (:mime (:accept request))
+          "application/json" (update response :body tool/json-namespace)
+          "application/edn" (update response :body pr-str))))))
+
 ;; --------
 ;; A Jetty WebServer +  compojure api
 (defrecord WebServer [config router server]
@@ -49,9 +40,9 @@
   (start [this]
     (if (:server this) this
       (let [handler (-> (handler/create)
-                        (json-type)
                         (inject-networks (:networks router))
-                        (medn/wrap-edn-params)
+                        (shape-response)
+                        (accept/wrap-accept {:mime ["application/json" "application/edn"]})
                         (json/wrap-json-response) ;; note efficient but works
                         (json/wrap-json-params)
                         (wrap-keyword-params)
@@ -70,4 +61,3 @@
     this))
 
 (defn service [] (map->WebServer {}))
-

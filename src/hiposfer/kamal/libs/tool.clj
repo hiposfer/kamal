@@ -1,8 +1,10 @@
 (ns hiposfer.kamal.libs.tool
   "useful functions that have not found a proper place yet"
   (:refer-clojure :rename {some some*} :exclude [assert])
-  (:require [clojure.spec.alpha :as s]))
-
+  (:require [clojure.spec.alpha :as s]
+            [hiposfer.kamal.parsers.edn :as edn]
+            [clojure.string :as str])
+  (:import (java.time ZoneId)))
 
 (defn unique-by
   "Returns a lazy sequence of the elements of coll with duplicates attributes removed.
@@ -66,4 +68,49 @@
              m
              coercers))
 
-;(keys? {:id 2 :departure 3 :coordinates 4} ::params)
+(defn- split [k]
+  (cond
+    (not (keyword? k)) [k]
+    (some? (namespace k))
+    (concat (map keyword (str/split (namespace k) #"\."))
+            [(keyword (name k))])
+
+    (str/includes? (name k) ".")
+    (map keyword (str/split (name k) #"\."))
+
+    :else [k]))
+
+(defn json-namespace
+  "takes a Clojure datastructure and destructures all namespaced keyword maps
+   into separate maps and all sequences of namespaced keywords into sequences
+   of simple keywords.
+
+   Accepts an sequence of custom java object which are stringified according
+   to their own toString method.
+
+   This attempts to mimic the way that a json response would be shaped
+   For example:
+   (json-namespace {:a (ZoneId/of \"Europe/Berlin\") :c/b [:d.e :f/g]}
+                   (keys edn/java-readers))
+   => {:a \"Europe/Berlin\", :c {:b ((:d :e) (:f :g))}} "
+  [value]
+  (cond
+    (map? value)
+    (reduce-kv (fn [res k v]
+                 (assoc-in res (split k) (json-namespace v)))
+               {}
+               value)
+
+    (coll? value) ;; but not map
+    (map json-namespace value)
+
+    (keyword? value) (split value)
+
+    (str/starts-with? (.getCanonicalName (.getClass ^Object value)) "java")
+    (str value)
+
+    :else value))
+
+;(json-namespace {:a (ZoneId/of "Europe/Berlin") :c/b [:d.e :f/g]}
+;                (keys edn/java-readers))))
+;(split-keyword :b.v)

@@ -11,9 +11,7 @@
             [datascript.impl.entity :as dentity]
             [clojure.edn :as edn]
             [hiposfer.kamal.libs.tool :as tool]
-            [clojure.string :as str]
-            [clojure.walk :as walk]
-            [clojure.spec.alpha :as s])
+            [clojure.string :as str])
   (:import (java.time LocalDateTime)))
 
 (def max-distance 1000) ;; meters
@@ -42,21 +40,20 @@
     (when (= (count (:coordinates params)) coords)
       coords)))
 
-(defn- prefix
+(defn- references
   "takes an entity and checks if any of its values are entities, if so replaces
   them by their unique identity value. Then stringifies all keys.
 
   WARNING: this works only for GTFS entities, since those obey the :name/id
   pattern. Any other reference entity is not guarantee to work"
-  [entity params]
-  (let [key-ns (:name params)
-        data (for [[k v] entity]
-               (let [suffix (name k)
-                     ident  (keyword suffix "id")]
-                 (if (dentity/entity? v)
-                   [suffix {:id (get v ident)}]
-                   [suffix v])))]
-    {key-ns (into {} data)}))
+  [entity]
+  (let [data (for [[k v] entity]
+               (if (dentity/entity? v)
+                 (let [suffix (name k)
+                       ident  (keyword suffix "id")]
+                     [k {:id (get v ident)}])
+                 [k v]))]
+    (into {} data)))
 
 (defn- entity
   "try to retrieve an entity from Datascript. Since we dont know if the id is a
@@ -90,8 +87,8 @@
   [request]
   (let [regions    (:kamal/networks request)
         ids        (for [conn regions]
-                     {:id (data/q '[:find ?id . :where [_ :area/id ?id]] @conn)})]
-    (code/ok {:area ids})))
+                     {:area/id (data/q '[:find ?id . :where [_ :area/id ?id]] @conn)})]
+    (code/ok ids)))
 
 (def directions-coercer {:area        str/upper-case
                          :coordinates edn/read-string
@@ -115,7 +112,7 @@
     (let [regions (:kamal/networks request)]
       (when-let [network (select regions (:params request))]
         (when-let [e (entity network (:params request))]
-          (code/ok (prefix e (:params request))))))))
+          (code/ok (references e)))))))
 
 ;; ring handlers are matched in order
 (defn create
@@ -147,4 +144,4 @@
 ;(data/q '[:find ?id .
 ;          :where [_ :trip/id ?id]]
 ;         @(first @(:networks (:router hiposfer.kamal.dev/system))))
-;
+
