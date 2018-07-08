@@ -1,62 +1,118 @@
 (ns hiposfer.kamal.services.webserver.handlers
   (:require [ring.util.http-response :as code]
-            [compojure.api.sweet :as sweet]
+            [compojure.core :as api]
             [compojure.route :as route]
-            [hiposfer.kamal.specs.mapbox.directions :as mapbox]
+            [hiposfer.kamal.specs.directions :as dirspecs]
+            [hiposfer.kamal.specs.resources :as resource]
             [hiposfer.kamal.services.routing.directions :as dir]
             [hiposfer.kamal.libs.geometry :as geometry]
             [hiposfer.kamal.libs.fastq :as fastq]
-            [datascript.core :as data])
+            [datascript.core :as data]
+            [clojure.edn :as edn]
+            [hiposfer.kamal.libs.tool :as tool]
+            [clojure.string :as str])
   (:import (java.time LocalDateTime)))
-
-(defn- validate
-  "validates that the coordinates and the radiuses conform to the mapbox specification.
-  Returns an http response object if validation fails or nil otherwise."
-  [coordinates radiuses]
-  (when (and (not-empty radiuses) (not= (count radiuses) (count coordinates)))
-    (code/unprocessable-entity
-      {:code "InvalidInput"
-       :message "The same amount of radiuses and coordinates must be provided"})))
 
 (def max-distance 1000) ;; meters
 
 (defn- select
   "returns a network whose bounding box contains all points"
-  [conns points]
-  (when-let [conn  (first conns)]
-    (let [nodes (map #(:node/location (first (fastq/nearest-node @conn %))) points)
-          distances (map geometry/haversine points nodes)]
-      (if (and
-            (every? #(not (nil? %)) nodes)
-            (every? #(< % max-distance) distances))
-          @conn
-          (recur (rest conns) points)))))
+  [conns params]
+  (when-let [conn (first conns)]
+    (if (not (some? (data/entity @conn [:area/id (:area params)])))
+      (recur (rest conns) params)
+      @conn)))
+
+(defn- match-coordinates
+  [network params]
+  (for [coord (:coordinates params)
+        :let [node (:node/location (first (fastq/nearest-node network coord)))]
+        :when (not (nil? node))
+        :let [dist (geometry/haversine coord node)]
+        :when (< dist max-distance)]
+    coord))
+
+(defn- inside?
+  "returns a sequence of coordinates matched to the provided ones"
+  [network params]
+  (let [coords (match-coordinates network params)]
+    (when (= (count (:coordinates params)) (count coords))
+      coords)))
+
+(defn- entity
+  "try to retrieve an entity from Datascript. Since we dont know if the id is a
+  string or a number, we just try both and which one works"
+  [network params]
+  (let [k (keyword (:name params) "id")]
+    (try
+      (data/entity network [k (edn/read-string (:id params))])
+      (catch Exception _
+        (try
+          (data/entity network [k (:id params)])
+          (catch Exception _ nil))))))
+
+(defn preprocess
+  "checks that the passed request conforms to spec and coerce its params
+  if so. Returns a possibly modified request.
+
+  We do it like this instead of creating a middleware for readability. We
+  need access to the path parameters which are only added after the route
+  has been matched.
+
+  See: https://groups.google.com/forum/?hl=en#!topic/compojure/o5l9m7nbGlE"
+  [request spec coercer]
+  (let [params      (tool/coerce (:params request) coercer)
+        errors      (tool/assert params spec)]
+    (if (empty? errors)
+      (assoc request :params params)
+      (assoc request :params params :kamal/errors errors))))
+
+(defn- get-area
+  [request]
+  (let [regions    (:kamal/networks request)
+        ids        (for [conn regions]
+                     {:area/id (data/q '[:find ?id . :where [_ :area/id ?id]] @conn)})]
+    (code/ok ids)))
+
+(def directions-coercer {:area        str/upper-case
+                         :coordinates edn/read-string
+                         :departure   #(LocalDateTime/parse %)})
+
+(defn- get-directions
+  [request]
+  (if (some? (:kamal/errors request))
+    (code/bad-request (:kamal/errors request))
+    (let [networks (:kamal/networks request)]
+      (when-let [network (select networks (:params request))]
+        (if (inside? network (:params request))
+          (code/ok (dir/direction network (:params request)))
+          (code/ok {:code    "NoSegment"
+                    :message "No road segment could be matched for coordinates"}))))))
+
+(defn- get-resource
+  [request]
+  (if (some? (:kamal/errors request))
+    (code/bad-request (:kamal/errors request))
+    (let [regions (:kamal/networks request)]
+      (when-let [network (select regions (:params request))]
+        (when-let [e (entity network (:params request))]
+          (code/ok (tool/gtfs-resource e)))))))
 
 ;; ring handlers are matched in order
 (defn create
   "creates an API handler with a closure around the router"
-  [router]
-  (sweet/api {:swagger {:ui "/"
-                        :spec "/swagger.json"
-                        :data {:info {:title "kamal"
-                                      :description "Routing for hippos"}}}
-              :api {:invalid-routes-fn compojure.api.routes/fail-on-invalid-child-routes}}
-    (sweet/POST "/directions/v5" []
-      :coercion :spec
-      :summary "directions with clojure.spec"
-      :body-params [arguments :- ::mapbox/args]
-                    ;; TODO: pull filter
-      :return ::mapbox/response
-      (let [error   (validate (:coordinates arguments) (:radiuses arguments))
-            regions @(:networks router)]
-        (if (some? error) error
-          (if (empty? regions) (code/service-unavailable)
-            (if-let [network (select regions (:coordinates arguments))]
-              (code/ok (dir/direction network arguments))
-              (code/ok {:code "NoSegment"
-                        :message "No road segment could be matched for coordinates"}))))))
-    (sweet/undocumented ;; returns a 404 when nothing matched
-      (route/not-found (code/not-found "we couldnt find what you were looking for")))))
+  []
+  (api/routes
+    (api/GET "/area" request (get-area request))
+    (api/GET "/area/:area/directions" request
+      (get-directions (preprocess request ::dirspecs/params directions-coercer)))
+    (api/GET "/area/:area/:name/:id" request
+      (get-resource (preprocess request ::resource/params {:area str/upper-case})))
+    ;; TODO: implement some persistency for user suggestions
+    ;; (api/PUT "/area/:area/suggestions" request
+    ;;  (put-suggestions (preprocess request ::dirspecs/params directions-coercer)))
+    (route/not-found
+      (code/not-found "we couldnt find what you were looking for"))))
 
 ;; TESTS
 ;(fastq/nearest-node @(first @(:networks (:router hiposfer.kamal.dev/system)))
@@ -68,3 +124,8 @@
 ;                                [8.635897, 50.104172]]
 ;                               :departure (LocalDateTime/parse "2018-05-07T10:15:30")
 ;                  :steps true}))
+
+;(data/q '[:find ?id .
+;          :where [_ :trip/id ?id]]
+;         @(first @(:networks (:router hiposfer.kamal.dev/system))))
+

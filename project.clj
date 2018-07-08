@@ -1,4 +1,4 @@
-(defproject hiposfer/kamal "0.9.0"
+(defproject hiposfer/kamal "0.10.0"
   :description "An application that provides routing based on external sources and OSM data"
   :url "https://github.com/hiposfer/kamal"
   :license {:name "LGPLv3"
@@ -7,11 +7,14 @@
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/data.xml "0.0.8"] ; parse xml lazily
                  [org.clojure/test.check "0.9.0"] ;; generators
-                 [metosin/compojure-api "2.0.0-alpha20"]
+                 [compojure "1.6.1"]
+                 [ring/ring-json "0.4.0"]
+                 [ring/ring-jetty-adapter "1.6.3"]
+                 [metosin/ring-http-response "0.9.0"]
+                 [ring-middleware-accept "2.0.3"]
                  [metosin/spec-tools "0.7.0"] ;;coercion
                  [hiposfer/geojson.specs "0.2.0"]
                  [com.taoensso/timbre "4.10.0"]
-                 [ring/ring-jetty-adapter "1.6.3"]
                  [com.stuartsierra/component "0.3.2"]
                  [org.apache.commons/commons-compress "1.17"] ;;bz2 files read
                  [org.teneighty/java-heaps "1.0.0"]

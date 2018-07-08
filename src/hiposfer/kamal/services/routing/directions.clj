@@ -15,7 +15,9 @@
             [hiposfer.kamal.network.algorithms.protocols :as np]
             [hiposfer.kamal.services.routing.transit :as transit]
             [hiposfer.kamal.libs.geometry :as geometry]
-            [hiposfer.kamal.libs.fastq :as fastq])
+            [hiposfer.kamal.libs.fastq :as fastq]
+            [datascript.core :as data]
+            [hiposfer.kamal.libs.tool :as tool])
   (:import (java.time LocalDateTime Duration LocalTime)))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
@@ -64,7 +66,7 @@
       ;; taking a trip on a public transport vehicle
       "continue" ;; only applies to transit
       (let [tstart  (:start (val (first piece)))
-            route   (:trip/route (:stop.times/trip tstart))
+            route   (:trip/route (:stop_times/trip tstart))
             vehicle (transit/route-types (:route/type route))
             id      (str vehicle " " (or (:route/short_name route)
                                          (:route/long_name route)))]
@@ -72,7 +74,7 @@
 
       "notification"
       (let [tend    (:start (val (first next-piece)))
-            trip    (:stop.times/trip tend)
+            trip    (:stop_times/trip tend)
             route   (:trip/route trip)
             vehicle (transit/route-types (:route/type route))
             id      (str vehicle " " (or (:route/short_name route)
@@ -118,33 +120,22 @@
 
       :else                "turn")))
 
-(defn- wait-time
-  [piece next-piece]
-  (let [trip-step (val (first next-piece))
-        arrival   (np/cost (val (first piece)))]
-    (- (:stop.times/departure_time (:start trip-step))
-       arrival)))
-
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
 (defn- maneuver ;; piece => [trace ...]
   "returns a step maneuver"
-  [network prev-piece  piece next-piece]
-  (let [position     (location (key (first piece)))
-        pre-bearing  (geometry/bearing (location (key (first prev-piece)))
+  [network prev-piece piece next-piece]
+  (let [pre-bearing  (geometry/bearing (location (key (first prev-piece)))
                                        (location (key (first piece))))
         post-bearing (geometry/bearing (location (key (first piece)))
                                        (location (key (first next-piece))))
         angle        (mod (+ 360 (- post-bearing pre-bearing)) 360)
         _type        (maneuver-type network prev-piece piece next-piece)
-        result       {:location (->coordinates position)
-                      :bearing_before pre-bearing
-                      :bearing_after  post-bearing
-                      :type _type}]
-    (cond-> result ;; conditionally add values to the result
-      (= _type "turn")      (assoc :modifier (modifier angle _type))
-      (= "notification" _type) (assoc :wait (wait-time piece next-piece))
-      (= "notification" _type) (assoc :trip (:trip/id (:stop.times/trip (:start (val (first next-piece))))))
-      :always (as-> $ (assoc $ :instruction (instruction network $ piece next-piece))))))
+        result       (merge {:bearing_before pre-bearing
+                             :bearing_after  post-bearing
+                             :type _type}
+                       (when (= _type "turn")
+                         {:modifier (modifier angle _type)}))]
+    (assoc result :instruction (instruction network result piece next-piece))))
 
 ;https://www.mapbox.com/api-documentation/#routestep-object
 (defn- step ;; piece => [trace ...]
@@ -152,58 +143,47 @@
   [network prev-piece piece next-piece]
   (let [context (transit/context network piece)
         line    (linestring (map key (concat piece [(first next-piece)])))
-        man     (maneuver network prev-piece piece next-piece)]
-    {:distance (geometry/arc-length (:coordinates line))
-     :duration (- (np/cost (val (first next-piece)))
-                  (np/cost (val (first piece))))
-     :geometry line
-     :name     (str (transit/name context))
-     :mode     (if (transit/stop? context) "transit" "walking")
-     :maneuver man
-     :intersections []}))
+        man     (maneuver network prev-piece piece next-piece)
+        mode    (if (transit/stop? context) "transit" "walking")]
+    (merge
+      {:mode     mode
+       :maneuver man
+       :distance (geometry/arc-length (:coordinates line))
+       :duration (- (np/cost (val (first next-piece)))
+                    (np/cost (val (first piece))))
+       :geometry line}
+      (when (some? (transit/name context))
+        {:name (transit/name context)})
+      (when (= "notification" (man :type))
+        {:arrival_time (np/cost (val (first piece)))})
+      (when (= "transit" mode)
+        (if (= "exit vehicle" (man :type))
+          (tool/gtfs-resource (:end (val (first piece))))
+          (tool/gtfs-resource (:start (val (first next-piece)))))))))
 
 (defn- route-steps
   "returns a route-steps vector or an empty vector if no steps are needed"
-  [network steps pieces]
-  (if (not steps) [] ;; piece => [[trace via] ...]
-    (let [start     [(first pieces)] ;; add depart and arrival pieces into the calculation
-          end       (repeat 2 [(last (last pieces))]) ;; use only the last point as end - not the entire piece
-          extended  (concat start pieces end)]
-      (map step (repeat network) extended (rest extended) (rest (rest extended))))))
-
-;https://www.mapbox.com/api-documentation/#routeleg-object
-(defn- route-leg
-  "a route between only two waypoints
-
-  WARNING: we dont support multiple waypoints yet !!"
-  [network steps trail];; trail => [trace ...]
-  (if (= (count trail) 1) ;; a single trace is returned for src = dst
-    {:distance 0 :duration 0 :steps [] :summary "" :annotation []}
-    (let [previous    (volatile! (first trail))
-          pieces      (partition-by #(transit/name (transit/context! network % previous))
-                                     trail)]
-      {:distance   (geometry/arc-length (:coordinates (linestring (map key trail))))
-       :duration   (- (np/cost (val (last trail)))
-                      (np/cost (val (first trail))))
-       :steps      (route-steps network steps pieces)
-       :summary    "" ;; TODO
-       :annotation []}))) ;; TODO
+  [network pieces] ;; piece => [[trace via] ...]
+  (let [start     [(first pieces)] ;; add depart and arrival pieces into the calculation
+        end       (repeat 2 [(last (last pieces))]) ;; use only the last point as end - not the entire piece
+        extended  (concat start pieces end)]
+    (map step (repeat network) extended (rest extended) (rest (rest extended)))))
 
 ;https://www.mapbox.com/api-documentation/#route-object
 (defn- route
-  "a route through (potentially multiple) waypoints
-
-  WARNING: we dont support multiple waypoints yet !!"
-  [network steps rtrail]
-  (let [trail  (rseq (into [] rtrail))
-        leg    (route-leg network steps trail)
-        trail  (if (= (count trail) 1) (repeat 2 (first trail)) trail)]
-    {:geometry    (linestring (map key trail))
-     :duration    (:duration leg)
-     :distance    (:distance leg)
-     :weight      (:duration leg)
-     :weight_name "time"
-     :legs        [leg]}))
+  "a route from the first to the last waypoint. Only two waypoints
+  are currently supported"
+  [network rtrail]
+  (let [trail  (rseq (into [] rtrail))]
+    (if (= (count trail) 1) ;; a single trace is returned for src = dst
+      {:distance 0 :duration 0 :steps [] :summary "" :annotation []}
+      (let [previous    (volatile! (first trail))
+            pieces      (partition-by #(transit/name (transit/context! network % previous))
+                                       trail)]
+        {:distance   (geometry/arc-length (:coordinates (linestring (map key trail))))
+         :duration   (- (np/cost (val (last trail)))
+                        (np/cost (val (first trail))))
+         :steps      (route-steps network pieces)}))))
 
 ;; for the time being we only care about the coordinates of start and end
 ;; but looking into the future it is good to make like this such that we
@@ -217,7 +197,7 @@
    Example:
    (direction network :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
   [network params]
-  (let [{:keys [coordinates steps ^LocalDateTime departure]} params
+  (let [{:keys [coordinates ^LocalDateTime departure]} params
         date       (.toLocalDate departure)
         trips      (fastq/day-trips network date)
         start      (Duration/between (LocalTime/MIDNIGHT)
@@ -231,12 +211,13 @@
                                   :comparator transit/by-cost})
         rtrail     (alg/shortest-path dst traversal)]
     (if (some? rtrail)
-      {:code "Ok"
-       :routes [(route network steps rtrail)]
-       :waypoints [{:name (str (some :way/name (fastq/node-ways network src)))
+      {:code      "Ok"
+       :uuid      (data/squuid)
+       :waypoints [{:name     (str (some :way/name (fastq/node-ways network src)))
                     :location (->coordinates (:node/location src))}
-                   {:name (str (some :way/name (fastq/node-ways network dst)))
-                    :location (->coordinates (:node/location dst))}]}
+                   {:name     (str (some :way/name (fastq/node-ways network dst)))
+                    :location (->coordinates (:node/location dst))}]
+       :route     (route network rtrail)}
       {:code "NoRoute"
        :message "There was no route found for the given coordinates. Check for
                        impossible routes (e.g. routes over oceans without ferry connections)."})))

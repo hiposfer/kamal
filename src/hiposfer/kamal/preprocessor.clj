@@ -30,6 +30,7 @@
   (let [env-vars    (walk/keywordize-keys (into {} (System/getenv)))
         config      (st/conform! ::core/env env-vars st/string-transformer)]
     (doseq [area (:networks config)]
+      (println "processing area:" (:area/id area))
       (let [value (routing/network (dissoc area :area/edn)) ;; just in case
             ;; osm is mandatory, use its filename !!
             path     (str outdir (filename (:area/osm area)) ".edn.bz2")]

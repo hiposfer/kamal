@@ -5,9 +5,13 @@ speed and stability in that order.
 
 
 ## Usage
-`kamal` creates an API server with a single endpoint, namely `directions`. It comes preloaded with
-Swagger interface for playing around with the API. For a demo see [try.hyposfer.com](http://try.hiposfer.com/index.html)
-(it will take a few seconds on the first run). By default `kamal` will run at [localhost:3000](http://localhost:3000).
+Check out the [API examples](resources/kamal.postman_collection.json) provided as a [Postman](getpostman.com) collection.
+Simply import it and have fun :)
+
+For a demo see [try.hyposfer.com](http://try.hiposfer.com/index.html)
+(it will take a few seconds on the first run).
+ 
+By default `kamal` will run at [localhost:3000](http://localhost:3000).
 
 ## Installation
 You can install `kamal` from _clojars_ using _lein_ or use our _docker_ image.
