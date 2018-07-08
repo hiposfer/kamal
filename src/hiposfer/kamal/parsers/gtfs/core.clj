@@ -65,7 +65,7 @@
               "routes.txt"     :route
               "trips.txt"      :trip
               "stops.txt"      :stop
-              "stop_times.txt" :stop.times})
+              "stop_times.txt" :stop_times})
 
 (def preparer
   "map of GTFS filenames to post-processing functions. Useful to remove

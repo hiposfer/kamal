@@ -2,8 +2,36 @@
   (:require [com.stuartsierra.component :as component]
             [hiposfer.kamal.services.webserver.handlers :as handler]
             [ring.adapter.jetty :as jetty]
-            [taoensso.timbre :as timbre])
+            [taoensso.timbre :as timbre]
+            [ring.middleware.keyword-params :refer [wrap-keyword-params]]
+            [ring.middleware.nested-params :refer [wrap-nested-params]]
+            [ring.middleware.params :refer [wrap-params]]
+            [ring.middleware.json :as json]
+            [ring.util.http-response :as code]
+            [ring.middleware.accept :as accept]
+            [hiposfer.kamal.libs.tool :as tool])
   (:import (org.eclipse.jetty.server Server)))
+
+(defn- inject-networks
+  "inject the networks (agent current value) into the request"
+  [handler conn]
+  (fn inject-networks*
+    [request]
+    (let [networks @conn]
+      (if (empty? networks)
+        (code/service-unavailable "routers have not started yet")
+        (handler (assoc request :kamal/networks networks))))))
+
+(defn- shape-response
+  [handler]
+  (fn shape-response*
+    [request]
+    (let [response (handler request)]
+      (if (string? (response :body))
+        response
+        (case (:mime (:accept request))
+          "application/json" (update response :body tool/json-namespace)
+          "application/edn" (update response :body pr-str))))))
 
 ;; --------
 ;; A Jetty WebServer +  compojure api
@@ -11,7 +39,15 @@
   component/Lifecycle
   (start [this]
     (if (:server this) this
-      (let [handler (handler/create router)
+      (let [handler (-> (handler/create)
+                        (inject-networks (:networks router))
+                        (shape-response)
+                        (accept/wrap-accept {:mime ["application/json" "application/edn"]})
+                        (json/wrap-json-response) ;; note efficient but works
+                        (json/wrap-json-params)
+                        (wrap-keyword-params)
+                        (wrap-nested-params)
+                        (wrap-params))
             server  (jetty/run-jetty handler {:join? (:JOIN_THREAD config)
                                               :port  (:PORT config)})]
         (timbre/info "-- Starting App server")
@@ -25,4 +61,3 @@
     this))
 
 (defn service [] (map->WebServer {}))
-

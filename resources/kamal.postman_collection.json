@@ -1,0 +1,97 @@
+{
+	"info": {
+		"_postman_id": "a8239796-47c3-46b8-a884-bf45e83d3f75",
+		"name": "kamal",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "fetch kamal areas",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"body": {},
+				"url": {
+					"raw": "http://localhost:3000/area",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"area"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "frankfurt directions",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"body": {},
+				"url": {
+					"raw": "localhost:3000/area/frankfurt/directions?departure=2018-05-07T10:15:30&coordinates=[[8.645333, 50.087314],[8.635897, 50.104172]]",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"area",
+						"frankfurt",
+						"directions"
+					],
+					"query": [
+						{
+							"key": "departure",
+							"value": "2018-05-07T10:15:30"
+						},
+						{
+							"key": "coordinates",
+							"value": "[[8.645333, 50.087314],[8.635897, 50.104172]]"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "frankfurt resources",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"body": {},
+				"url": {
+					"raw": "localhost:3000/area/frankfurt/stop/763067498",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"area",
+						"frankfurt",
+						"stop",
+						"763067498"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

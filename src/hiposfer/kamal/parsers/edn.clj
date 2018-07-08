@@ -1,16 +1,18 @@
 (ns hiposfer.kamal.parsers.edn
   (:require [clojure.java.io :as io]
             [clojure.edn :as edn]
-            [datascript.core :as data])
-  (:import (java.time ZoneId LocalDate DayOfWeek)
+            [datascript.core :as data]
+            [hiposfer.kamal.network.core :as network])
+  (:import (java.time LocalDateTime DayOfWeek LocalDate ZoneId)
            (java.io PushbackReader InputStreamReader)
            (org.apache.commons.compress.compressors.bzip2 BZip2CompressorInputStream)))
 
 (def java-readers
   "java class to parsing function. Useful to deserialize things from EDN"
-  {'java.time.ZoneRegion #(ZoneId/of %)
-   'java.time.LocalDate  #(LocalDate/parse %)
-   'java.time.DayOfWeek  #(DayOfWeek/valueOf %)})
+  {'java.time.ZoneRegion    #(ZoneId/of %)
+   'java.time.LocalDate     #(LocalDate/parse %)
+   'java.time.DayOfWeek     #(DayOfWeek/valueOf %)
+   'java.time.LocalDateTime #(LocalDateTime/parse %)})
 
 (defn read-object
   "get the appropiate reader for the Java object and parse it. Throws a
@@ -21,7 +23,7 @@
 
 (def local-readers
   "qualified symbol to parsing function. Used to get datascript to understand local objects"
-  {'hiposfer.kamal.network.core.Location hiposfer.kamal.network.core/map->Location
+  {'hiposfer.kamal.network.core.Location network/map->Location
    'object                               read-object})
 
 (defn parse
