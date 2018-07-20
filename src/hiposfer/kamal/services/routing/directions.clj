@@ -152,7 +152,7 @@
        :step/distance (geometry/arc-length (:coordinates line))
        :step/duration (Duration/ofSeconds (- arrives departs))
        :step/geometry line}
-      (when (some? (transit/name context))
+      (when (not-empty (transit/name context))
         {:step/name (transit/name context)})
       (if (= "arrive" (:type man))
         {:step/arrive (. start (plusSeconds arrives))}
@@ -203,7 +203,6 @@
    Example:
    (direction network :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
   [network params]
-  (println params)
   (let [{:keys [coordinates ^LocalDateTime departure]} params
         date       (. departure (toLocalDate))
         trips      (fastq/day-trips network date)
@@ -220,10 +219,13 @@
     (when (some? rtrail)
       (merge
         {:route/uuid      (data/squuid)
-         :route/waypoints [{:waypoint/name     (some :way/name (fastq/node-ways network src))
-                            :waypoint/location (->coordinates (location src))}
-                           {:waypoint/name     (some :way/name (fastq/node-ways network dst))
-                            :waypoint/location (->coordinates (location dst))}]}
+         :route/waypoints
+         [{:waypoint/name     (some (comp not-empty :way/name)
+                                    (fastq/node-ways network src))
+           :waypoint/location (->coordinates (location src))}
+          {:waypoint/name     (some (comp not-empty :way/name)
+                                    (fastq/node-ways network dst))
+           :waypoint/location (->coordinates (location dst))}]}
         (route network rtrail (. date (atStartOfDay)))))))
 
 ;(time
