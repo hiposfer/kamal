@@ -178,8 +178,8 @@
     (let [graph   @(router/pedestrian-graph {:SIZE i})
           request  (gen/generate (s/gen ::dataspecs/params))
           result   (dir/direction graph request)]
-      (is (s/valid? ::dataspecs/response result)
-          (str (expound/expound-str ::dataspecs/response result))))))
+      (is (s/valid? ::dataspecs/route result)
+          (str (expound/expound-str ::dataspecs/route result))))))
 
 ; -----------------------------------------------------------------
 ; generative tests for the direction endpoint
@@ -196,7 +196,7 @@
           depart   (gen/generate (s/gen ::dataspecs/departure))
           args     {:coordinates [src dst] :departure depart :steps true}
           result   (dir/direction graph args)]
-      (is (s/valid? ::dataspecs/response result)
-          (str (expound/expound-str ::dataspecs/response result))))))
+      (is (s/valid? ::dataspecs/route result)
+          (str (expound/expound-str ::dataspecs/route result))))))
 
 ;(clojure.test/run-tests)
