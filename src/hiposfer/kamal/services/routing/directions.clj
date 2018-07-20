@@ -185,8 +185,8 @@
       (let [previous    (volatile! (first trail))
             pieces      (partition-by #(transit/name (transit/context! network % previous))
                                        trail)
-            departs     (np/cost (val (last trail)))
-            arrives     (np/cost (val (first trail)))]
+            departs     (np/cost (val (first trail)))
+            arrives     (np/cost (val (last trail)))]
         {:route/distance (geometry/arc-length (:coordinates (linestring (map key trail))))
          :route/duration (Duration/ofSeconds (- arrives departs))
          :route/steps    (route-steps network pieces midnight)}))))
@@ -203,6 +203,7 @@
    Example:
    (direction network :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
   [network params]
+  (println params)
   (let [{:keys [coordinates ^LocalDateTime departure]} params
         date       (. departure (toLocalDate))
         trips      (fastq/day-trips network date)
