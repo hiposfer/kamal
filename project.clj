@@ -1,4 +1,4 @@
-(defproject hiposfer/kamal "0.10.0"
+(defproject hiposfer/kamal "0.11.0"
   :description "An application that provides routing based on external sources and OSM data"
   :url "https://github.com/hiposfer/kamal"
   :license {:name "LGPLv3"
@@ -24,10 +24,8 @@
   :aliases {"preprocess" ["trampoline" "run" "-m" "hiposfer.kamal.preprocessor"]}
   :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
                                   [expound "0.7.0"]
-                                  [io.aviso/pretty "0.1.34"]
                                   [org.clojure/tools.namespace "0.2.11"]]
-                   :plugins [[jonase/eastwood "0.2.6"]
-                             [io.aviso/pretty "0.1.34"]]
+                   :plugins [[jonase/eastwood "0.2.6"]]
                    :eastwood {:config-files ["resources/eastwood.clj"]}}
              :release {:aot [hiposfer.kamal.core] ;; compile the entry point and all of its dependencies}
                        :main hiposfer.kamal.core
