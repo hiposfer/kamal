@@ -84,10 +84,17 @@
     (code/bad-request (:kamal/errors request))
     (let [networks (:kamal/networks request)]
       (when-let [network (select networks (:params request))]
-        (if (inside? network (:params request))
-          (code/ok (dir/direction network (:params request)))
-          (code/ok {:code    "NoSegment"
-                    :message "No road segment could be matched for coordinates"}))))))
+        (if (not (inside? network (:params request)))
+          (code/precondition-failed
+            {:code    "NoSegment"
+             :message "No road segment could be matched for coordinates"})
+          (let [response (dir/direction network (:params request))]
+            (if (not (some? response))
+              (code/precondition-failed
+                {:code "NoRoute"
+                 :message "There was no route found for the given coordinates. Check for
+                       impossible routes (e.g. routes over oceans without ferry connections)."})
+              (code/ok response))))))))
 
 (defn- get-resource
   [request]

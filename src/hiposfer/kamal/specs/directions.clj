@@ -5,7 +5,11 @@
             [hiposfer.kamal.specs.resources :as res]
             [clojure.spec.gen.alpha :as gen]
             [hiposfer.kamal.services.routing.directions :as dir])
-  (:import (java.time LocalDateTime ZoneOffset)))
+  (:import (java.time LocalDateTime ZoneOffset Duration)))
+
+(s/def ::positive    (s/and spec/number? #(>= % 0)))
+(s/def ::name        (s/and string? not-empty))
+(s/def ::bearing     (s/and spec/number? #(<= 0 % 360)))
 
 ;;TODO this is a copy/paste of the gtfs spec but it gets the job done
 (s/def :stop_times/stop ::res/resource)
@@ -17,52 +21,45 @@
                                  :stop_times/departure_time :stop_times/stop
                                  :stop_times/sequence]))
 
-(s/def ::code        #{"Ok" "NoRoute" "NoSegment"})
-(s/def ::name        string?)
-;;(s/def ::summary     string?)
-(s/def :walk/type    #{"turn" "depart" "arrive"})
-(s/def :transit/type #{"exit vehicle" "notification" "continue"})
-(s/def :walk/mode    #{"walking"})
-(s/def :transit/mode #{"transit"})
-(s/def ::instruction (s/and string? not-empty))
-(s/def ::modifier    (set (vals dir/bearing-turns)))
-(s/def ::positive    (s/and spec/number? #(>= % 0)))
-(s/def ::bearing     (s/and spec/number? #(<= 0 % 360)))
-(s/def ::bearing_before ::bearing)
-(s/def ::bearing_after  ::bearing)
-(s/def ::duration    ::positive)
-(s/def ::distance    ::positive)
-(s/def ::weight      ::positive)
-(s/def ::weight_name string?)
-;; structures
-(s/def :maneuver/base    (s/keys :req-un [::bearing_before ::bearing_after
-                                          ::instruction]
-                                 :opt-un [::modifier]))
+(s/def :step/name     ::name)
+(s/def :step/mode     #{"transit" "walking"})
+(s/def :step/distance ::positive)
+(s/def :step/duration #(instance? Duration %))
+(s/def :step/geometry   ::geojson/linestring)
 
-(s/def :walk/maneuver    (s/merge :maneuver/base (s/keys :req-un [:walk/type])))
-(s/def :transit/maneuver (s/merge :maneuver/base (s/keys :req-un [:transit/type])))
+(s/def :maneuver/instruction    (s/and string? not-empty))
+(s/def :maneuver/modifier       (set (vals dir/bearing-turns)))
+(s/def :maneuver/type           #{"turn" "depart" "arrive" "exit vehicle"
+                                  "notification" "continue"})
+(s/def :maneuver/bearing_before ::bearing)
+(s/def :maneuver/bearing_after  ::bearing)
 
-(s/def :step/base  (s/keys :req-un [::distance ::duration ::geometry]
-                           :opt-un [::name]))
+(s/def ::maneuver  (s/keys :req [:maneuver/bearing_before
+                                 :maneuver/bearing_after
+                                 :maneuver/instruction]
+                           :opt [:maneuver/modifier]))
 
-(s/def :walk/step  (s/merge (s/keys :req-un [:walk/mode :walk/maneuver])
-                            :step/base))
+(s/def :base/step  (s/merge (s/keys :req [:step/mode :step/distance
+                                          :step/duration :step/geometry]
+                                    :opt [:step/name])
+                            ::maneuver))
 
-(s/def :transit/step (s/merge (s/keys :req-un [:transit/mode :transit/maneuver])
-                              :step/base
-                              ::stop_time))
+(s/def ::step      (s/or :transit (s/merge :base/step ::stop_time)
+                         :walk    :base/step))
 
-(s/def ::step        (s/or :transit :transit/step
-                           :walk :walk/step))
-(s/def ::steps       (s/coll-of ::step :kind sequential?))
-;;(s/def ::leg         (s/keys :req-un [::distance ::duration ::steps])) ;;::summary]))
-;;(s/def ::legs        (s/coll-of ::route-leg :kind sequential?))
-(s/def ::waypoint    (s/keys :req-un [::name ::location]))
-(s/def ::waypoints   (s/coll-of ::waypoint :kind sequential? :min-count 2))
-(s/def ::geometry    ::geojson/linestring)
-(s/def ::route       (s/keys :req-un [::distance ::duration ::steps]))
-;;(s/def ::routes      (s/coll-of ::route :kind sequential?))
-(s/def ::response   (s/keys :req-un [::code] :opt-un [::waypoints ::route]))
+(s/def :waypoint/name     (s/nilable ::name))
+(s/def :waypoint/location :hiposfer.geojson.specs.point/coordinates)
+(s/def ::waypoint         (s/keys :req [:waypoint/name :waypoint/location]))
+
+(s/def :route/steps     (s/coll-of ::step :kind sequential?))
+(s/def :route/distance  ::positive)
+(s/def :route/waypoints (s/coll-of ::waypoint :kind sequential? :min-count 2))
+(s/def :route/uuid      uuid?)
+
+(s/def ::route     (s/nilable (s/keys :req- [:route/waypoints
+                                             :route/distance
+                                             :route/duration
+                                             :route/steps])))
 
 ;;;;;;;;;;;;;;;;;;;;; REQUEST
 
