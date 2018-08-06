@@ -69,10 +69,13 @@
 
 (defn- get-area
   [request]
-  (let [regions    (:kamal/networks request)
-        ids        (for [conn regions]
-                     {:area/id (data/q '[:find ?id . :where [_ :area/id ?id]] @conn)})]
-    (code/ok ids)))
+  (let [regions (:kamal/networks request)
+        areas   (for [conn regions]
+                  (let [id (data/q '[:find ?area .
+                                     :where [?area :area/id]]
+                                   @conn)]
+                    (into {} (data/pull @conn '[*] id))))]
+    (code/ok areas)))
 
 (def directions-coercer {:area        str/upper-case
                          :coordinates edn/read-string
