@@ -12,8 +12,8 @@
 (s/def ::bearing     (s/and spec/number? #(<= 0 % 360)))
 
 ;;TODO this is a copy/paste of the gtfs spec but it gets the job done
-(s/def :stop_times/stop ::res/resource)
-(s/def :stop_times/trip ::res/resource)
+(s/def :stop_times/stop ::res/reference)
+(s/def :stop_times/trip ::res/reference)
 (s/def :stop_times/sequence spec/integer?)
 (s/def :stop_times/arrival_time nat-int?)
 (s/def :stop_times/departure_time nat-int?)

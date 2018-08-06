@@ -10,7 +10,7 @@
                          :when (contains? v :db.unique)]
                      (namespace k))))
 
-(s/def ::resource (s/map-of keyword? ::id :count 1)) ;; only the ref itself, no extra info
+(s/def ::reference (s/map-of keyword? ::id :count 1)) ;; only the ref itself, no extra info
 
 ;;;; REQUEST
 
