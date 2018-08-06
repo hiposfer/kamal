@@ -74,7 +74,7 @@
                   (let [id (data/q '[:find ?area .
                                      :where [?area :area/id]]
                                    @conn)]
-                    (into {} (data/pull @conn '[*] id))))]
+                    (into {} (data/entity @conn id))))]
     (code/ok areas)))
 
 (def directions-coercer {:area        str/upper-case
