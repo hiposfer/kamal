@@ -203,7 +203,6 @@
    Example:
    (direction network :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
   [network params]
-  (println params)
   (let [{:keys [coordinates ^LocalDateTime departure]} params
         date       (. departure (toLocalDate))
         trips      (fastq/day-trips network date)

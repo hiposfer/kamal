@@ -122,7 +122,7 @@
   [k v]
   (let [suffix (name k)
         ident  (keyword suffix "id")]
-    [k {:id (get v ident)}]))
+    [k {ident (get v ident)}]))
 
 (def gtfs-ns (set (vals gtfs/file-ns)))
 
