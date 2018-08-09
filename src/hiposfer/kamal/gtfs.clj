@@ -6,7 +6,8 @@
   Useful to avoid monkey patching"
   (:require [clojure.string :as str]
             [markdown2clj.core :as md]
-            [clojure.pprint :as pprint]))
+            [clojure.pprint :as pprint]
+            [clojure.edn :as edn]))
 
 (def url "https://raw.githubusercontent.com/google/transit/master/gtfs/spec/en/reference.md")
 
@@ -63,7 +64,7 @@
   [text]
   (if-let [[_ value description] (re-matches #"\* (\d) - (.*)" text)]
     {:description description
-     :value value}
+     :value (edn/read-string value)}
     text))
 
 (defn- parse-enums
