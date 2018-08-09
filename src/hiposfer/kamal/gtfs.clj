@@ -88,6 +88,15 @@
      :else
      (recur (rest fields) (conj result parent) (first fields)))))
 
+(defn- tidy
+  [form]
+  (if (not (map? form)) form
+    (let [required (= (:required form) "Required")
+          details  (str/lower-case (or (:details form) (:defines form)))
+          unique   (str/includes? details "dataset unique")]
+      (merge form {:required required}
+                  (when unique {:unique unique})))))
+
 (defn- parse
   [raw]
   (let [content    (md/parse raw)
@@ -101,12 +110,14 @@
                       :fields   (->> (zipify file)
                                      (parse-enums)
                                      (remove #(and (empty? (:field-name %))
-                                                   (empty? (:required %)))))})]
-    {:feed-files feed-data
+                                                   (empty? (:required %))))
+                                     (map tidy))})]
+    {:feed-files (map tidy feed-data)
      :field-definitions files-data}))
 
 (defn -main
-  [f out]
-  (spit out (with-out-str (pprint/pprint (parse (slurp f))))))
+  [out]
+  (spit out (with-out-str (pprint/pprint (parse (slurp url))))))
 
-;(-main url)
+;(parse (slurp url))
+;(-main "resources/gtfs/reference.edn")
