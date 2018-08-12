@@ -24,6 +24,7 @@
   :aliases {"preprocess" ["trampoline" "run" "-m" "hiposfer.kamal.preprocessor"]}
   :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
                                   [expound "0.7.0"]
+                                  [markdown2clj "0.1.3"]
                                   [org.clojure/tools.namespace "0.2.11"]]
                    :plugins [[jonase/eastwood "0.2.6"]]
                    :eastwood {:config-files ["resources/eastwood.clj"]}}
