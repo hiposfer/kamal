@@ -187,8 +187,7 @@
                   (data/datoms network :aevt :stop/id))]
     (let [node (first (nearest-node network (:stop/location stop)))]
       (if (not (some? node))
-        (throw (ex-info (str "\nstop " (:stop/id stop) " at " (:stop/location stop)
-                             "didnt match to any known node in the OSM data")
+        (throw (ex-info "stop didnt match to any known node in the OSM data"
                         (into {} stop)))
         {:node/id (:node/id node)
          :node/successors #{[:stop/id (:stop/id stop)]}}))))
