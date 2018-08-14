@@ -186,8 +186,11 @@
   (for [stop (map #(data/entity network (:e %))
                   (data/datoms network :aevt :stop/id))]
     (let [node (first (nearest-node network (:stop/location stop)))]
-      {:node/id (:node/id node)
-       :node/successors #{[:stop/id (:stop/id stop)]}})))
+      (if (not (some? node))
+        (throw (ex-info (str "stop " (:stop/id stop) "at " (:stop/location stop)
+                             "didnt match to any known node in the OSM data") stop))
+        {:node/id (:node/id node)
+         :node/successors #{[:stop/id (:stop/id stop)]}}))))
 
 ;; this reduced my test query from 30 seconds to 8 seconds
 (defn cache-stop-successors
