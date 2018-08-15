@@ -181,15 +181,15 @@
   [network rtrail midnight]
   (let [trail  (rseq (into [] rtrail))]
     (if (= (count trail) 1) ;; a single trace is returned for src = dst
-      {:route/distance 0 :route/duration 0 :route/steps []}
+      {:directions/distance 0 :directions/duration 0 :directions/steps []}
       (let [previous    (volatile! (first trail))
             pieces      (partition-by #(transit/name (transit/context! network % previous))
                                        trail)
             departs     (np/cost (val (first trail)))
             arrives     (np/cost (val (last trail)))]
-        {:route/distance (geometry/arc-length (:coordinates (linestring (map key trail))))
-         :route/duration (Duration/ofSeconds (- arrives departs))
-         :route/steps    (route-steps network pieces midnight)}))))
+        {:directions/distance (geometry/arc-length (:coordinates (linestring (map key trail))))
+         :directions/duration (Duration/ofSeconds (- arrives departs))
+         :directions/steps    (route-steps network pieces midnight)}))))
 
 ;; for the time being we only care about the coordinates of start and end
 ;; but looking into the future it is good to make like this such that we
