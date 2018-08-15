@@ -25,6 +25,7 @@
 (s/def :step/mode     #{"transit" "walking"})
 (s/def :step/distance ::positive)
 (s/def :step/duration #(instance? Duration %))
+(s/def :step/departure #(instance? LocalDateTime %))
 (s/def :step/geometry   ::geojson/linestring)
 
 (s/def :maneuver/instruction    (s/and string? not-empty))
