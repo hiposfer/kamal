@@ -51,15 +51,15 @@
 (s/def :waypoint/location :hiposfer.geojson.specs.point/coordinates)
 (s/def ::waypoint         (s/keys :req [:waypoint/name :waypoint/location]))
 
-(s/def :route/steps     (s/coll-of ::step :kind sequential?))
-(s/def :route/distance  ::positive)
-(s/def :route/waypoints (s/coll-of ::waypoint :kind sequential? :min-count 2))
+(s/def :directions/steps     (s/coll-of ::step :kind sequential?))
+(s/def :directions/distance  ::positive)
+(s/def :directions/waypoints (s/coll-of ::waypoint :kind sequential? :min-count 2))
 (s/def :route/uuid      uuid?)
 
-(s/def ::route     (s/nilable (s/keys :req- [:route/waypoints
-                                             :route/distance
-                                             :route/duration
-                                             :route/steps])))
+(s/def ::directions     (s/nilable (s/keys :req [:directions/waypoints
+                                                 :directions/distance
+                                                 :directions/duration
+                                                 :directions/steps])))
 
 ;;;;;;;;;;;;;;;;;;;;; REQUEST
 
