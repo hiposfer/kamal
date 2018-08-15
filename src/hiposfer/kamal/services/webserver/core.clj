@@ -9,7 +9,8 @@
             [ring.middleware.json :as json]
             [ring.util.http-response :as code]
             [ring.middleware.accept :as accept]
-            [hiposfer.kamal.libs.tool :as tool])
+            [hiposfer.kamal.libs.tool :as tool]
+            [clojure.walk :as walk])
   (:import (org.eclipse.jetty.server Server)))
 
 (defn- inject-networks
@@ -30,7 +31,7 @@
       (if (string? (response :body))
         response
         (case (:mime (:accept request))
-          "application/json" (update response :body tool/json-namespace)
+          "application/json" (update response :body #(walk/postwalk tool/jsonista %))
           "application/edn" (update response :body pr-str))))))
 
 ;; --------

@@ -68,55 +68,23 @@
              m
              coercers))
 
-(defn- split [k]
-  (cond
-    (not (keyword? k)) [k]
-    (some? (namespace k))
-    (concat (map keyword (str/split (namespace k) #"\."))
-            [(keyword (name k))])
+(defn- stringify?
+  "only stringifies java object which are not primities (java.lang...)"
+  [^Object value]
+  (and (str/starts-with? (.getCanonicalName (.getClass ^Object value)) "java")
+       (not (str/starts-with? (.getCanonicalName (.getClass ^Object value)) "java.lang"))))
 
-    (str/includes? (name k) ".")
-    (map keyword (str/split (name k) #"\."))
-
-    :else [k]))
-
-(defn json-namespace
-  "takes a Clojure datastructure and destructures all namespaced keyword maps
-   into separate maps and all sequences of namespaced keywords into sequences
-   of simple keywords.
-
-   Accepts an sequence of custom java object which are stringified according
-   to their own toString method.
-
-   This attempts to mimic the way that a json response would be shaped
-   For example:
-   (json-namespace {:a (ZoneId/of \"Europe/Berlin\") :c/b [:d.e :f/g]}
-                   (keys edn/java-readers))
-   => {:a \"Europe/Berlin\", :c {:b ((:d :e) (:f :g))}} "
+(defn jsonista
+  "returns a string representation of Java objects or the object itself otherwise"
   [value]
   (cond
-    (nil? value) nil
-
-    (map? value)
-    (reduce-kv (fn [res k v]
-                 (assoc-in res (split k) (json-namespace v)))
-               {}
-               value)
-
-    (coll? value) ;; but not map
-    (map json-namespace value)
-
-    (keyword? value) (split value)
-
-    (and (str/starts-with? (.getCanonicalName (.getClass ^Object value)) "java")
-         (not (str/starts-with? (.getCanonicalName (.getClass ^Object value)) "java.lang")))
+    (stringify? value)
     (str value)
 
-    :else value))
+    (qualified-keyword? value)
+    (keyword (name value))
 
-;(json-namespace {:a (ZoneId/of "Europe/Berlin") :c/b [:d.e :f/g]}
-;                (keys edn/java-readers))))
-;(split-keyword :b.v)
+    :else value))
 
 (defn- references
   [k v]

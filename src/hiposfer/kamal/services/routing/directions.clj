@@ -218,8 +218,8 @@
         rtrail     (alg/shortest-path dst traversal)]
     (when (some? rtrail)
       (merge
-        {:route/uuid      (data/squuid)
-         :route/waypoints
+        {:directions/uuid      (data/squuid)
+         :directions/waypoints
          [{:waypoint/name     (some (comp not-empty :way/name)
                                     (fastq/node-ways network src))
            :waypoint/location (->coordinates (location src))}
