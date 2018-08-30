@@ -1,8 +1,6 @@
 (ns hiposfer.kamal.parsers.osm
   (:require [clojure.data.xml :as xml]
-            [hiposfer.kamal.network.core :as network]
-            [clojure.java.io :as io])
-  (:import (org.apache.commons.compress.compressors.bzip2 BZip2CompressorInputStream)))
+            [hiposfer.kamal.network.core :as network]))
 
 ;;TODO: include routing attributes for penalties
 ;; bridge=yes      Also true/1/viaduct

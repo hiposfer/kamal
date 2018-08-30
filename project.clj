@@ -16,7 +16,6 @@
                  [hiposfer/geojson.specs "0.2.0"]
                  [com.taoensso/timbre "4.10.0"]
                  [com.stuartsierra/component "0.3.2"]
-                 [org.apache.commons/commons-compress "1.17"] ;;bz2 files read
                  [org.teneighty/java-heaps "1.0.0"]
                  [org.clojure/data.csv "0.1.4"]
                  [datascript "0.16.6"]

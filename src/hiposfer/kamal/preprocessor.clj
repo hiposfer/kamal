@@ -7,14 +7,12 @@
             [clojure.walk :as walk]
             [clojure.spec.alpha :as s]
             [clojure.string :as str]
-            [clojure.data.xml :as xml]
             [datascript.core :as data]
             [hiposfer.kamal.libs.fastq :as fastq]
             [hiposfer.kamal.parsers.gtfs.core :as gtfs]
             [hiposfer.kamal.parsers.osm :as osm])
-  (:import (org.apache.commons.compress.compressors.bzip2 BZip2CompressorOutputStream)
-           (java.net URLEncoder URL)
-           (java.util.zip ZipInputStream)))
+  (:import (java.net URLEncoder URL)
+           (java.util.zip ZipInputStream GZIPOutputStream)))
 
 (defn area-id? [k] (re-matches core/area-regex (name k)))
 ;; (area-id? :FRANKFURT_AM_MAIN_AREA_GTFS)
@@ -39,10 +37,10 @@
     (with-open [z (-> (io/input-stream (:area/gtfs area))
                       (ZipInputStream.))]
       (as-> (data/empty-db routing/schema) $
-            (data/db-with $ (time (osm/datomize! (. conn (getContent)))))
-            (data/db-with $ (time (gtfs/datomize! z)))
-            (data/db-with $ (time (fastq/link-stops $)))
-            (data/db-with $ (time (fastq/cache-stop-successors $)))
+            (data/db-with $ (osm/datomize! (. conn (getContent))))
+            (data/db-with $ (gtfs/datomize! z))
+            (data/db-with $ (fastq/link-stops $))
+            (data/db-with $ (fastq/cache-stop-successors $))
             (data/db-with $ [area]))))) ;; add the area as transaction)))
 
 (defn- preprocess-env
@@ -70,9 +68,9 @@
       (println "processing area:" (:area/id area))
       (let [db   (preprocess-data area)
             ;; osm is mandatory, use its filename !!
-            path (str outdir (str/lower-case (:area/id area)) ".edn.bz2")]
+            path (str outdir (str/lower-case (:area/id area)) ".edn.gzip")]
         (with-open [w (-> (io/output-stream path)
-                          (BZip2CompressorOutputStream.)
+                          (GZIPOutputStream.)
                           (io/writer))]
           (binding [*out* w]
             (pr db)))))))
