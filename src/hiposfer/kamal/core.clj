@@ -20,19 +20,16 @@
             [clojure.string :as str]))
 
 ;; matches strings like SAARLAND_AREA_OSM
-(def area-regex #"^([A-Z0-9]+)_AREA_(OSM|GTFS|EDN)$")
+(def area-regex #"^(\w+)_AREA_(\w+)$")
 (defn- area-id [k] (second (re-find area-regex (name k))))
 
-;; TODO: we should check that the values are strings
-;; TODO: osm is mandatory, everything else is optional
 (defn- networks
-  "takes a map of enviroment variables and returns a sequence of
+  "takes a map of environment variables and returns a sequence of
   maps with the area env vars grouped. An extra key :area/id is
   added to each map for dynamic name processing"
   [envs]
   (let [nets (for [k (keys envs)
-                   :let [st (name k)]
-                   :when (re-matches area-regex st)]
+                   :when (re-matches area-regex (name k))]
                k)]
     (for [[id ks] (group-by area-id nets)]
      (conj (select-keys envs ks) [:area/id id]))))

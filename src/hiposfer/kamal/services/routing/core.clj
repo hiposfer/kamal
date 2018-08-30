@@ -62,21 +62,10 @@
 (defn network
   "builds a datascript in-memory db and conj's it into the passed agent"
   [area]
-  (if (:area/edn area)
-    ;; re-build the network from the file
-    (as-> (edn/parse (:area/edn area)) $
-          (data/db-with $ [area]) ;; add the area as transaction
-          (data/conn-from-db $))
-    ;; progressively build up the network from the pieces
-    (with-open [z (-> (io/input-stream (:area/gtfs area))
-                      (ZipInputStream.))]
-      (as-> (data/empty-db schema) $
-            (data/db-with $ (osm/datomize (:area/osm area)))
-            (data/db-with $ (gtfs/datomize! z))
-            (data/db-with $ (fastq/link-stops $))
-            (data/db-with $ (fastq/cache-stop-successors $))
-            (data/db-with $ [area]) ;; add the area as transaction
-            (data/conn-from-db $)))))
+  ;; re-build the network from the file
+  (as-> (edn/parse (:area/edn area)) $
+        (data/db-with $ [area]) ;; add the area as transaction
+        (data/conn-from-db $)))
 
 (defn pedestrian-graph
   "builds a datascript in-memory db and returns it. Only valid for

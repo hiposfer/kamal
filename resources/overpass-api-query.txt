@@ -1,7 +1,7 @@
 
 [out:xml][timeout:180];
 // get the specific search area
-{{geocodeArea:niederrad}}->.searchArea;
+area["name"="Niederrad"]->.searchArea;
 // get all ways that are accessible to pedestrians
 (
 	way["access"!~"no|private"](area.searchArea);
