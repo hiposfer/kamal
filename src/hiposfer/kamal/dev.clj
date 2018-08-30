@@ -14,17 +14,16 @@
             [clojure.spec.alpha :as s]
             [clojure.spec.test.alpha]
             [clojure.tools.namespace.repl :as repl]
-            [taoensso.timbre :as timbre]
-            [spec-tools.core :as st]))
+            [taoensso.timbre :as timbre]))
 
 (def env
   "a fake environment variables setting for development"
   {:USE_FAKE_NETWORK false
    :JOIN_THREAD false
    :PORT 3000
-   :SAARLAND_AREA_GTFS "resources/saarland.gtfs.zip"
-   :SAARLAND_AREA_OSM "resources/saarland.min.osm.bz2"
-   :SAARLAND_AREA_EDN "resources/saarland.edn.bz2"})
+   ;:FREIBURG_AREA_GTFS "resources/freiburg.gtfs.zip"})
+   ;:FRANKFURT_AREA_GTFS "resources/frankfurt.gtfs.zip"})
+   :FRANKFURT_AREA_EDN "resources/frankfurt.edn.bz2"})
 
 (defonce system nil)
 
@@ -32,7 +31,7 @@
   "Constructs the current development system."
   []
   (alter-var-root #'system
-    (constantly (core/system (st/conform! ::core/env env)))))
+    (constantly (core/system (core/prepare-env env)))))
 
 (defn start!
   "Starts the current development system."
@@ -46,14 +45,19 @@
   (timbre/debug "Stopping System\n")
   (alter-var-root #'system (fn [s] (when s (component/stop s)))))
 
+(defn- custom-printer
+  []
+  (expound/custom-printer {:show-valid-values? true
+                           :print-specs? false
+                           :theme :figwheel-theme}))
+
 (defn go!
   "Initializes the current development system and starts it running."
   []
   (stop!)
   (init!)
   (clojure.spec.test.alpha/instrument)
-  (set! s/*explain-out* (expound/custom-printer {:theme :figwheel-theme
-                                                 :print-specs? false}))
+  (alter-var-root #'s/*explain-out* (constantly custom-printer))
   (set! *warn-on-reflection* true)
   (set! *print-length* 100)
   (start!))
