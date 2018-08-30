@@ -15,63 +15,50 @@
             [taoensso.timbre :as timbre]
             [clojure.walk :as walk]
             [clojure.spec.alpha :as s]
-            [spec-tools.spec :as spec]
             [spec-tools.core :as st]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [clojure.edn :as edn]))
 
 ;; matches strings like SAARLAND_AREA_OSM
 (def area-regex #"^(\w+)_AREA_(\w+)$")
-(defn- area-id [k] (second (re-find area-regex (name k))))
+(defn area-id? [k] (re-matches area-regex (name k)))
+;; (area-id? :FRANKFURT_AM_MAIN_AREA_GTFS)
 
-(defn- networks
-  "takes a map of environment variables and returns a sequence of
-  maps with the area env vars grouped. An extra key :area/id is
-  added to each map for dynamic name processing"
-  [envs]
-  (let [nets (for [k (keys envs)
-                   :when (re-matches area-regex (name k))]
-               k)]
-    (for [[id ks] (group-by area-id nets)]
-     (conj (select-keys envs ks) [:area/id id]))))
-;; example
-;(networks {:FRANKFURT_AREA_OSM "foo" :SAARLAND_AREA_GTFS 2})
+(defn edn-area? [k] (str/ends-with? (name k) "EDN"))
+;;(edn-area? :Frankfurt_am_Main_AREA_EDN)
 
-(defn- simplify
+(defn prepare-areas
   "takes an environment network map and returns a map with :area as key
    namespace and the name file format as ending. For example: :area/gtfs"
-  [networks]
-  (reduce (fn [result [k v]]
-            (let [[match _ ext] (re-find area-regex (name k))]
-              (if-not (some? match)
-                (conj result [k v])
-                (conj result [(keyword "area" (str/lower-case ext)) v]))))
-          {}
-          networks))
-;example
-;(simplify {:FRANKFURT_AREA_GTFS "hello" :area/id "frankfurt"})
+  [m]
+  (let [nets (filter (fn [[k]] (re-matches area-regex (name k))) m)]
+    (for [[k v] nets]
+      (let [[_ id ext] (re-find area-regex (name k))]
+        (into {:area/id id} [[(keyword "area" (str/lower-case ext)) v]])))))
+;; (preprocess-env {:Frankfurt_am_Main_AREA_GTFS "foo"})
 
-(defn reshape-env
-  "takes a map of environment variables and returns a map
-  suitable for kamal system configuration. Return ::s/invalid
-  if no valid networks were found"
-  [envs]
-  (let [nets          (networks envs)
-        without-areas (fn [result area] (apply dissoc result (set (keys area))))
-        envs          (reduce without-areas envs nets)]
-    (if (empty? nets) ::s/invalid
-      (conj envs [:networks (map simplify nets)]))))
+(s/def ::USE_FAKE_NETWORK boolean?)
+(s/def ::JOIN_THREAD boolean?)
+(s/def ::PORT integer?)
 
-(s/def ::USE_FAKE_NETWORK spec/boolean?)
-(s/def ::JOIN_THREAD spec/boolean?)
-(s/def ::PORT spec/integer?)
+(s/def ::env (s/keys :req-un [::PORT]
+                     :opt-un [::JOIN_THREAD ::USE_FAKE_NETWORK]))
 
-(s/def ::env (s/and (s/keys :req-un [::PORT]
-                            :opt-un [::JOIN_THREAD ::USE_FAKE_NETWORK])
-                    (s/conformer reshape-env)))
-;; example
-;(st/conform! ::env {:PORT "3000"
-;                    :FRANKFURT_AREA_OSM "foo" :SAARLAND_AREA_GTFS 2}
-;             st/string-transformer)
+(s/def ::areas (s/and #(pos? (count %))
+                      (s/map-of area-id? string?)
+                      (s/map-of edn-area? string?)))
+
+(defn prepare-env
+  [env]
+  (let [server  (for [[k v] (select-keys env [:PORT :JOIN_THREAD :USE_FAKE_NETWORK])]
+                  (if (not (string? v))
+                    [k v]
+                    [k (edn/read-string v)]))
+        sconfig (into {} server)
+        areas   (into {} (filter #(re-matches area-regex (name (key %)))) env)]
+    (assert (s/valid? ::areas areas) (s/explain ::areas areas))
+    (assert (s/valid? ::env sconfig) (s/explain ::env sconfig))
+    (merge (into {} server) {:networks (prepare-areas areas)})))
 
 (defn system
   "creates a complete system map using components and the provided
@@ -84,8 +71,9 @@
     :app (component/using (webserver/service)
                           [:config :router])))
 
-(defn -main [& args]
+(defn -main
+  [& args]
   (timbre/info "\n\nWelcome to the hiposfer/kamal App")
-  (let [env-vars    (walk/keywordize-keys (into {} (System/getenv)))
-        config      (st/conform! ::env env-vars st/string-transformer)]
+  (let [env    (walk/keywordize-keys (into {} (System/getenv)))
+        config (prepare-env env)]
     (component/start (system config))))
