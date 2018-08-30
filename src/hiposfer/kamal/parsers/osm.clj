@@ -100,14 +100,13 @@
 ;; data is part of the OSM file. See README
 
 ;; TODO: deduplicate strings in ways name
-(defn datomize
+(defn datomize!
   "read an OSM file and transforms it into a network of {:graph :ways :points},
    such that the graph represent only the connected nodes, the points represent
    the shape of the connection and the ways are the metadata associated with
    the connections"
-  [filename] ;; read all elements into memory
-  (let [nodes&ways    (with-open [file-rdr (-> (io/input-stream filename)
-                                               (BZip2CompressorInputStream.))]
+  [input-stream] ;; read all elements into memory
+  (let [nodes&ways    (with-open [file-rdr input-stream]
                         (into [] (comp (map entries)
                                        (remove nil?))
                               (:content (xml/parse file-rdr))))

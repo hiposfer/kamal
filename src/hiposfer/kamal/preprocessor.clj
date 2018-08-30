@@ -4,41 +4,78 @@
             [taoensso.timbre :as timbre]
             [hiposfer.kamal.services.routing.core :as routing]
             [hiposfer.kamal.core :as core]
-            [spec-tools.core :as st]
-            [clojure.walk :as walk])
+            [clojure.walk :as walk]
+            [clojure.spec.alpha :as s]
+            [clojure.string :as str]
+            [clojure.data.xml :as xml]
+            [datascript.core :as data]
+            [hiposfer.kamal.libs.fastq :as fastq]
+            [hiposfer.kamal.parsers.gtfs.core :as gtfs]
+            [hiposfer.kamal.parsers.osm :as osm])
   (:import (org.apache.commons.compress.compressors.bzip2 BZip2CompressorOutputStream)
-           (java.net MalformedURLException)))
+           (java.net URLEncoder URL)
+           (java.util.zip ZipInputStream)))
 
-(defn- filename
-  "try to extract a filename from the provided string"
-  [text]
-  (try
-    (let [url ^java.net.URL (io/as-url text)
-          conn (.openConnection url)
-          content (-> conn (.getHeaderField "Content-Disposition"))]
-      (second (re-find #"filename\*=utf-8''(\w+)" content)))
-    (catch MalformedURLException _
-      (second (re-find #"\/(\w+)\." text)))))
+(defn area-id? [k] (re-matches core/area-regex (name k)))
+;; (area-id? :FRANKFURT_AM_MAIN_AREA_GTFS)
 
-;; TODO: I think it would be best to have a separate spec for this as well
+(defn gtfs-area? [k] (str/ends-with? (name k) "GTFS"))
+;;(gtfs-area? :Frankfurt_am_Main_AREA_GTFS)
+
+(s/def ::env (s/and #(pos? (count %))
+                     (s/map-of area-id? string?)
+                     (s/map-of gtfs-area? string?)))
+
+(defn- preprocess-data
+  [area]
+  (let [human-id (str/replace (:area/id area) "_" " ")
+        query    (str/replace (slurp "resources/overpass-api-query.txt")
+                              "Niederrad"
+                              human-id)
+        url      (str "http://overpass-api.de/api/interpreter?data="
+                      (URLEncoder/encode query "UTF-8"))
+        conn     (. ^URL (io/as-url url) (openConnection))]
+    ;; progressively build up the network from the pieces
+    (with-open [z (-> (io/input-stream (:area/gtfs area))
+                      (ZipInputStream.))]
+      (as-> (data/empty-db routing/schema) $
+            (data/db-with $ (time (osm/datomize! (. conn (getContent)))))
+            (data/db-with $ (time (gtfs/datomize! z)))
+            (data/db-with $ (time (fastq/link-stops $)))
+            (data/db-with $ (time (fastq/cache-stop-successors $)))
+            (data/db-with $ [area]))))) ;; add the area as transaction)))
+
+(defn- preprocess-env
+  "takes an environment network map and returns a map with :area as key
+   namespace and the name file format as ending. For example: :area/gtfs"
+  [env]
+  (let [nets (filter (fn [[k]] (re-matches core/area-regex (name k))) env)]
+    (for [[k v] nets]
+      (let [[_ id] (re-find core/area-regex (name k))]
+        {:area/id id
+         :area/gtfs v}))))
+;; (preprocess-env {:Frankfurt_am_Main_AREA_GTFS "foo"})
+
 (defn -main
   "Script for preprocessing OSM and GTFS files into gzip files each with
   a Datascript EDN representation inside"
   [outdir]
   (assert (not (nil? outdir)) "missing output file")
   (timbre/info "preprocessing OSM and GTFS files")
-  (let [env-vars    (walk/keywordize-keys (into {} (System/getenv)))
-        config      (st/conform! ::core/env env-vars st/string-transformer)]
-    (doseq [area (:networks config)]
+  (let [env    (walk/keywordize-keys (into {} (System/getenv)))
+        areas  (into {} (filter (fn [[k]] (re-matches core/area-regex (name k))))
+                        env)]
+    (assert (s/valid? ::env areas) (s/explain ::env areas))
+    (doseq [area (preprocess-env areas)]
       (println "processing area:" (:area/id area))
-      (let [value (routing/network (dissoc area :area/edn)) ;; just in case
+      (let [db   (preprocess-data area)
             ;; osm is mandatory, use its filename !!
-            path     (str outdir (filename (:area/osm area)) ".edn.bz2")]
+            path (str outdir (str/lower-case (:area/id area)) ".edn.bz2")]
         (with-open [w (-> (io/output-stream path)
                           (BZip2CompressorOutputStream.)
                           (io/writer))]
           (binding [*out* w]
-            (pr @value)))))))
+            (pr db)))))))
 
 ;example
 ;(-main "resources/")
