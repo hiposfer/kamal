@@ -21,9 +21,7 @@
   {:USE_FAKE_NETWORK false
    :JOIN_THREAD false
    :PORT 3000
-   ;:FREIBURG_AREA_GTFS "resources/freiburg.gtfs.zip"})
-   ;:FRANKFURT_AREA_GTFS "resources/frankfurt.gtfs.zip"})
-   :FRANKFURT_AREA_EDN "resources/frankfurt.edn.bz2"})
+   :FRANKFURT_AM_MAIN_AREA_EDN "resources/frankfurt_am_main.edn.gzip"})
 
 (defonce system nil)
 

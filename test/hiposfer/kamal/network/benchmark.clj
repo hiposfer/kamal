@@ -34,7 +34,7 @@
 
 (def network (delay
                  (time
-                   (let [data (osm/datomize! "resources/saarland.min.osm.bz2")
+                   (let [data (osm/datomize! "resources/frankfurt_am_main.edn.gzip")
                          conn (data/create-conn router/schema)]
                      (data/transact! conn data)
                      conn))))

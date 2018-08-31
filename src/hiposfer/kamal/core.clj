@@ -58,7 +58,7 @@
         areas   (into {} (filter #(re-matches area-regex (name (key %)))) env)]
     (assert (s/valid? ::areas areas) (s/explain ::areas areas))
     (assert (s/valid? ::env sconfig) (s/explain ::env sconfig))
-    (merge (into {} server) {:networks (prepare-areas areas)})))
+    (merge sconfig {:networks (prepare-areas areas)})))
 
 (defn system
   "creates a complete system map using components and the provided
