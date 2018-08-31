@@ -175,11 +175,11 @@
 (defspec generative-directions
   100; tries
   (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
-                (let [graph   @(router/pedestrian-graph {:SIZE i})
-                      request  (gen/generate (s/gen ::dataspecs/params))
-                      result   (dir/direction graph request)]
-                  (is (s/valid? ::dataspecs/directions result)
-                      (str (expound/expound-str ::dataspecs/directions result))))))
+    (let [graph   @(router/pedestrian-graph {:SIZE i})
+          request  (gen/generate (s/gen ::dataspecs/params))
+          result   (dir/direction graph request)]
+      (is (s/valid? ::dataspecs/directions result)
+          (str (expound/expound-str ::dataspecs/directions result))))))
 
 ; -----------------------------------------------------------------
 ; generative tests for the direction endpoint
@@ -189,14 +189,14 @@
 (defspec saarland-directions
   30; tries -> expensive test
   (prop/for-all [i (gen/large-integer* {:min 0 :max 100})]
-                (let [graph    (deref (deref network)) ;; delay atom
-                      nodes    (alg/nodes graph)
-                      src      (dir/->coordinates (:node/location (nth nodes i)))
-                      dst      (dir/->coordinates (:node/location (nth nodes (* 2 i))))
-                      depart   (gen/generate (s/gen ::dataspecs/departure))
-                      args     {:coordinates [src dst] :departure depart :steps true}
-                      result   (dir/direction graph args)]
-                  (is (s/valid? ::dataspecs/directions result)
-                      (str (expound/expound-str ::dataspecs/directions result))))))
+    (let [graph    (deref (deref network)) ;; delay atom
+          nodes    (alg/nodes graph)
+          src      (dir/->coordinates (:node/location (nth nodes i)))
+          dst      (dir/->coordinates (:node/location (nth nodes (* 2 i))))
+          depart   (gen/generate (s/gen ::dataspecs/departure))
+          args     {:coordinates [src dst] :departure depart :steps true}
+          result   (dir/direction graph args)]
+      (is (s/valid? ::dataspecs/directions result)
+          (str (expound/expound-str ::dataspecs/directions result))))))
 
 ;(clojure.test/run-tests)
