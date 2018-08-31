@@ -51,22 +51,15 @@ hiposfer.kamal.core=> (hiposfer.kamal.dev/refresh!)
 And then browse to [localhost:3000](http://localhost:3000)
 
 ## OSM Files
-`kamal` consumes Open Street Map (OSM) data files. OSM files are usually very large and
-consume a lot of memory to process, therefore we use a fake `network` during the development.
-The fake `network`'s size can be tuned via the `:network-size` configuration. 
+`kamal` consumes General Transit Feed Specification (GTFS) and Open Street Map files.
 
-Using a fake network can significantly increase your development speed as there is
-no need to reparse the OSM file. You can test your changes on a real OSM file by
-setting `:dev` to `false`.
+`kamal` is very routing oriented, thus we rely on the awesome Overpass-API for
+filtering of Open Street Map data. Check out our `pedestrian` filtering query
+[Here](resources/osm/overpass-api-query.txt). 
 
-`kamal` is very routing oriented, thus no filtering is performed when reading
-OSM files. Dealing with unnecessary information in OSM files is left to the
-developer. If you dont want to create your own pre-processing script, we recommend
-you to use `Òverpass-Api`. [Here](resources/osm/overpass-api-query.txt) is an example
-query that we use to get only `pedestrian` relevant paths. You can customize it
-however you want; once you are done, click `Export` and get the
-`raw data directly from Overpass API` link; with it you can execute the query on a
-terminal or script.
+You can customize it however you want; once you are done, simply save the query run the
+preprocessing script again with `lein preprocess resources/`. This will preprocess
+all gtfs configs in your environment variables with (automatically) downloaded osm data.
 
 ## License
 `kamal` is distributed under LGPL v3
