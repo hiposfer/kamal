@@ -51,7 +51,7 @@
 (s/def ::waypoint         (s/keys :req [:waypoint/name :waypoint/location]))
 
 (s/def :directions/steps     (s/coll-of ::step :kind sequential?))
-(s/def :directions/distance  pos?)
+(s/def :directions/distance  #(not (neg? %)))
 (s/def :directions/waypoints (s/coll-of ::waypoint :kind sequential? :min-count 2))
 (s/def :route/uuid           uuid?)
 
