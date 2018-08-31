@@ -22,13 +22,13 @@
 
 (defn- prepare-data
   [area]
-  (let [human-id (str/replace (:area/id area) "_" " ")
-        query    (str/replace (slurp "resources/overpass-api-query.txt")
-                              "Niederrad"
-                              human-id)
-        url      (str "http://overpass-api.de/api/interpreter?data="
-                      (URLEncoder/encode query "UTF-8"))
-        conn     (. ^URL (io/as-url url) (openConnection))]
+  (let [area-name (str/replace (:area/id area) "_" " ")
+        query     (str/replace (slurp "resources/overpass-api-query.txt")
+                               "Niederrad"
+                               area-name)
+        url       (str "http://overpass-api.de/api/interpreter?data="
+                       (URLEncoder/encode query "UTF-8"))
+        conn      (. ^URL (io/as-url url) (openConnection))]
     ;; progressively build up the network from the pieces
     (with-open [z (-> (io/input-stream (:area/gtfs area))
                       (ZipInputStream.))]
