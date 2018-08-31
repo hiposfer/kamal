@@ -21,7 +21,7 @@
 
 (s/def :step/name     ::name)
 (s/def :step/mode     #{"transit" "walking"})
-(s/def :step/distance pos?)
+(s/def :step/distance #(not (neg? %)))
 (s/def :step/duration (s/and nat-int? pos?))
 (s/def :step/departure (s/and nat-int? pos?))
 (s/def :step/geometry   ::geojson/linestring)
