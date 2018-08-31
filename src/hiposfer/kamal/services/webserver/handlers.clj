@@ -117,7 +117,7 @@
     (api/GET "/area/:area/directions" request
       (get-directions (preprocess request ::dirspecs/params directions-coercer)))
     (api/GET "/area/:area/:name/:id" request
-      (get-resource (preprocess request ::resource/params {:area str/upper-case})))
+      (get-resource (preprocess request ::resource/params {:area #(str/replace % "_" " ")})))
     ;; TODO: implement some persistency for user suggestions
     ;; (api/PUT "/area/:area/suggestions" request
     ;;  (put-suggestions (preprocess request ::dirspecs/params directions-coercer)))
