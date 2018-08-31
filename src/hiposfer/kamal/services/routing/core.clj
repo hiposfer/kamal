@@ -1,16 +1,11 @@
 (ns hiposfer.kamal.services.routing.core
-  (:require [hiposfer.kamal.parsers.osm :as osm]
-            [hiposfer.kamal.network.generators :as ng]
+  (:require [hiposfer.kamal.network.generators :as ng]
             [clojure.test.check.generators :as gen]
-            [hiposfer.kamal.parsers.gtfs.core :as gtfs]
             [datascript.core :as data]
             [com.stuartsierra.component :as component]
             [hiposfer.kamal.network.algorithms.core :as alg]
-            [hiposfer.kamal.libs.fastq :as fastq]
             [taoensso.timbre :as timbre]
-            [clojure.java.io :as io]
-            [hiposfer.kamal.parsers.edn :as edn])
-  (:import (java.util.zip ZipInputStream)))
+            [hiposfer.kamal.parsers.edn :as edn]))
 
 ;; NOTE: we use :db/index true to replace the lack of :VAET index in datascript
 ;; This is for performance. In lots of cases we want to lookup back-references
@@ -63,9 +58,7 @@
   "builds a datascript in-memory db and conj's it into the passed agent"
   [area]
   ;; re-build the network from the file
-  (as-> (edn/parse (:area/edn area)) $
-        (data/db-with $ [area]) ;; add the area as transaction
-        (data/conn-from-db $)))
+  (data/conn-from-db (edn/parse (:area/edn area))))
 
 (defn pedestrian-graph
   "builds a datascript in-memory db and returns it. Only valid for

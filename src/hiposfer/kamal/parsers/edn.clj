@@ -5,7 +5,7 @@
             [hiposfer.kamal.network.core :as network])
   (:import (java.time LocalDateTime DayOfWeek LocalDate ZoneId)
            (java.io PushbackReader InputStreamReader)
-           (java.util.zip GZIPOutputStream)))
+           (java.util.zip GZIPInputStream)))
 
 (def java-readers
   "java class to parsing function. Useful to deserialize things from EDN"
@@ -31,7 +31,7 @@
   Returns a Datascript Database"
   [filename]
   (with-open [stream (-> (io/input-stream filename)
-                         (GZIPOutputStream.)
+                         (GZIPInputStream.)
                          (InputStreamReader.)
                          (PushbackReader.))]
     (edn/read {:readers (merge data/data-readers local-readers)}
