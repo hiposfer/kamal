@@ -159,9 +159,9 @@
         {:step/arrive (+ start arrives)}
         {:step/departure (+ start departs)})
       (when (= "transit" mode)
-        (if (= "exit vehicle" (man :maneuver/type))
+        (if (= "exit vehicle" (:maneuver/type man))
           (tool/gtfs-resource (:end (val (first piece))))
-          (tool/gtfs-resource (:start (val (first next-piece)))))))))
+          (tool/gtfs-resource (:start (val (first piece)))))))))
 
 (defn- route-steps
   "returns a route-steps vector or an empty vector if no steps are needed"
