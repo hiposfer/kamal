@@ -18,7 +18,8 @@
             [hiposfer.kamal.libs.fastq :as fastq]
             [datascript.core :as data]
             [hiposfer.kamal.libs.tool :as tool])
-  (:import (java.time LocalDateTime Duration LocalTime LocalDate)))
+  (:import (java.time Duration LocalTime ZonedDateTime)
+           (java.time.temporal ChronoUnit)))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
 (def bearing-turns
@@ -140,7 +141,7 @@
 ;https://www.mapbox.com/api-documentation/#routestep-object
 (defn- step ;; piece => [trace ...]
   "includes one StepManeuver object and travel to the following RouteStep"
-  [^LocalDateTime start network prev-piece piece next-piece]
+  [start network prev-piece piece next-piece]
   (let [context (transit/context network piece)
         line    (linestring (map key (concat piece [(first next-piece)])))
         man     (maneuver network prev-piece piece next-piece)
@@ -150,13 +151,13 @@
     (merge man
       {:step/mode     mode
        :step/distance (geometry/arc-length (:coordinates line))
-       :step/duration (Duration/ofSeconds (- arrives departs))
+       :step/duration (- arrives departs)
        :step/geometry line}
       (when (not-empty (transit/name context))
         {:step/name (transit/name context)})
       (if (= "arrive" (:type man))
-        {:step/arrive (. start (plusSeconds arrives))}
-        {:step/departure (. start (plusSeconds departs))})
+        {:step/arrive (+ start arrives)}
+        {:step/departure (+ start departs)})
       (when (= "transit" mode)
         (if (= "exit vehicle" (man :type))
           (tool/gtfs-resource (:end (val (first piece))))
@@ -188,7 +189,7 @@
             departs     (np/cost (val (first trail)))
             arrives     (np/cost (val (last trail)))]
         {:directions/distance (geometry/arc-length (:coordinates (linestring (map key trail))))
-         :directions/duration (Duration/ofSeconds (- arrives departs))
+         :directions/duration (- arrives departs)
          :directions/steps    (route-steps network pieces midnight)}))))
 
 ;; for the time being we only care about the coordinates of start and end
@@ -203,9 +204,8 @@
    Example:
    (direction network :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
   [network params]
-  (let [{:keys [coordinates ^LocalDateTime departure]} params
-        date       (. departure (toLocalDate))
-        trips      (fastq/day-trips network date)
+  (let [{:keys [coordinates ^ZonedDateTime departure]} params
+        trips      (fastq/day-trips network (. departure (toLocalDate)))
         start      (Duration/between (LocalTime/MIDNIGHT)
                                      (. departure (toLocalTime)))
         src        (first (fastq/nearest-node network (first coordinates)))
@@ -226,11 +226,12 @@
           {:waypoint/name     (some (comp not-empty :way/name)
                                     (fastq/node-ways network dst))
            :waypoint/location (->coordinates (location dst))}]}
-        (route network rtrail (. date (atStartOfDay)))))))
+        (route network rtrail (-> departure (.truncatedTo ChronoUnit/DAYS) (.toEpochSecond)))))))
+
 
 ;(time
 ;  (direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
 ;             {:coordinates [[8.645333, 50.087314]
 ;                            [8.635897, 50.104172]]
-;              :departure (LocalDateTime/parse "2018-05-07T10:15:30")
+;              :departure (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")
 ;              :steps true}))
