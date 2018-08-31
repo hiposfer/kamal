@@ -56,7 +56,8 @@
       (println "processing area:" (:area/name area))
       (let [db   (prepare-data area)
             ;; osm is mandatory, use its filename !!
-            path (str outdir (str/lower-case (:area/name area)) ".edn.gzip")]
+            path (str outdir (str/replace (str/lower-case (:area/name area)) " " "_")
+                             ".edn.gzip")]
         (with-open [w (-> (io/output-stream path)
                           (GZIPOutputStream.)
                           (io/writer))]
