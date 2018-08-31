@@ -77,7 +77,7 @@
                     (into {} (data/entity @conn id))))]
     (code/ok areas)))
 
-(def directions-coercer {:area        str/upper-case
+(def directions-coercer {:area        #(str/replace % "_" " ")
                          :coordinates edn/read-string
                          :departure   #(LocalDateTime/parse %)})
 
@@ -129,11 +129,11 @@
 ;                    [6.905707,49.398459])
 
 ;(time
-;  (dir/direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;                 {:coordinates [[8.645333, 50.087314]
-;                                [8.635897, 50.104172]]
-;                               :departure (LocalDateTime/parse "2018-05-07T10:15:30")
-;                  :steps true}))
+;  (direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;             {:coordinates [[8.645333, 50.087314]
+;                            [8.635897, 50.104172]]
+;              :departure (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")
+;              :steps true}))
 
 ;(data/q '[:find ?id .
 ;          :where [_ :trip/id ?id]]
