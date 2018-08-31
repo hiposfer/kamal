@@ -4,7 +4,7 @@
             [clojure.spec.gen.alpha :as gen]
             [hiposfer.kamal.network.generators :as ng]
             [hiposfer.kamal.network.algorithms.core :as alg]
-            [hiposfer.kamal.parsers.osm :as osm]
+            [hiposfer.kamal.preprocessor :as preprocessor]
             [hiposfer.kamal.services.routing.transit :as transit]
             [hiposfer.kamal.libs.geometry :as geometry]
             [hiposfer.kamal.services.routing.core :as router]
@@ -32,29 +32,24 @@
         (alg/shortest-path dst coll))
       :os :runtime :verbose)))
 
-(def network (delay
-                 (time
-                   (let [data (osm/datomize! "resources/frankfurt_am_main.edn.gzip")
-                         conn (data/create-conn router/schema)]
-                     (data/transact! conn data)
-                     conn))))
+(def network (delay (time (preprocessor/fetch-osm {:area/id "Frankfurt_am_Main"}))))
 
-;(type @@network) ;; force read
+;;(type @network) ;; force read
 
 (test/deftest ^:benchmark dijkstra-saarland-graph
-  (let [src  (first (alg/nodes @@network))
-        dst  (last (alg/nodes @@network))
-        r1   (alg/looners @@network)
-        coll (alg/dijkstra @@network #{src} (opts @@network))]
-    (timbre/info "\n\nDIJKSTRA forward with:" (count (alg/nodes @@network)) "nodes")
+  (let [src  (first (alg/nodes @network))
+        dst  (last (alg/nodes @network))
+        r1   (alg/looners @network)
+        coll (alg/dijkstra @network #{src} (opts @network))]
+    (timbre/info "\n\nDIJKSTRA forward with:" (count (alg/nodes @network)) "nodes")
     (timbre/info "saarland graph:")
     (c/quick-bench (alg/shortest-path dst coll)
       :os :runtime :verbose)
     (timbre/info "--------")
     (timbre/info "using only strongly connected components of the original graph")
     (data/transact! @network (map #(vector :db.fn/retractEntity (:db/id %)) r1))
-    (timbre/info "with:" (count (alg/nodes @@network)) "nodes")
-    (let [coll (alg/dijkstra @@network #{src} (opts @@network))]
+    (timbre/info "with:" (count (alg/nodes @network)) "nodes")
+    (let [coll (alg/dijkstra @network #{src} (opts @network))]
       (c/quick-bench (alg/shortest-path dst coll)
         :os :runtime :verbose))))
 
@@ -62,9 +57,9 @@
 ;; I think nil src then search points less than src
 (test/deftest ^:benchmark nearest-neighbour-search
   (let [src   [7.038535 49.345088]
-        point (:node/location (first (fastq/nearest-node @@network src)))]
+        point (:node/location (first (fastq/nearest-node @network src)))]
     (timbre/info "\n\nsaarland graph: nearest neighbour search with random src/dst")
-    (timbre/info "B+ tree with:" (count (data/datoms @@network :eavt)) "nodes")
+    (timbre/info "B+ tree with:" (count (data/datoms @network :eavt)) "nodes")
     (timbre/info "accuraccy: " (geometry/haversine src point) "meters")
-    (c/quick-bench (:node/location (first (fastq/nearest-node @@network src)))
+    (c/quick-bench (:node/location (first (fastq/nearest-node @network src)))
                    :os :runtime :verbose)))

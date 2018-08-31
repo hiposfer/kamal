@@ -20,7 +20,7 @@
                      (s/map-of core/area-id? string?)
                      (s/map-of gtfs-area? string?)))
 
-(defn- prepare-data
+(defn fetch-osm
   [area]
   (let [area-name (str/replace (:area/id area) "_" " ")
         query     (str/replace (slurp "resources/overpass-api-query.txt")
@@ -28,12 +28,17 @@
                                area-name)
         url       (str "http://overpass-api.de/api/interpreter?data="
                        (URLEncoder/encode query "UTF-8"))
-        conn      (. ^URL (io/as-url url) (openConnection))]
+        conn      (. ^URL (io/as-url url) (openConnection))
+        db        (data/empty-db routing/schema)]
+    (data/db-with db (osm/datomize! (. conn (getContent))))))
+
+(defn- prepare-data
+  [area]
+  (let [db (fetch-osm area)]
     ;; progressively build up the network from the pieces
     (with-open [z (-> (io/input-stream (:area/gtfs area))
                       (ZipInputStream.))]
-      (as-> (data/empty-db routing/schema) $
-            (data/db-with $ (osm/datomize! (. conn (getContent))))
+      (as-> db $
             (data/db-with $ (gtfs/datomize! z))
             (data/db-with $ (fastq/link-stops $))
             (data/db-with $ (fastq/cache-stop-successors $))
