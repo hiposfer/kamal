@@ -15,7 +15,6 @@
             [taoensso.timbre :as timbre]
             [clojure.walk :as walk]
             [clojure.spec.alpha :as s]
-            [spec-tools.core :as st]
             [clojure.string :as str]
             [clojure.edn :as edn]))
 
@@ -33,8 +32,10 @@
   [m]
   (let [nets (filter (fn [[k]] (re-matches area-regex (name k))) m)]
     (for [[k v] nets]
-      (let [[_ id ext] (re-find area-regex (name k))]
-        (into {:area/id id} [[(keyword "area" (str/lower-case ext)) v]])))))
+      (let [[_ id ext] (re-find area-regex (name k))
+            area-name  (str/replace id "_" " ")]
+        (into {:area/name area-name}
+              [[(keyword "area" (str/lower-case ext)) v]])))))
 ;; (preprocess-env {:Frankfurt_am_Main_AREA_GTFS "foo"})
 
 (s/def ::USE_FAKE_NETWORK boolean?)

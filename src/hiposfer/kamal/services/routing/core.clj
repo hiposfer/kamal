@@ -19,18 +19,18 @@
 ;; This is a hack !! but it works :)
 ;; Thanks datascript
 
-(def schema {:area/id         {:db.unique :db.unique/identity}
+(def schema {:area/name       {:db.unique :db.unique/identity}
              ;; Open Street Map - entities
              :node/id         {:db.unique :db.unique/identity}
              :node/location   {:db/index true}
              :node/successors {:db.type        :db.type/ref
                                :db.cardinality :db.cardinality/many
-                               :db/index true}
+                               :db/index       true}
 
              :way/id          {:db.unique :db.unique/identity}
              :way/nodes       {:db.type        :db.type/ref
                                :db.cardinality :db.cardinality/many
-                               :db/index true}
+                               :db/index       true}
 
              ;; General Transfer Feed Specification - entities
              :trip/id         {:db.unique :db.unique/identity}
@@ -45,14 +45,14 @@
              :route/agency    {:db/type :db.type/ref}
 
              :stop/id         {:db.unique :db.unique/identity}
-             :stop/successors {:db.type :db.type/ref
+             :stop/successors {:db.type        :db.type/ref
                                :db.cardinality :db.cardinality/many}
              :stop/location   {:db/index true}
 
-             :stop_times/trip  {:db/type :db.type/ref
-                                :db/index true}
-             :stop_times/stop  {:db/type :db.type/ref
-                                :db/index true}})
+             :stop_times/trip {:db/type  :db.type/ref
+                               :db/index true}
+             :stop_times/stop {:db/type  :db.type/ref
+                               :db/index true}})
 
 (defn network
   "builds a datascript in-memory db and conj's it into the passed agent"
