@@ -19,7 +19,7 @@
   "returns a network whose bounding box contains all points"
   [conns params]
   (when-let [conn (first conns)]
-    (if (not (some? (data/entity @conn [:area/id (:area params)])))
+    (if (not (some? (data/entity @conn [:area/name (:area params)])))
       (recur (rest conns) params)
       @conn)))
 
@@ -72,7 +72,7 @@
   (let [regions (:kamal/networks request)
         areas   (for [conn regions]
                   (let [id (data/q '[:find ?area .
-                                     :where [?area :area/id]]
+                                     :where [?area :area/name]]
                                    @conn)]
                     (into {} (data/entity @conn id))))]
     (code/ok areas)))
@@ -138,4 +138,3 @@
 ;(data/q '[:find ?id .
 ;          :where [_ :trip/id ?id]]
 ;         @(first @(:networks (:router hiposfer.kamal.dev/system))))
-

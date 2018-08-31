@@ -22,10 +22,9 @@
 
 (defn fetch-osm
   [area]
-  (let [area-name (str/replace (:area/id area) "_" " ")
-        query     (str/replace (slurp "resources/overpass-api-query.txt")
+  (let [query     (str/replace (slurp "resources/overpass-api-query.txt")
                                "Niederrad"
-                               area-name)
+                               (:area/name area))
         url       (str "http://overpass-api.de/api/interpreter?data="
                        (URLEncoder/encode query "UTF-8"))
         conn      (. ^URL (io/as-url url) (openConnection))
@@ -54,10 +53,10 @@
         areas  (into {} (filter #(re-matches core/area-regex (name (key %)))) env)]
     (assert (s/valid? ::env areas) (s/explain ::env areas))
     (doseq [area (core/prepare-areas areas)]
-      (println "processing area:" (:area/id area))
+      (println "processing area:" (:area/name area))
       (let [db   (prepare-data area)
             ;; osm is mandatory, use its filename !!
-            path (str outdir (str/lower-case (:area/id area)) ".edn.gzip")]
+            path (str outdir (str/lower-case (:area/name area)) ".edn.gzip")]
         (with-open [w (-> (io/output-stream path)
                           (GZIPOutputStream.)
                           (io/writer))]
