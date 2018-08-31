@@ -44,10 +44,10 @@
   (alter-var-root #'system (fn [s] (when s (component/stop s)))))
 
 (defn- custom-printer
-  []
-  (expound/custom-printer {:show-valid-values? true
-                           :print-specs? false
-                           :theme :figwheel-theme}))
+  [explain-data]
+  (let [printer (expound/custom-printer {:show-valid-values? true
+                                         :print-specs? false})]
+    (printer explain-data)))
 
 (defn go!
   "Initializes the current development system and starts it running."

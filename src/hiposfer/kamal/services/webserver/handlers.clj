@@ -11,7 +11,7 @@
             [clojure.edn :as edn]
             [hiposfer.kamal.libs.tool :as tool]
             [clojure.string :as str])
-  (:import (java.time LocalDateTime)))
+  (:import (java.time ZonedDateTime)))
 
 (def max-distance 1000) ;; meters
 
@@ -79,7 +79,7 @@
 
 (def directions-coercer {:area        #(str/replace % "_" " ")
                          :coordinates edn/read-string
-                         :departure   #(LocalDateTime/parse %)})
+                         :departure   #(ZonedDateTime/parse %)})
 
 (defn- get-directions
   [request]
