@@ -74,7 +74,7 @@
         (str "Continue on " id))
 
       "notification"
-      (let [tend    (:start (val (first next-piece)))
+      (let [tend    (:start (val (first piece)))
             trip    (:stop_times/trip tend)
             route   (:trip/route trip)
             vehicle (transit/route-types (:route/type route))
@@ -155,11 +155,11 @@
        :step/geometry line}
       (when (not-empty (transit/name context))
         {:step/name (transit/name context)})
-      (if (= "arrive" (:type man))
+      (if (= "arrive" (:maneuver/type man))
         {:step/arrive (+ start arrives)}
         {:step/departure (+ start departs)})
       (when (= "transit" mode)
-        (if (= "exit vehicle" (man :type))
+        (if (= "exit vehicle" (man :maneuver/type))
           (tool/gtfs-resource (:end (val (first piece))))
           (tool/gtfs-resource (:start (val (first next-piece)))))))))
 
