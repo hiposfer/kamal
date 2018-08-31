@@ -27,7 +27,7 @@
   [network params]
   (for [coord (:coordinates params)
         :let [node (:node/location (first (fastq/nearest-node network coord)))]
-        :when (not (nil? node))
+        :when (some? node)
         :let [dist (geometry/haversine coord node)]
         :when (< dist max-distance)]
     coord))
