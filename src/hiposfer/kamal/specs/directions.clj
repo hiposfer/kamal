@@ -1,31 +1,29 @@
 (ns hiposfer.kamal.specs.directions
   (:require [clojure.spec.alpha :as s]
-            [spec-tools.spec :as spec]
             [hiposfer.geojson.specs :as geojson]
             [hiposfer.kamal.specs.resources :as res]
             [clojure.spec.gen.alpha :as gen]
             [hiposfer.kamal.services.routing.directions :as dir])
-  (:import (java.time LocalDateTime ZoneOffset Duration)))
+  (:import (java.time ZoneOffset ZonedDateTime Instant)))
 
-(s/def ::positive    (s/and spec/number? #(>= % 0)))
 (s/def ::name        (s/and string? not-empty))
-(s/def ::bearing     (s/and spec/number? #(<= 0 % 360)))
+(s/def ::bearing     (s/and number? #(<= 0 % 360)))
 
 ;;TODO this is a copy/paste of the gtfs spec but it gets the job done
 (s/def :stop_times/stop ::res/reference)
 (s/def :stop_times/trip ::res/reference)
-(s/def :stop_times/sequence spec/integer?)
-(s/def :stop_times/arrival_time nat-int?)
-(s/def :stop_times/departure_time nat-int?)
+(s/def :stop_times/sequence integer?)
+(s/def :stop_times/arrival_time (s/and nat-int? pos?))
+(s/def :stop_times/departure_time (s/and nat-int? pos?))
 (s/def ::stop_time (s/keys :req [:stop_times/trip :stop_times/arrival_time
                                  :stop_times/departure_time :stop_times/stop
                                  :stop_times/sequence]))
 
 (s/def :step/name     ::name)
 (s/def :step/mode     #{"transit" "walking"})
-(s/def :step/distance ::positive)
-(s/def :step/duration #(instance? Duration %))
-(s/def :step/departure #(instance? LocalDateTime %))
+(s/def :step/distance pos?)
+(s/def :step/duration (s/and nat-int? pos?))
+(s/def :step/departure (s/and nat-int? pos?))
 (s/def :step/geometry   ::geojson/linestring)
 
 (s/def :maneuver/instruction    (s/and string? not-empty))
@@ -53,9 +51,9 @@
 (s/def ::waypoint         (s/keys :req [:waypoint/name :waypoint/location]))
 
 (s/def :directions/steps     (s/coll-of ::step :kind sequential?))
-(s/def :directions/distance  ::positive)
+(s/def :directions/distance  pos?)
 (s/def :directions/waypoints (s/coll-of ::waypoint :kind sequential? :min-count 2))
-(s/def :route/uuid      uuid?)
+(s/def :route/uuid           uuid?)
 
 (s/def ::directions     (s/nilable (s/keys :req [:directions/waypoints
                                                  :directions/distance
@@ -68,13 +66,13 @@
 ;(s/def ::language string?)
 
 ;; 2017 -> 1483228800
-(defn localdatetime-gen []
-  (gen/fmap #(LocalDateTime/ofEpochSecond % 0 ZoneOffset/UTC)
-            (gen/large-integer* {:min 1483228800 :max 365241780471})))
+(defn datetime-generator []
+  (gen/fmap #(ZonedDateTime/ofInstant (Instant/ofEpochSecond %) ZoneOffset/UTC)
+             (gen/large-integer* {:min 1483228800 :max 365241780471})))
 
 (s/def ::departure
-  (s/with-gen #(instance? LocalDateTime %)
-               localdatetime-gen))
+  (s/with-gen #(instance? ZonedDateTime %)
+               datetime-generator))
 
 (s/def ::area string?)
 
