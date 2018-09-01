@@ -226,7 +226,8 @@
           {:waypoint/name     (some (comp not-empty :way/name)
                                     (fastq/node-ways network dst))
            :waypoint/location (->coordinates (location dst))}]}
-        (route network rtrail (-> departure (.truncatedTo ChronoUnit/DAYS) (.toEpochSecond)))))))
+        (route network rtrail (-> departure (.truncatedTo ChronoUnit/DAYS)
+                                            (.toEpochSecond)))))))
 
 ;(time
 ;  (direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
