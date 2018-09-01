@@ -5,7 +5,7 @@
   By convention all queries here return Entities"
   (:require [datascript.core :as data]
             [hiposfer.kamal.libs.tool :as tool])
-  (:import (java.time LocalDate)))
+  (:import (java.time LocalDate Duration LocalTime ZonedDateTime)))
 
 (defn index-lookup
   "returns a transducer that can be used together with index-range to get all
@@ -78,12 +78,6 @@
                (eduction (index-lookup network ?trip-id)
                          (data/index-range network :stop_times/trip ?trip-id nil)))))
 
-(defn- min-departure
-  [result value]
-  (if (> (:stop_times/departure_time result) (:stop_times/departure_time value))
-    value
-    result))
-
 (defn find-trip
   "Returns a [src dst] :stop_times pair for the next trip between ?src-id
    and ?dst-id departing after ?now.
@@ -104,21 +98,13 @@
   The previous query runs in 118 milliseconds. This function takes 4 milliseconds"
   [network trips src dst now]
   (let [?src-id (:db/id src)
-        sts  (eduction (comp (index-lookup network ?src-id)
-                             (filter #(and (> (:stop_times/departure_time %) now)
-                                           (contains? trips (:db/id (:stop_times/trip %))))))
-                       (data/index-range network :stop_times/stop ?src-id nil))]
-    (when (seq sts)
-      (let [trip (reduce min-departure (first sts) sts)]
+        stop_times (eduction (index-lookup network ?src-id)
+                             (filter #(contains? trips (:db/id (:stop_times/trip %))))
+                             (filter #(> (:stop_times/departure_time %) now))
+                             (data/index-range network :stop_times/stop ?src-id nil))]
+    (when (not-empty stop_times)
+      (let [trip (apply min-key :stop_times/departure_time stop_times)]
         [trip (continue-trip network dst (:stop_times/trip trip))]))))
-
-;(time
-;  (dotimes [n 1000]
-;    (find-trip @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;               230963
-;               230607
-;               (.getSeconds (Duration/between (LocalTime/MIDNIGHT)
-;                                              (LocalTime/now)))))
 
 (defn day-trips
   "returns a set of trip (entities) ids that are available for date"

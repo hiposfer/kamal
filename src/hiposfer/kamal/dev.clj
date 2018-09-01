@@ -57,7 +57,7 @@
   (clojure.spec.test.alpha/instrument)
   (alter-var-root #'s/*explain-out* (constantly custom-printer))
   (set! *warn-on-reflection* true)
-  (set! *print-length* 100)
+  (set! *print-length* 50)
   (start!))
 
 (defn refresh!
