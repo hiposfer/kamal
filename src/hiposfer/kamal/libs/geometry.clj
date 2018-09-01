@@ -34,6 +34,24 @@
 ; (* (frepos/distance [2.33 48.87] [-122.4 37.8]) (/ 3440.069 6372))
 ; => 4831.502535634215 nauticals miles
 
+(def degree-len 110250) ;; meters
+
+;; taken from
+;; http://jonisalonen.com/2014/computing-distance-between-coordinates-can-be-simple-and-fast/
+(defn earth-distance
+  ([lon-1 lat-1 lon-2 lat-2]
+   (let [x (Math/toRadians (- lat-1 lat-2))
+         y (* (Math/toRadians (- lon-1 lon-2))
+              (Math/cos (Math/toRadians lat-1)))]
+     (Math/toDegrees (* degree-len (Math/sqrt (+ (Math/pow x 2)
+                                                 (Math/pow y 2)))))))
+  ([p1 p2]
+   (earth-distance (np/lon p1) (np/lat p1)
+                   (np/lon p2) (np/lat p2))))
+
+;(haversine [8.645333, 50.087314] [8.635897, 50.104172])
+;(earth-distance [8.645333, 50.087314] [8.635897, 50.104172])
+
 (defn euclidean-pow2
   "computes the squared euclidean distance between p1 and p2 being both of them
   {lat, lon} points. Use only if you interested in performance and not on the
