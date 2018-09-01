@@ -5,7 +5,7 @@
   By convention all queries here return Entities"
   (:require [datascript.core :as data]
             [hiposfer.kamal.libs.tool :as tool])
-  (:import (java.time LocalDate Duration LocalTime ZonedDateTime)))
+  (:import (java.time LocalDate)))
 
 (defn index-lookup
   "returns a transducer that can be used together with index-range to get all

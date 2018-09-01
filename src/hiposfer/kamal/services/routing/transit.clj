@@ -22,10 +22,10 @@
    7 "Funicular"}); Any rail system designed for steep inclines.})
 
 (defn- walk-time [src dst]
-  (/ (geometry/haversine (or (:node/location src)
-                             (:stop/location src))
-                         (or (:node/location dst)
-                             (:stop/location dst)))
+  (/ (geometry/earth-distance (or (:node/location src)
+                                  (:stop/location src))
+                              (or (:node/location dst)
+                                  (:stop/location dst)))
      osm/walking-speed))
 
 (defn duration
@@ -55,7 +55,6 @@
 (defn node? [e] (:node/id e))
 (defn way? [e] (:way/id e))
 (defn stop? [e] (:stop/id e))
-(defn stop-times? [e] (:stop_times/trip e))
 (defn trip-step? [o] (instance? TripStep o))
 
 (defn name

@@ -228,7 +228,6 @@
            :waypoint/location (->coordinates (location dst))}]}
         (route network rtrail (-> departure (.truncatedTo ChronoUnit/DAYS) (.toEpochSecond)))))))
 
-
 ;(time
 ;  (direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
 ;             {:coordinates [[8.645333, 50.087314]
