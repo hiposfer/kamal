@@ -14,3 +14,9 @@
                                   'clojure.spec/coll-of 'clojure.spec.alpha/coll-of}
    :within-depth 6
    :reason "clojure.spec's macros `keys`, `every`, and `and` often contain `clojure.core/and` invocations with only one argument."})
+
+(disable-warning
+  {:linter :wrong-arity
+   :function-symbol 'clojure.core/eduction
+   :arglists-for-linting '([& xform])
+   :reason "eduction takes a sequence of transducer with a collection as the last item"})
