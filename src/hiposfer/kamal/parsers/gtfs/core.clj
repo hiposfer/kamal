@@ -15,11 +15,14 @@
   transactions, for example {:trip/id 1, :trip/route [:route/id 1]}. This
   allows us to create relationships between entities without actually having
   them, i.e. thread them simply as data"
-  (:require [hiposfer.kamal.parsers.gtfs.preprocessor :as pregtfs]
-            [clojure.string :as str]
-            [hiposfer.kamal.network.core :as network])
-  (:import (java.time DayOfWeek)
-           (java.util.zip ZipInputStream)))
+  (:require [hiposfer.kamal.parsers.gtfs.reference :as reference]
+            [hiposfer.kamal.network.core :as network]
+            [clojure.java.io :as io]
+            [clojure.data.csv :as csv]
+            [clojure.tools.reader.edn :as edn])
+  (:import (java.util.zip ZipInputStream ZipEntry ZipFile)
+           (java.time Duration LocalDate ZoneId)
+           (java.time.format DateTimeFormatter)))
 
 ;; detailed diagram of files relations
 ;; http://tommaps.com/wp-content/uploads/2016/09/gtfs-feed-diagram.png
@@ -31,35 +34,77 @@
 ;; A good introduction to time-dependent model for timetable information
 ;; - https://www.ceid.upatras.gr/webpages/faculty/zaro/pub/jou/J23-TTI-Springer.pdf
 
-;; -------------------
+(def re-number   #"-?\d+(\.\d+)?")
+(def re-duration #"(\d{2}):(\d{2}):(\d{2})")
+;; we restrict this to avoid collisions with normal integers of length 8
+(def re-date     #"20\d{2}[0-1]\d[0-3]\d")
+(def re-timezone #"\w+/\w+")
 
-;; We will simply have a base penalty whenever you transfer from
-;; a route to another. If there is a special connection between two routes then
-;; it can be stored in a :gtfs/transfers structure which can be easily lookup
+(defn- duration
+  "parse the arrival and departure time into Duration instances. This is
+  due to GTFS allowing times greater than 23:59:59 which is the biggest
+  Java Local Time. A Trip real arrival time can then be calculated as the
+  start time + duration at each stop"
+  [text]
+  (let [[_ & values] (re-matches re-duration text)
+        [hh mm ss] (map #(Long/parseLong %) values)
+        [hh mm ss] [(Duration/ofHours hh)
+                    (Duration/ofMinutes mm)
+                    (Duration/ofSeconds ss)]]
+    (.getSeconds (reduce (fn [^Duration res v] (.plus res v)) hh [mm ss]))))
 
-(def days {:monday    DayOfWeek/MONDAY
-           :tuesday   DayOfWeek/TUESDAY
-           :wednesday DayOfWeek/WEDNESDAY
-           :thursday  DayOfWeek/THURSDAY
-           :friday    DayOfWeek/FRIDAY
-           :saturday  DayOfWeek/SATURDAY
-           :sunday    DayOfWeek/SUNDAY})
+(def date-format (DateTimeFormatter/ofPattern "uuuuMMdd"))
+(defn- local-date [text] (LocalDate/parse text date-format))
 
-(defn service
-  "transforms a calendar entry into a [id Service], where
-  Service contains the period and set of days that applies.
-  Preferable representation to speed up comparisons"
-  [calendar]
-  (let [rf       (fn [r k v] (if (true? v) (conj r (k days)) r))]
-    (merge (select-keys calendar [:start_date :end_date :service_id])
-           {:days (reduce-kv rf #{} (select-keys calendar (keys days)))})))
+(defn- timezone
+  [text]
+  (try
+    (ZoneId/of text)
+    (catch Exception _ text))) ;; failure, not a timezone, return text
 
-;; set of keywords that are guarantee to define an identifiable element
-;; according to GTFS spec
-(def ns-keys #{:agency :service :route :stop :trip})
-(def links (into #{} (map #(keyword (name %) "id") ns-keys)))
-;; map of filename to namespaces. Needed to transform the GTFS entries
-;; to Datascript datoms
+(defn coerce
+  [text]
+  (cond ;; date before number due to the overlapping regex :(
+    (re-matches re-date text)     (local-date text)
+    (re-matches re-number text)   (edn/read-string text)
+    (re-matches re-duration text) (duration text)
+    (re-matches re-timezone text) (timezone text)
+    :else text)) ;; simple string
+
+;(coerce "-0.2")
+;(coerce "212")
+;(coerce "25:30:02")
+;(coerce "20180802")
+;(coerce "65123245")
+;(coerce "Europe/Berlin")
+
+(defn- ref?
+  "a reference is a field that links to a unique field in another file
+  and that is not that field itself"
+  [field]
+  (and (contains? (set reference/unique-fields) (:field-name field))
+       (not (:unique field))))
+
+(defn parse
+  "takes a filename and parses its content if supported by this parser.
+   Entries that do not conform to the gtfs spec are removed. Returns
+   a vector of conformed entries"
+  [csv-content filename]
+  (let [head   (map #(reference/get-mapping filename %) (first csv-content))
+        fields (into {} (map (juxt :keyword identity) head))]
+    (for [row (rest csv-content)]
+      (into {}
+            (for [[k v] (map vector (map :keyword head) row)
+                  :when (not-empty v)]
+              (if (ref? (get fields k))
+                [k [(keyword (name k) "id") (coerce v)]]
+                [k (coerce v)]))))))
+
+;(with-open [f (io/reader "resources/frankfurt.gtfs/trips.txt")]
+;  (into [] (take 10 (parse (csv/read-csv f) "trips.txt"))))
+
+
+;; TODO: the mapping is no longer valid but useful
 (def file-ns {"agency.txt"     :agency
               "calendar.txt"   :service
               "routes.txt"     :route
@@ -67,74 +112,48 @@
               "stops.txt"      :stop
               "stop_times.txt" :stop_times})
 
-(def preparer
+(def truncators
   "map of GTFS filenames to post-processing functions. Useful to remove
    unnecessary information from the GTFS feed; just to reduce the amount
     of datoms in datascript"
-  {"calendar.txt" service
-   "routes.txt"   #(dissoc % :route_url)
+  {"routes.txt"   #(dissoc % :route_url)
    "trips.txt"    #(dissoc % :shape_id)
    "stops.txt"    (fn [stop]
-                    (let [removable [:stop_lat :stop_lon]
+                    (let [removable [:stop/lat :stop/lon]
                           ks (apply disj (set (keys stop)) removable)
-                          loc (network/->Location (:stop_lon stop) (:stop_lat stop))]
-                      (assoc (select-keys stop ks) :stop_location loc)))})
+                          loc (network/->Location (:stop/lon stop) (:stop/lat stop))]
+                      (assoc (select-keys stop ks) :stop/location loc)))})
 
-(defn respace
-  "takes a keyword and a set of keywords and attempts to convert it into a
-  namespaced keyword using the set possibilities. Returns a qualified keyword
-  with the matched ns"
-  [k]
-  (let [nk (name k)]
-    (when-let [kt (first (filter #(str/starts-with? nk (name %)) ns-keys))]
-      (let [nsk (name kt)]
-        (keyword nsk (str/replace-first nk (re-pattern (str nsk "_")) ""))))))
-;; example
-;(respace :stop_id ns-keys)
-
-(defn- link
-  "transforms a [k v] pair into a namespaced version with a possible reference
-  to another model. The returned pair is suitable to use in a Datalog
-  transaction. Returns the key with the base as namespace otherwise
-
-  Example: (link [:trip_id 123] :trip) => [:trip/id 123]
-           (link [:route_id 456] :trip) => [:trip/route [:route/id 456]]"
-  [[k v] base]
-  (let [nk    (or (respace k) k)
-        sbase (name base)]
-    (cond
-      (= (namespace nk) sbase) [nk v]
-      (contains? links nk) [(keyword sbase (namespace nk)) [nk v]]
-      :else [(keyword sbase (name nk)) v])))
-
-;; TODO: we can process files this way because Clojure array-maps
-;; maintains the order of the elements. However this is only valid for
-;; up to 8 key-value pairs. Once we start processing more, we would need
-;; to change the logic
+;; TODO: this function is not very efficient since it parses all the content
+;; before returning. A better approach would be to lazy return files.
+;; However this would require keeping some book keeping to know which files
+;; have already been read and which are to come. Furthermore, we cannot read
+;; the files in random order since there are dependencies among them
 (defn datomize!
   "takes a map of gtfs key-name -> content and returns a sequence
   of maps ready to be used for transact"
-  [^ZipInputStream zipstream]
-  (loop [entry (.getNextEntry zipstream)
-         result file-ns] ;; use file-ns array-map order
-    (cond
-      ;; nothing more to process return
-      (nil? entry)
-      (sequence cat (vals result))
-      ;; unknown file, ignore it
-      (not (contains? file-ns (.getName entry)))
-      (recur (.getNextEntry zipstream) result)
-      ;; important file -> parse and process it
-      :else
-      (let [filename (.getName entry)
-            ns-base  (get file-ns filename)
-            prepare  (get preparer filename)
-            content  (pregtfs/parse! zipstream filename prepare)
-            ;; transform each entry into a valid datascript
-            ;; transaction map
-            clean    (for [m content] (into {} (map link m (repeat ns-base))))]
-        (recur (.getNextEntry zipstream)
-               (assoc result filename clean))))))
+  ([^ZipInputStream zipstream]
+   (datomize! zipstream (. zipstream (getNextEntry)) file-ns))
 
-;(with-open [z (ZipFile. "resources/gtfs/saarland.gtfs.zip")]
-;  (time (last (datomize z))))
+  ([^ZipInputStream zipstream ^ZipEntry entry result]
+   (cond
+     ;; nothing more to process return
+     (nil? entry)
+     (sequence cat (vals result))
+
+     ;; unknown file, ignore it
+     (not (contains? file-ns (. entry (getName))))
+     (recur zipstream (. zipstream (getNextEntry)) result)
+
+     ;; important file -> parse and process it
+     :else
+     (let [filename (. entry (getName))
+           trunc    (get truncators filename identity)
+           file     (io/reader zipstream)
+           content  (into [] (map trunc) (parse (csv/read-csv file) filename))]
+       (recur zipstream
+              (. zipstream (getNextEntry))
+              (assoc result filename content))))))
+
+;(with-open [z (ZipInputStream. (io/input-stream "resources/frankfurt.gtfs.zip"))]
+;  (time (drop 10000 (datomize! z))))
