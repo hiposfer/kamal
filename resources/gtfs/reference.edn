@@ -474,6 +474,7 @@
    :fields
    ({:field-name "shape_id",
      :required true,
+     :unique true,
      :details
      "The shape_id field contains an ID that uniquely identifies a shape."}
     {:field-name "shape_pt_lat",
