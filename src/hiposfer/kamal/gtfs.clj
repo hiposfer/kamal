@@ -98,6 +98,7 @@
       (merge form {:required required}
                   (when unique {:unique unique})))))
 
+;; TODO: this is a bit outdated :(
 (defn- parse
   [raw]
   (let [content    (md/parse raw)

@@ -205,14 +205,14 @@
    (direction network :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
   [network params]
   (let [{:keys [coordinates ^ZonedDateTime departure]} params
-        trips      (fastq/day-trips network (. departure (toLocalDate)))
+        stop-times (fastq/day-stop-times network (. departure (toLocalDate)))
         start      (Duration/between (LocalTime/MIDNIGHT)
                                      (. departure (toLocalTime)))
         src        (first (fastq/nearest-node network (first coordinates)))
         dst        (first (fastq/nearest-node network (last coordinates)))
        ; both start and dst should be found since we checked that before
         traversal  (alg/dijkstra network #{[src (. start (getSeconds))]}
-                                 {:value-by   #(transit/timetable-duration network trips %1 %2)
+                                 {:value-by   #(transit/timetable-duration network stop-times %1 %2)
                                   :successors transit/successors
                                   :comparator transit/by-cost})
         rtrail     (alg/shortest-path dst traversal)]
@@ -226,8 +226,8 @@
           {:waypoint/name     (some (comp not-empty :way/name)
                                     (fastq/node-ways network dst))
            :waypoint/location (->coordinates (location dst))}]}
-        (route network rtrail (-> departure (.truncatedTo ChronoUnit/DAYS) (.toEpochSecond)))))))
-
+        (route network rtrail (-> departure (.truncatedTo ChronoUnit/DAYS)
+                                            (.toEpochSecond)))))))
 
 ;(time
 ;  (direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
@@ -235,3 +235,7 @@
 ;                            [8.635897, 50.104172]]
 ;              :departure (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")
 ;              :steps true}))
+
+;(time
+;  (fastq/day-stop-times @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;                        (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")))

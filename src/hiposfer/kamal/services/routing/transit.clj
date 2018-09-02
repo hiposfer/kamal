@@ -22,10 +22,10 @@
    7 "Funicular"}); Any rail system designed for steep inclines.})
 
 (defn- walk-time [src dst]
-  (/ (geometry/haversine (or (:node/location src)
-                             (:stop/location src))
-                         (or (:node/location dst)
-                             (:stop/location dst)))
+  (/ (geometry/earth-distance (or (:node/location src)
+                                  (:stop/location src))
+                              (or (:node/location dst)
+                                  (:stop/location dst)))
      osm/walking-speed))
 
 (defn duration
@@ -55,7 +55,6 @@
 (defn node? [e] (:node/id e))
 (defn way? [e] (:way/id e))
 (defn stop? [e] (:stop/id e))
-(defn stop-times? [e] (:stop_times/trip e))
 (defn trip-step? [o] (instance? TripStep o))
 
 (defn name
@@ -123,7 +122,7 @@
 (defn timetable-duration
   "provides routing calculations using both GTFS feed and OSM nodes. Returns
   a Long for walking parts and a TripStep for GTFS related ones."
-  [network trips dst trail]
+  [network stop-times dst trail]
   (let [[src value] (first trail)
         now         (np/cost value)]
     (cond
@@ -137,7 +136,7 @@
       ;; the user is trying to get into a vehicle. We need to find the next
       ;; coming trip
       (and (stop? src) (stop? dst) (not (trip-step? value)))
-      (let [[st1 st2] (fastq/find-trip network trips src dst now)]
+      (let [[st1 st2] (fastq/find-trip network stop-times src dst now)]
         (when (some? st2) ;; nil if no trip was found
           ;(println {:src (:stop/name src)
           ;          :dst (:stop/name dst)

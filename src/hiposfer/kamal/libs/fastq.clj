@@ -30,15 +30,16 @@
   [network entity]
   (let [id (:db/id entity)]
     (concat (:node/successors entity)
-            (sequence (index-lookup network id)
+            (eduction (index-lookup network id)
                       (data/index-range network :node/successors id nil)))))
 
 
 (defn nearest-node
   "returns the nearest node/location to point"
   [network point]
-  (map #(data/entity network (:e %))
-        (data/index-range network :node/location point nil)))
+  (eduction (map :e)
+            (map #(data/entity network %))
+            (data/index-range network :node/location point nil)))
 
 (defn node-ways
   "takes a dereferenced Datascript connection and an entity id and returns
@@ -53,7 +54,7 @@
   around 0.15 milliseconds"
   [network entity]
   (let [id (:db/id entity)]
-    (sequence (index-lookup network id)
+    (eduction (index-lookup network id)
               (data/index-range network :way/nodes id nil))))
 
 (defn continue-trip
@@ -78,12 +79,6 @@
                (eduction (index-lookup network ?trip-id)
                          (data/index-range network :stop_times/trip ?trip-id nil)))))
 
-(defn- min-departure
-  [result value]
-  (if (> (:stop_times/departure_time result) (:stop_times/departure_time value))
-    value
-    result))
-
 (defn find-trip
   "Returns a [src dst] :stop_times pair for the next trip between ?src-id
    and ?dst-id departing after ?now.
@@ -102,39 +97,33 @@
            [(hiposfer.kamal.libs.fastq/after? ?departure ?now)]]
 
   The previous query runs in 118 milliseconds. This function takes 4 milliseconds"
-  [network trips src dst now]
+  [network stop-times src dst now]
   (let [?src-id (:db/id src)
-        sts  (eduction (comp (index-lookup network ?src-id)
-                             (filter #(and (> (:stop_times/departure_time %) now)
-                                           (contains? trips (:db/id (:stop_times/trip %))))))
-                       (data/index-range network :stop_times/stop ?src-id nil))]
-    (when (seq sts)
-      (let [trip (reduce min-departure (first sts) sts)]
+        stop_times (eduction (filter #(contains? stop-times (:e %)))
+                             (index-lookup network ?src-id)
+                             (filter #(> (:stop_times/departure_time %) now))
+                             (data/index-range network :stop_times/stop ?src-id nil))]
+    (when (not-empty stop_times)
+      (let [trip (apply min-key :stop_times/departure_time stop_times)]
         [trip (continue-trip network dst (:stop_times/trip trip))]))))
 
-;(time
-;  (dotimes [n 1000]
-;    (find-trip @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;               230963
-;               230607
-;               (.getSeconds (Duration/between (LocalTime/MIDNIGHT)
-;                                              (LocalTime/now)))))
-
-(defn day-trips
-  "returns a set of trip (entities) ids that are available for date"
+(defn day-stop-times
+  "returns a set of stop_times entity ids that are available for date"
   [network ^LocalDate date]
   (let [services (into #{} (comp (take-while #(= (:a %) :service/id))
                                  (map #(data/entity network (:e %)))
-                                 (filter #(and (.isBefore date (:service/end_date %))
-                                               (.isAfter date (:service/start_date %))
-                                               (contains? (:service/days %)
-                                                          (.getDayOfWeek date))))
+                                 (filter #(. date (isBefore (:service/end_date %))))
+                                 (filter #(. date (isAfter (:service/start_date %))))
+                                 (filter #(contains? (:service/days %) (.getDayOfWeek date)))
                                  (map :db/id))
-                           (data/seek-datoms network :avet :service/id))]
-    (into #{} (comp (take-while #(= (:a %) :trip/service))
-                    (filter #(contains? services (:v %)))
+                       (data/seek-datoms network :avet :service/id))
+        trips    (into #{} (comp (take-while #(= (:a %) :trip/service))
+                                 (filter #(contains? services (:v %)))
+                                 (map :e))
+                       (data/seek-datoms network :avet :trip/service))]
+    (into #{} (comp (filter #(contains? trips (:v %)))
                     (map :e))
-              (data/seek-datoms network :avet :trip/service))))
+              (data/datoms network :avet :stop_times/trip))))
 
 (defn- references
   "returns all entities that reference entity through attribute k"
