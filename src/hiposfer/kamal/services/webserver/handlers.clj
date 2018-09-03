@@ -11,7 +11,7 @@
             [clojure.edn :as edn]
             [hiposfer.kamal.libs.tool :as tool]
             [clojure.string :as str])
-  (:import (java.time LocalDateTime)))
+  (:import (java.time ZonedDateTime)))
 
 (def max-distance 1000) ;; meters
 
@@ -27,7 +27,7 @@
   [network params]
   (for [coord (:coordinates params)
         :let [node (:node/location (first (fastq/nearest-node network coord)))]
-        :when (not (nil? node))
+        :when (some? node)
         :let [dist (geometry/haversine coord node)]
         :when (< dist max-distance)]
     coord))
@@ -72,14 +72,13 @@
   (let [regions (:kamal/networks request)
         areas   (for [conn regions]
                   (let [id (data/q '[:find ?area .
-                                     :where [?area :area/id]]
+                                     :where [?area :area/name]]
                                    @conn)]
                     (into {} (data/entity @conn id))))]
     (code/ok areas)))
 
-(def directions-coercer {:area        str/upper-case
-                         :coordinates edn/read-string
-                         :departure   #(LocalDateTime/parse %)})
+(def directions-coercer {:coordinates edn/read-string
+                         :departure   #(ZonedDateTime/parse %)})
 
 (defn- get-directions
   [request]
@@ -117,7 +116,7 @@
     (api/GET "/area/:area/directions" request
       (get-directions (preprocess request ::dirspecs/params directions-coercer)))
     (api/GET "/area/:area/:name/:id" request
-      (get-resource (preprocess request ::resource/params {:area str/upper-case})))
+      (get-resource (preprocess request ::resource/params {:area #(str/replace % "_" " ")})))
     ;; TODO: implement some persistency for user suggestions
     ;; (api/PUT "/area/:area/suggestions" request
     ;;  (put-suggestions (preprocess request ::dirspecs/params directions-coercer)))
@@ -129,13 +128,12 @@
 ;                    [6.905707,49.398459])
 
 ;(time
-;  (dir/direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;                 {:coordinates [[8.645333, 50.087314]
-;                                [8.635897, 50.104172]]
-;                               :departure (LocalDateTime/parse "2018-05-07T10:15:30")
-;                  :steps true}))
+;  (direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;             {:coordinates [[8.645333, 50.087314]
+;                            [8.635897, 50.104172]]
+;              :departure (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")
+;              :steps true}))
 
 ;(data/q '[:find ?id .
 ;          :where [_ :trip/id ?id]]
 ;         @(first @(:networks (:router hiposfer.kamal.dev/system))))
-

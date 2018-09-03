@@ -2,11 +2,9 @@ language: clojure
 jdk:
 - oraclejdk8
 script:
-- lein do clean, compile, check
+- lein do clean, compile, check, eastwood
 # test requires quite some memory so free it afterwards
 - lein trampoline test
-# linter
-- lein eastwood
 notifications:
   email:
     on_success: change
