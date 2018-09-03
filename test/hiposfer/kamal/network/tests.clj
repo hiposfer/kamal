@@ -187,16 +187,17 @@
 (def network (delay (time (router/network {:area/edn "resources/frankfurt_am_main.edn.gzip"}))))
 
 (defspec routing-directions
-  30; tries -> expensive test
+  10; tries -> expensive test
   (let [graph    (deref (deref network)) ;; delay atom
-        nodes    (alg/nodes graph)]
-    (prop/for-all [i (gen/large-integer* {:min 0 :max 1000})]
+        nodes    (alg/nodes graph)
+        gc       (count nodes)]
+    (prop/for-all [i (gen/large-integer* {:min 0 :max (Math/ceil (/ gc 2))})]
       (let [src      (dir/->coordinates (:node/location (nth nodes i)))
             dst      (dir/->coordinates (:node/location (nth nodes (* 2 i))))
             depart   (gen/generate (s/gen ::dataspecs/departure))
             args     {:coordinates [src dst] :departure depart :steps true}
             response (future (dir/direction graph args))
-            result   (deref response 1500 ::timeout)]
+            result   (deref response 5000 ::timeout)]
         (when (= result ::timeout)
           (println "timeout"))
         (is (or (= result ::timeout)
