@@ -2,6 +2,7 @@
   (:gen-class)
   (:require [clojure.java.io :as io]
             [taoensso.timbre :as timbre]
+            [hiposfer.kamal.dev :as dev]
             [hiposfer.kamal.services.routing.core :as routing]
             [hiposfer.kamal.core :as core]
             [clojure.walk :as walk]
@@ -10,7 +11,8 @@
             [datascript.core :as data]
             [hiposfer.kamal.libs.fastq :as fastq]
             [hiposfer.kamal.parsers.gtfs.core :as gtfs]
-            [hiposfer.kamal.parsers.osm :as osm])
+            [hiposfer.kamal.parsers.osm :as osm]
+            [expound.alpha :as expound])
   (:import (java.net URLEncoder URL)
            (java.util.zip ZipInputStream GZIPOutputStream)))
 
@@ -48,10 +50,13 @@
   a Datascript EDN representation inside"
   [outdir]
   (assert (some? outdir) "missing output file")
+  ;; setup spec instrumentation and expound for better feedback
+  (clojure.spec.test.alpha/instrument)
+  (alter-var-root #'s/*explain-out* (constantly dev/custom-printer))
   (timbre/info "preprocessing OSM and GTFS files")
   (let [env    (walk/keywordize-keys (into {} (System/getenv)))
         areas  (into {} (filter #(re-matches core/area-regex (name (key %)))) env)]
-    (assert (s/valid? ::env areas) (s/explain-str ::env areas))
+    (assert (s/valid? ::env areas) (expound/expound-str ::env areas))
     (doseq [area (core/prepare-areas areas)]
       (println "processing area:" (:area/name area))
       (let [db   (prepare-data area)
