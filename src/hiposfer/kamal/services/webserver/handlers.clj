@@ -19,7 +19,7 @@
   "returns a network whose bounding box contains all points"
   [conns params]
   (when-let [conn (first conns)]
-    (if (not (some? (data/entity @conn [:area/name (:area params)])))
+    (if (not (some? (data/entity @conn [:area/id (:area params)])))
       (recur (rest conns) params)
       @conn)))
 
@@ -77,8 +77,7 @@
                     (into {} (data/entity @conn id))))]
     (code/ok areas)))
 
-(def directions-coercer {:area        #(str/replace % "_" " ")
-                         :coordinates edn/read-string
+(def directions-coercer {:coordinates edn/read-string
                          :departure   #(ZonedDateTime/parse %)})
 
 (defn- get-directions

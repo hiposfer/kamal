@@ -19,7 +19,7 @@
 ;; This is a hack !! but it works :)
 ;; Thanks datascript
 
-(def schema {:area/name       {:db.unique :db.unique/identity}
+(def schema {:area/id         {:db.unique :db.unique/identity}
              ;; Open Street Map - entities
              :node/id         {:db.unique :db.unique/identity}
              :node/location   {:db/index true}
