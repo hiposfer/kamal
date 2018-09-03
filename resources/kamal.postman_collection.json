@@ -42,24 +42,24 @@
 				],
 				"body": {},
 				"url": {
-					"raw": "localhost:3000/area/frankfurt/directions?departure=2018-05-07T10:15:30&coordinates=[[8.645333, 50.087314],[8.635897, 50.104172]]",
+					"raw": "localhost:3000/area/frankfurt-am-main/directions?departure=2018-08-31T17%3A06%3A37.897Z&coordinates=[[8.644231, 50.087102],[8.637313, 50.119479 ]]",
 					"host": [
 						"localhost"
 					],
 					"port": "3000",
 					"path": [
 						"area",
-						"frankfurt",
+						"frankfurt-am-main",
 						"directions"
 					],
 					"query": [
 						{
 							"key": "departure",
-							"value": "2018-05-07T10:15:30"
+							"value": "2018-08-31T17%3A06%3A37.897Z"
 						},
 						{
 							"key": "coordinates",
-							"value": "[[8.645333, 50.087314],[8.635897, 50.104172]]"
+							"value": "[[8.644231, 50.087102],[8.637313, 50.119479 ]]"
 						}
 					]
 				}
@@ -78,14 +78,14 @@
 				],
 				"body": {},
 				"url": {
-					"raw": "localhost:3000/area/frankfurt/stop/763067498",
+					"raw": "localhost:3000/area/frankfurt-am-main/stop/763067498",
 					"host": [
 						"localhost"
 					],
 					"port": "3000",
 					"path": [
 						"area",
-						"frankfurt",
+						"frankfurt-am-main",
 						"stop",
 						"763067498"
 					]
