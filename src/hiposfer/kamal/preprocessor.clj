@@ -51,7 +51,7 @@
   (timbre/info "preprocessing OSM and GTFS files")
   (let [env    (walk/keywordize-keys (into {} (System/getenv)))
         areas  (into {} (filter #(re-matches core/area-regex (name (key %)))) env)]
-    (assert (s/valid? ::env areas) (s/explain ::env areas))
+    (assert (s/valid? ::env areas) (s/explain-str ::env areas))
     (doseq [area (core/prepare-areas areas)]
       (println "processing area:" (:area/name area))
       (let [db   (prepare-data area)
