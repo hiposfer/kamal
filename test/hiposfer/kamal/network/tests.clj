@@ -187,7 +187,7 @@
 (def network (delay (time (router/network {:area/edn "resources/frankfurt_am_main.edn.gzip"}))))
 
 (defspec routing-directions
-  10; tries -> expensive test
+  20; tries -> expensive test
   (let [graph    (deref (deref network)) ;; delay atom
         nodes    (alg/nodes graph)
         gc       (count nodes)]
@@ -197,7 +197,7 @@
             depart   (gen/generate (s/gen ::dataspecs/departure))
             args     {:coordinates [src dst] :departure depart :steps true}
             response (future (dir/direction graph args))
-            result   (deref response 5000 ::timeout)]
+            result   (deref response 3500 ::timeout)]
         (when (= result ::timeout)
           (println "timeout"))
         (is (or (= result ::timeout)
