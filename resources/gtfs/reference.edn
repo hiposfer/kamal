@@ -1,63 +1,13 @@
-{:meta {:revised "August 9, 2018"
+{:meta {:revised "September 1, 2018"
         :original "https://github.com/google/transit/blob/master/gtfs/spec/en/reference.md"
         :description "This document explains the types of files that comprise a GTFS transit feed and defines the fields used in all of those files."}
  :definitions {:required "The field column must be included in your feed, and a value must be provided for each record. Some required fields permit an empty string as a value. To enter an empty string, just omit any text between the commas for that field. Note that 0 is interpreted as \"a string of value 0\", and is not an empty string. Please see the field definition for details"
                :optional "The field column may be omitted from your feed. If you choose to include an optional column, each record in your feed must have a value for that column. You may include an empty string as a value for records that do not have values for the column. Some optional fields permit an empty string as a value. To enter an empty string, just omit any text between the commas for that field. Note that 0 is interpreted as \"a string of value 0\", and is not an empty string."
                :unique   " The field contains a value that maps to a single distinct entity within the column. For example, if a route is assigned the ID 1A, then no other route may use that route ID. However, you may assign the ID 1A to a location because locations are a different type of entity than routes"}
- :feed-files
+ :feeds
  ({:filename "agency.txt",
    :required true,
-   :defines
-   "One or more transit agencies that provide the data in this feed."}
-  {:filename "stops.txt",
-   :required true,
-   :defines
-   "Individual locations where vehicles pick up or drop off passengers."}
-  {:filename "routes.txt",
-   :required true,
-   :defines
-   "Transit routes. A route is a group of trips that are displayed to riders as a single service."}
-  {:filename "trips.txt",
-   :required true,
-   :defines
-   "Trips for each route. A trip is a sequence of two or more stops that occurs at specific time."}
-  {:filename "stop_times.txt",
-   :required true,
-   :defines
-   "Times that a vehicle arrives at and departs from individual stops for each trip."}
-  {:filename "calendar.txt",
-   :required true,
-   :defines
-   "Dates for service IDs using a weekly schedule. Specify when service starts and ends, as well as days of the week where service is available."}
-  {:filename "calendar_dates.txt",
-   :required false,
-   :defines
-   "Exceptions for the service IDs defined in the calendar.txt file. If calendar.txt includes ALL dates of service, this file may be specified instead of calendar.txt."}
-  {:filename "fare_attributes.txt",
-   :required false,
-   :defines "Fare information for a transit organization's routes."}
-  {:filename "fare_rules.txt",
-   :required false,
-   :defines
-   "Rules for applying fare information for a transit organization's routes."}
-  {:filename "shapes.txt",
-   :required false,
-   :defines
-   "Rules for drawing lines on a map to represent a transit organization's routes."}
-  {:filename "frequencies.txt",
-   :required false,
-   :defines
-   "Headway (time between trips) for routes with variable frequency of service."}
-  {:filename "transfers.txt",
-   :required false,
-   :defines
-   "Rules for making connections at transfer points between routes."}
-  {:filename "feed_info.txt",
-   :required false,
-   :defines
-   "Additional information about the feed itself, including publisher, version, and expiration information."}),
- :field-definitions
- ({:filename "agency.txt",
+   :defines "One or more transit agencies that provide the data in this feed.",
    :fields
    ({:field-name "agency_id",
      :required false,
@@ -93,6 +43,8 @@
      :details
      "Contains a single valid email address actively monitored by the agency’s customer service department. This email address will be considered a direct contact point where transit riders can reach a customer service representative at the agency."})}
   {:filename "stops.txt",
+   :required true,
+   :defines "Individual locations where vehicles pick up or drop off passengers.",
    :fields
    ({:field-name "stop_id",
      :required true,
@@ -179,6 +131,8 @@
        "there exists no accessible path from the entrance to station platforms",
        :value 2})})}
   {:filename "routes.txt",
+   :required true,
+   :defines "Transit routes. A route is a group of trips that are displayed to riders as a single service.",
    :fields
    ({:field-name "route_id",
      :required true,
@@ -247,6 +201,8 @@
      :details
      "The route_sort_order field can be used to order the routes in a way which is ideal for presentation to customers. It must be a non-negative integer. Routes with smaller route_sort_order values should be displayed before routes with larger route_sort_order values."})}
   {:filename "trips.txt",
+   :required true,
+   :defines "Trips for each route. A trip is a sequence of two or more stops that occurs at specific time.",
    :fields
    ({:field-name "route_id",
      :required true,
@@ -316,6 +272,8 @@
        "indicates that no bicycles are allowed on this trip",
        :value 2})})}
   {:filename "stop_times.txt",
+   :required true,
+   :defines "Times that a vehicle arrives at and departs from individual stops for each trip.",
    :fields
    ({:field-name "trip_id",
      :required true,
@@ -377,6 +335,8 @@
       {:description "Times are considered exact.", :value 1}
       "For stop-time entries without specified arrival and departure times, feed consumers must interpolate arrival and departure times. Feed producers may optionally indicate that such an entry is not a timepoint (value=0) but it is an error to mark a entry as a timepoint (value=1) without specifying arrival and departure times.")})}
   {:filename "calendar.txt",
+   :required true,
+   :defines "Dates for service IDs using a weekly schedule. Specify when service starts and ends, as well as days of the week where service is available.",
    :fields
    ({:field-name "service_id",
      :required true,
@@ -420,6 +380,8 @@
      :details
      "The end_date field contains the end date for the service. This date is included in the service interval.  The end_date field's value should be in YYYYMMDD format."})}
   {:filename "calendar_dates.txt",
+   :required false,
+   :defines "Exceptions for the service IDs defined in the calendar.txt file. If calendar.txt includes ALL dates of service, this file may be specified instead of calendar.txt.",
    :fields
    ({:field-name "service_id",
      :required true,
@@ -441,6 +403,8 @@
       {:value 2
        :description "service removed for the specified date."})})}
   {:filename "fare_attributes.txt",
+   :required false,
+   :defines "Fare information for a transit organization's routes.",
    :fields
    ({:field-name "fare_id",
      :required true,
@@ -481,6 +445,8 @@
      :details
      "The transfer_duration field specifies the length of time in seconds before a transfer expires.  When used with a transfers value of 0, the transfer_duration field indicates how long a ticket is valid for a fare where no transfers are allowed. Unless you intend to use this field to indicate ticket validity, transfer_duration should be omitted or empty when transfers is set to 0."})}
   {:filename "fare_rules.txt",
+   :required false,
+   :defines "Rules for applying fare information for a transit organization's routes.",
    :fields
    ({:field-name "fare_id",
      :required true,
@@ -503,6 +469,8 @@
      :details
      "The contains_id field associates the fare ID with a zone ID, referenced from the stops.txt file. The fare ID is then associated with itineraries that pass through every contains_id zone."})}
   {:filename "shapes.txt",
+   :required false,
+   :defines "Rules for drawing lines on a map to represent a transit organization's routes.",
    :fields
    ({:field-name "shape_id",
      :required true,
@@ -525,6 +493,8 @@
      :details
      "When used in the shapes.txt file, the shape_dist_traveled field positions a shape point as a distance traveled along a shape from the first shape point. The shape_dist_traveled field represents a real distance traveled along the route in units such as feet or kilometers. This information allows the trip planner to determine how much of the shape to draw when showing part of a trip on the map. The values used for shape_dist_traveled must increase along with shape_pt_sequence: they cannot be used to show reverse travel along a route."})}
   {:filename "frequencies.txt",
+   :required false,
+   :defines "Headway (time between trips) for routes with variable frequency of service.",
    :fields
    ({:field-name "trip_id",
      :required true,
@@ -557,6 +527,8 @@
        "Frequency-based trips are exactly scheduled. For a frequencies.txt row, trips are scheduled starting with trip_start_time = start_time + x * headway_secs for all x in (0, 1, 2, ...) where trip_start_time < end_time.",
        :value 1})})}
   {:filename "transfers.txt",
+   :required false,
+   :defines "Rules for making connections at transfer points between routes.",
    :fields
    ({:field-name "from_stop_id",
      :required true,
@@ -587,6 +559,8 @@
      :details
      "When a connection between routes requires an amount of time between arrival and departure (transfer_type=2), the min_transfer_time field defines the amount of time that must be available in an itinerary to permit a transfer between routes at these stops. The min_transfer_time must be sufficient to permit a typical rider to move between the two stops, including buffer time to allow for schedule variance on each route."})}
   {:filename "feed_info.txt",
+   :required false,
+   :defines "Additional information about the feed itself, including publisher, version, and expiration information.",
    :fields
    ({:field-name "feed_publisher_name",
      :required true,

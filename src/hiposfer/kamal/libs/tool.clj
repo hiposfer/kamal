@@ -71,7 +71,8 @@
 (defn- stringify?
   "only stringifies java object which are not primities (java.lang...)"
   [^Object value]
-  (and (str/starts-with? (.getCanonicalName (.getClass ^Object value)) "java")
+  (and (some? value)
+       (str/starts-with? (.getCanonicalName (.getClass ^Object value)) "java")
        (not (str/starts-with? (.getCanonicalName (.getClass ^Object value)) "java.lang"))))
 
 (defn jsonista
