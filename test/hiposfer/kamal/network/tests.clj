@@ -196,7 +196,7 @@
             depart   (gen/generate (s/gen ::dataspecs/departure))
             args     {:coordinates [src dst] :departure depart :steps true}
             response (future (dir/direction graph args))
-            result   (deref response 800 ::timeout)]
+            result   (deref response 1500 ::timeout)]
         (when (= result ::timeout)
           (println "timeout"))
         (is (or (= result ::timeout)
