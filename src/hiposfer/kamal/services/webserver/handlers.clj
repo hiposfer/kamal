@@ -10,7 +10,8 @@
             [datascript.core :as data]
             [clojure.edn :as edn]
             [hiposfer.kamal.libs.tool :as tool]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [hiposfer.kamal.parsers.gtfs.core :as gtfs])
   (:import (java.time ZonedDateTime)))
 
 (def max-distance 1000) ;; meters
@@ -106,7 +107,7 @@
     (let [regions (:kamal/networks request)]
       (when-let [network (select regions (:params request))]
         (when-let [e (entity network (:params request))]
-          (code/ok (tool/gtfs-resource e)))))))
+          (code/ok (gtfs/resource e)))))))
 
 ;; ring handlers are matched in order
 (defn create

@@ -20,7 +20,7 @@
             [clojure.java.io :as io]
             [clojure.data.csv :as csv]
             [clojure.tools.reader.edn :as edn])
-  (:import (java.util.zip ZipInputStream ZipEntry ZipFile)
+  (:import (java.util.zip ZipInputStream ZipEntry)
            (java.time Duration LocalDate ZoneId)
            (java.time.format DateTimeFormatter)
            (java.util List)))
@@ -83,7 +83,7 @@
   "a reference is a field that links to a unique field in another file
   and that is not that field itself"
   [field]
-  (and (contains? (set reference/unique-fields) (:field-name field))
+  (and (contains? (set reference/identifiers) (:field-name field))
        (not (:unique field))))
 
 (defn parse
@@ -95,11 +95,11 @@
         fields (into {} (map (juxt :keyword identity) head))]
     (for [row (rest csv-content)]
       (into {}
-            (for [[k v] (map vector (map :keyword head) row)
-                  :when (not-empty v)]
-              (if (ref? (get fields k))
-                [k [(keyword (name k) "id") (coerce v)]]
-                [k (coerce v)]))))))
+        (for [[k v] (map vector (map :keyword head) row)
+              :when (not-empty v)]
+          (if (ref? (get fields k))
+            [k [(keyword (name k) "id") (coerce v)]]
+            [k (coerce v)]))))))
 
 ;(with-open [f (io/reader "resources/frankfurt.gtfs/trips.txt")]
 ;  (into [] (take 10 (parse (csv/read-csv f) "trips.txt"))))
@@ -149,6 +149,26 @@
        (recur zipstream
               (. zipstream (getNextEntry))
               (assoc result filename content))))))
+
+(def idents (into #{} (comp (filter :unique) (map :keyword)) reference/fields))
+
+(def attributes (into #{} (map :keyword) reference/fields))
+
+
+(defn resource
+  "takes a datascript entity and checks if any of its values are entities, if so replaces
+  them by their unique identity value"
+  [entity]
+  (into {} (remove nil?)
+    (for [[k v] entity]
+      (cond
+        (map? v)
+        [k (select-keys v [(some (set (keys v)) idents)])]
+
+        (set? v)
+        [k (map #(select-keys % [(some (set (keys %)) idents)]) v)]
+
+        (contains? attributes k) [k v]))))
 
 ;(with-open [z (ZipInputStream. (io/input-stream "resources/frankfurt.gtfs.zip"))]
 ;  (time (drop 10000 (datomize! z))))

@@ -2,9 +2,7 @@
   "useful functions that have not found a proper place yet"
   (:refer-clojure :rename {some some*} :exclude [assert])
   (:require [clojure.spec.alpha :as s]
-            [clojure.string :as str]
-            [datascript.impl.entity :as dentity]
-            [hiposfer.kamal.parsers.gtfs.core :as gtfs]))
+            [clojure.string :as str]))
 
 (defn unique-by
   "Returns a lazy sequence of the elements of coll with duplicates attributes removed.
@@ -86,30 +84,3 @@
     (keyword (name value))
 
     :else value))
-
-(defn- references
-  [k v]
-  (let [suffix (name k)
-        ident  (keyword suffix "id")]
-    [k {ident (get v ident)}]))
-
-(def gtfs-ns (set (vals gtfs/file-ns)))
-
-(defn gtfs-resource
-  "takes an entity and checks if any of its values are entities, if so replaces
-  them by their unique identity value.
-
-  WARNING: this works only for GTFS entities, since those obey the :name/id
-  pattern. Any other reference entity is not guarantee to work"
-  [entity]
-  (let [data (for [[k v] entity]
-               (cond
-                 (dentity/entity? v)
-                 (references k v)
-
-                 (and (set? v) (every? dentity/entity? v))
-                 (when (contains? gtfs-ns (keyword (name k)))
-                   (map #(references k %) v))
-
-                 :else [k v]))]
-    (into {} (remove nil?) data)))
