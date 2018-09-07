@@ -14,8 +14,10 @@
 (defn- singularly
   "removes the s at the end of a name"
   [text]
-  (if (not (str/ends-with? text "s")) text
-                                      (subs text 0 (dec (count text)))))
+  (cond
+    (str/ends-with? text "ies") (str (subs text 0 (- (count text) 3)) "y")
+    (str/ends-with? text "s") (subs text 0 (dec (count text)))
+    :else text))
 
 (defn- reference?
   "checks if text references a field name based on its content. A reference
