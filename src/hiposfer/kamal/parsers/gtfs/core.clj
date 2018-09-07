@@ -104,6 +104,8 @@
 ;(with-open [f (io/reader "resources/frankfurt.gtfs/trips.txt")]
 ;  (into [] (take 10 (parse (csv/read-csv f) "trips.txt"))))
 
+;; these are also the only supported files for the time being
+;; we dont read anything that is not here yet
 (def read-order ["agency.txt" "calendar.txt" "routes.txt"
                  "trips.txt" "stops.txt" "stop_times.txt"])
 
@@ -136,19 +138,19 @@
      (nil? entry)
      (mapcat val (sort-by #(. ^List read-order (indexOf (key %))) result))
 
-     ;; unknown file, ignore it
-     (not (contains? read-order (. entry (getName))))
-     (recur zipstream (. zipstream (getNextEntry)) result)
-
-     ;; important file -> parse and process it
-     :else
+     ;; gtfs feed file, parse and process it
+     (contains? (set read-order) (. entry (getName)))
      (let [filename (. entry (getName))
            trunc    (get truncators filename identity)
            file     (io/reader zipstream)
            content  (into [] (map trunc) (parse (csv/read-csv file) filename))]
        (recur zipstream
               (. zipstream (getNextEntry))
-              (assoc result filename content))))))
+              (assoc result filename content)))
+
+     ;; something else ... ignore it
+     :else
+     (recur zipstream (. zipstream (getNextEntry)) result))))
 
 ;; just for convenience
 (def idents (into #{} (comp (filter :unique) (map :keyword)) reference/fields))
