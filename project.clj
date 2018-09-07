@@ -20,7 +20,8 @@
                  [org.clojure/data.csv "0.1.4"]
                  [datascript "0.16.6"]
                  [ch.hsr/geohash "1.3.0"]]
-  :aliases {"preprocess" ["trampoline" "run" "-m" "hiposfer.kamal.preprocessor"]}
+  ;; preprocessor - env vars are not passed along, so better run manually
+  ;; ["trampoline" "run" "-m" "hiposfer.kamal.preprocessor"]}
   :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
                                   [expound "0.7.0"]
                                   [markdown2clj "0.1.3"]
