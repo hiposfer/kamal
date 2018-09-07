@@ -4,7 +4,7 @@
   (:require [clojure.string :as str]
             [clojure.tools.reader.edn :as edn]))
 
-(def gtfs-spec (edn/read-string (slurp "resources/gtfs/reference.edn")))
+(def gtfs-spec (edn/read-string (slurp "gtfs.edn/reference.edn")))
 
 (def unique-fields (for [feed (:feeds gtfs-spec)
                          field (:fields feed)

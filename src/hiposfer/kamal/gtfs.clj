@@ -122,4 +122,4 @@
   (spit out (with-out-str (pprint/pprint (parse (slurp url))))))
 
 ;(parse (slurp url))
-;(-main "resources/gtfs/reference.edn")
+;(-main "gtfs.edn/reference.edn")
