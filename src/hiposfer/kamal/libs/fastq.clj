@@ -58,29 +58,29 @@
               (data/index-range network :way/nodes id nil))))
 
 (defn continue-trip
-  "returns the :stop_times entity to reach ?dst-id via ?trip
+  "returns the :stop_time entity to reach ?dst-id via ?trip
 
   Returns nil if no trip going to ?dst-id was found
 
   replaces:
   '[:find ?departure
     :in $ ?dst-id ?trip ?start
-    :where [?dst :stop_times/stop ?dst-id]
-           [?dst :stop_times/trip ?trip]
-           [?dst :stop_times/arrival_time ?seconds]
+    :where [?dst :stop_time/stop ?dst-id]
+           [?dst :stop_time/trip ?trip]
+           [?dst :stop_time/arrival_time ?seconds]
            [(plus-seconds ?start ?seconds) ?departure]]
 
    The previous query takes around 50 milliseconds to execute. This function
-   takes around 0.22 milliseconds to execute. Depends on :stop_times/trip index"
+   takes around 0.22 milliseconds to execute. Depends on :stop_time/trip index"
   [network dst trip]
   (let [?dst-id  (:db/id dst)
         ?trip-id (:db/id trip)]
-    (tool/some #(= ?dst-id (:db/id (:stop_times/stop %)))
+    (tool/some #(= ?dst-id (:db/id (:stop_time/stop %)))
                (eduction (index-lookup network ?trip-id)
-                         (data/index-range network :stop_times/trip ?trip-id nil)))))
+                         (data/index-range network :stop_time/trip ?trip-id nil)))))
 
 (defn find-trip
-  "Returns a [src dst] :stop_times pair for the next trip between ?src-id
+  "Returns a [src dst] :stop_time pair for the next trip between ?src-id
    and ?dst-id departing after ?now.
 
    Returns nil if no trip was found
@@ -88,11 +88,11 @@
   replaces:
   '[:find ?trip ?departure
     :in $ ?src-id ?dst-id ?now ?start
-    :where [?src :stop_times/stop ?src-id]
-           [?dst :stop_times/stop ?dst-id]
-           [?src :stop_times/trip ?trip]
-           [?dst :stop_times/trip ?trip]
-           [?src :stop_times/departure_time ?amount]
+    :where [?src :stop_time/stop ?src-id]
+           [?dst :stop_time/stop ?dst-id]
+           [?src :stop_time/trip ?trip]
+           [?dst :stop_time/trip ?trip]
+           [?src :stop_time/departure_time ?amount]
            [(hiposfer.kamal.libs.fastq/plus-seconds ?start ?amount) ?departure]
            [(hiposfer.kamal.libs.fastq/after? ?departure ?now)]]
 
@@ -101,29 +101,29 @@
   (let [?src-id (:db/id src)
         stop_times (eduction (filter #(contains? stop-times (:e %)))
                              (index-lookup network ?src-id)
-                             (filter #(> (:stop_times/departure_time %) now))
-                             (data/index-range network :stop_times/stop ?src-id nil))]
+                             (filter #(> (:stop_time/departure_time %) now))
+                             (data/index-range network :stop_time/stop ?src-id nil))]
     (when (not-empty stop_times)
-      (let [trip (apply min-key :stop_times/departure_time stop_times)]
-        [trip (continue-trip network dst (:stop_times/trip trip))]))))
+      (let [trip (apply min-key :stop_time/departure_time stop_times)]
+        [trip (continue-trip network dst (:stop_time/trip trip))]))))
 
 (defn day-stop-times
   "returns a set of stop_times entity ids that are available for date"
   [network ^LocalDate date]
-  (let [services (into #{} (comp (take-while #(= (:a %) :service/id))
+  (let [services (into #{} (comp (take-while #(= (:a %) :calendar/id))
                                  (map #(data/entity network (:e %)))
                                  (filter #(. date (isBefore (:service/end_date %))))
                                  (filter #(. date (isAfter (:service/start_date %))))
                                  (filter #(contains? (:service/days %) (.getDayOfWeek date)))
                                  (map :db/id))
-                       (data/seek-datoms network :avet :service/id))
+                       (data/seek-datoms network :avet :calendar/id))
         trips    (into #{} (comp (take-while #(= (:a %) :trip/service))
                                  (filter #(contains? services (:v %)))
                                  (map :e))
                        (data/seek-datoms network :avet :trip/service))]
     (into #{} (comp (filter #(contains? trips (:v %)))
                     (map :e))
-              (data/datoms network :avet :stop_times/trip))))
+              (data/datoms network :avet :stop_time/trip))))
 
 (defn- references
   "returns all entities that reference entity through attribute k"
@@ -135,31 +135,31 @@
              (data/index-range network k (:db/id entity) nil))))
 
 (defn next-stops
-  "return the next stop entities for ?src-id based on :stop_times
+  "return the next stop entities for ?src-id based on :stop_time
 
   This function might return duplicates
 
   replaces:
   '[:find [?id ...]
     :in $ ?src-id
-    :where [?src :stop_times/stop ?src-id]
-           [?src :stop_times/trip ?trip]
-           [?dst :stop_times/trip ?trip]
-           [?src :stop_times/sequence ?s1]
-           [?dst :stop_times/sequence ?s2]
+    :where [?src :stop_time/stop ?src-id]
+           [?src :stop_time/trip ?trip]
+           [?dst :stop_time/trip ?trip]
+           [?src :stop_time/sequence ?s1]
+           [?dst :stop_time/sequence ?s2]
            [(> ?s2 ?s1)]
-           [?dst :stop_times/stop ?se]
+           [?dst :stop_time/stop ?se]
            [?se :stop/id ?id]]
   the previous query takes 145 milliseconds. This function takes 0.2 milliseconds"
   [network src]
-  (for [st1  (references network :stop_times/stop src)
+  (for [st1  (references network :stop_time/stop src)
         :let [stimes2 (references network
-                                  :stop_times/trip
-                                  (:stop_times/trip st1)
-                                  (filter #(> (:stop_times/sequence %)
-                                              (:stop_times/sequence st1))))]
+                                  :stop_time/trip
+                                  (:stop_time/trip st1)
+                                  (filter #(> (:stop_time/sequence %)
+                                              (:stop_time/sequence st1))))]
         :when (not-empty stimes2)]
-      (:stop_times/stop (apply min-key :stop_times/sequence stimes2))))
+      (:stop_time/stop (apply min-key :stop_time/sequence stimes2))))
 
 ;(time
 ;  (dotimes [n 10000]
