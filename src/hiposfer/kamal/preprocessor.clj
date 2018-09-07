@@ -35,12 +35,12 @@
 
 (defn- prepare-data
   [area]
-  (let [db (fetch-osm area)]
+  (let [db (time (fetch-osm area))]
     ;; progressively build up the network from the pieces
     (with-open [z (-> (io/input-stream (:area/gtfs area))
                       (ZipInputStream.))]
       (as-> db $
-            (data/db-with $ (gtfs/datomize! z))
+            (data/db-with $ (time (gtfs/datomize! z)))
             (data/db-with $ (fastq/link-stops $))
             (data/db-with $ (fastq/cache-stop-successors $))
             (data/db-with $ [area]))))) ;; add the area as transaction)))
