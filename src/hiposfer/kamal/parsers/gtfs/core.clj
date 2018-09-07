@@ -83,7 +83,8 @@
   "a reference is a field that links to a unique field in another file
   and that is not that field itself"
   [field]
-  (and (contains? (set reference/identifiers) (:field-name field))
+  (and (contains? (set (map :field-name reference/identifiers))
+                  (:field-name field))
        (not (:unique field))))
 
 (defn parse
@@ -113,8 +114,8 @@
   "map of GTFS filenames to post-processing functions. Useful to remove
    unnecessary information from the GTFS feed; just to reduce the amount
     of datoms in datascript"
-  {"routes.txt"   #(dissoc % :route_url)
-   "trips.txt"    #(dissoc % :shape_id)
+  {"routes.txt"   #(dissoc % :route/url)
+   "trips.txt"    #(dissoc % :trip/shape)
    "stops.txt"    (fn [stop]
                     (let [removable [:stop/lat :stop/lon]
                           ks (apply disj (set (keys stop)) removable)
@@ -158,8 +159,8 @@
 
 
 (defn resource
-  "takes a datascript entity and checks if any of its values are entities, if so replaces
-  them by their unique identity value"
+  "takes a datascript entity and checks if any of its values are entities, if so
+   replaces them by their unique identity value"
   [entity]
   (into {} (remove nil?)
     (for [[k v] entity]
@@ -173,4 +174,6 @@
         (contains? attributes k) [k v]))))
 
 ;(with-open [z (ZipInputStream. (io/input-stream "resources/frankfurt.gtfs.zip"))]
-;  (time (drop 10000 (datomize! z))))
+;  (time (take 100 (drop 300 (datomize! z)))))
+
+;(filter :unique reference/fields)

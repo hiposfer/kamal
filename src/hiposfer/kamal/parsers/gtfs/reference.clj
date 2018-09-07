@@ -2,14 +2,15 @@
   "functionality to understand the mapping created between the gtfs reference
     and their datascript representation"
   (:require [clojure.string :as str]
-            [clojure.tools.reader.edn :as edn]))
+            [clojure.tools.reader.edn :as edn]
+            [hiposfer.kamal.libs.tool :as tool]))
 
 (def gtfs-spec (edn/read-string (slurp "gtfs.edn/reference.edn")))
 
 (def identifiers (for [feed (:feeds gtfs-spec)
                        field (:fields feed)
                        :when (:unique field)]
-                   (:field-name field)))
+                   field))
 
 (defn- singularly
   "removes the s at the end of a name"
@@ -23,7 +24,7 @@
   "checks if text references a field name based on its content. A reference
   is a field name that ends with the same name as a unique field"
   [text]
-  (some (fn [uf] (when (str/ends-with? text uf) uf)) identifiers))
+  (some (fn [uf] (when (str/ends-with? text uf) uf)) (map :field-name identifiers)))
 
 (defn- gtfs-mapping
   "returns a namespaced keyword that will represent this field in datascript"
@@ -45,13 +46,20 @@
       ;; "stop_time_pickup_type" -> :stop_time/pickup_type
       :else (keyword ns-name (:field-name field)))))
 
+(defn- feed-namespace
+  [feed]
+  (if-let [id (tool/some :unique (:fields feed))]
+    (first (str/split (:field-name id) #"_"))
+    (singularly (first (str/split (:filename feed) #"\.")))))
+;;(feed-namespace (nth (:feeds gtfs-spec) 9))
+
 (def fields
   "returns a sequence of gtfs field data with a :mapping entry.
 
   This is useful to know exactly which fields are mapped to which keywords in
   Datascript"
   (for [feed (:feeds gtfs-spec)
-        :let [ns-name (singularly (first (str/split (:filename feed) #"\.")))]
+        :let [ns-name (feed-namespace feed)]
         field (:fields feed)]
     (let [k (gtfs-mapping ns-name field)]
       (assoc field :keyword k :filename (:filename feed)))))
