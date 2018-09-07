@@ -43,7 +43,7 @@
   (timbre/debug "Stopping System\n")
   (alter-var-root #'system (fn [s] (when s (component/stop s)))))
 
-(defn- custom-printer
+(defn custom-printer
   [explain-data]
   (let [printer (expound/custom-printer {:show-valid-values? true
                                          :print-specs? false})]
