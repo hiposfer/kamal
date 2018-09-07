@@ -17,7 +17,6 @@
             [hiposfer.kamal.libs.geometry :as geometry]
             [hiposfer.kamal.libs.fastq :as fastq]
             [datascript.core :as data]
-            [hiposfer.kamal.libs.tool :as tool]
             [hiposfer.kamal.parsers.gtfs.core :as gtfs])
   (:import (java.time Duration LocalTime ZonedDateTime)
            (java.time.temporal ChronoUnit)))
