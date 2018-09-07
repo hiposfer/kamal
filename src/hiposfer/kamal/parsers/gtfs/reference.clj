@@ -6,10 +6,10 @@
 
 (def gtfs-spec (edn/read-string (slurp "gtfs.edn/reference.edn")))
 
-(def unique-fields (for [feed (:feeds gtfs-spec)
-                         field (:fields feed)
-                         :when (:unique field)]
-                     (:field-name field)))
+(def identifiers (for [feed (:feeds gtfs-spec)
+                       field (:fields feed)
+                       :when (:unique field)]
+                   (:field-name field)))
 
 (defn- singularly
   "removes the s at the end of a name"
@@ -21,7 +21,7 @@
   "checks if text references a field name based on its content. A reference
   is a field name that ends with the same name as a unique field"
   [text]
-  (some (fn [uf] (when (str/ends-with? text uf) uf)) unique-fields))
+  (some (fn [uf] (when (str/ends-with? text uf) uf)) identifiers))
 
 (defn- gtfs-mapping
   "returns a namespaced keyword that will represent this field in datascript"
@@ -43,7 +43,7 @@
       ;; "stop_time_pickup_type" -> :stop_time/pickup_type
       :else (keyword ns-name (:field-name field)))))
 
-(def clj-fields
+(def fields
   "returns a sequence of gtfs field data with a :mapping entry.
 
   This is useful to know exactly which fields are mapped to which keywords in
@@ -62,11 +62,11 @@
                                 (= field-name (:field-name v)))
                        (reduced v)))
            nil
-           clj-fields))
+           fields))
   ([k]
    (reduce (fn [_ v] (when (= k (:keyword v)) (reduced v)))
            nil
-           clj-fields)))
+           fields)))
 ;;(get-mapping "agency.txt" "agency_id")
 ;;(get-mapping "trips.txt" "route_id")
 ;;(get-mapping "calendar.txt" "service_id")

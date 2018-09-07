@@ -17,7 +17,8 @@
             [hiposfer.kamal.libs.geometry :as geometry]
             [hiposfer.kamal.libs.fastq :as fastq]
             [datascript.core :as data]
-            [hiposfer.kamal.libs.tool :as tool])
+            [hiposfer.kamal.libs.tool :as tool]
+            [hiposfer.kamal.parsers.gtfs.core :as gtfs])
   (:import (java.time Duration LocalTime ZonedDateTime)
            (java.time.temporal ChronoUnit)))
 
@@ -160,8 +161,8 @@
         {:step/departure (+ start departs)})
       (when (= "transit" mode)
         (if (= "exit vehicle" (:maneuver/type man))
-          (tool/gtfs-resource (:end (val (first piece))))
-          (tool/gtfs-resource (:start (val (first piece)))))))))
+          (gtfs/resource (:end (val (first piece))))
+          (gtfs/resource (:start (val (first piece)))))))))
 
 (defn- route-steps
   "returns a route-steps vector or an empty vector if no steps are needed"
