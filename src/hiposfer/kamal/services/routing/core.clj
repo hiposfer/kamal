@@ -7,8 +7,7 @@
             [taoensso.timbre :as timbre]
             [hiposfer.kamal.parsers.edn :as edn]
             [hiposfer.kamal.parsers.gtfs.core :as gtfs]
-            [hiposfer.kamal.parsers.gtfs.reference :as reference]
-            [clojure.data]))
+            [hiposfer.kamal.parsers.gtfs.reference :as reference]))
 
 ;; NOTE: we use :db/index true to replace the lack of :VAET index in datascript
 ;; This is for performance. In lots of cases we want to lookup back-references
@@ -23,7 +22,7 @@
 ;; Thanks datascript
 
 (def schema (merge-with into
-              {:area/name       {:db.unique :db.unique/identity}
+              {:area/id         {:db.unique :db.unique/identity}
                ;; Open Street Map - entities
                :node/id         {:db.unique :db.unique/identity}
                :node/location   {:db/index true}
@@ -31,12 +30,12 @@
                                  :db.cardinality :db.cardinality/many
                                  :db/index       true}
 
-               :way/id          {:db.unique :db.unique/identity}
-               :way/nodes       {:db.type        :db.type/ref
-                                 :db.cardinality :db.cardinality/many
-                                 :db/index       true}}
-               ;; General Transfer Feed Specification - entities
-               ;; identities
+                 :way/id          {:db.unique :db.unique/identity}
+                 :way/nodes       {:db.type        :db.type/ref
+                                   :db.cardinality :db.cardinality/many
+                                   :db/index       true}}
+              ;; General Transfer Feed Specification - entities
+              ;; identities
               (into {}
                 (for [id gtfs/idents]
                   [id {:db.unique :db.unique/identity}]))

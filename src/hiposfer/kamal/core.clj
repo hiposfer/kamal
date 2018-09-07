@@ -32,9 +32,10 @@
   [m]
   (let [nets (filter (fn [[k]] (re-matches area-regex (name k))) m)]
     (for [[k v] nets]
-      (let [[_ id ext] (re-find area-regex (name k))
-            area-name  (str/replace id "_" " ")]
-        (into {:area/name area-name}
+      (let [[_ aname ext] (re-find area-regex (name k))
+            id            (str/lower-case (str/replace aname "_" "-"))
+            area-name     (str/replace aname "_" " ")]
+        (into {:area/name area-name :area/id id}
               [[(keyword "area" (str/lower-case ext)) v]])))))
 ;; (preprocess-env {:Frankfurt_am_Main_AREA_GTFS "foo"})
 
