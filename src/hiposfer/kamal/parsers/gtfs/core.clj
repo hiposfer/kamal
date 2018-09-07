@@ -79,7 +79,7 @@
 ;(coerce "65123245")
 ;(coerce "Europe/Berlin")
 
-(defn- ref?
+(defn ref?
   "a reference is a field that links to a unique field in another file
   and that is not that field itself"
   [field]
@@ -150,8 +150,8 @@
               (. zipstream (getNextEntry))
               (assoc result filename content))))))
 
+;; just for convenience
 (def idents (into #{} (comp (filter :unique) (map :keyword)) reference/fields))
-
 (def attributes (into #{} (map :keyword) reference/fields))
 
 
