@@ -22,7 +22,8 @@
             [clojure.tools.reader.edn :as edn])
   (:import (java.util.zip ZipInputStream ZipEntry ZipFile)
            (java.time Duration LocalDate ZoneId)
-           (java.time.format DateTimeFormatter)))
+           (java.time.format DateTimeFormatter)
+           (java.util List)))
 
 ;; detailed diagram of files relations
 ;; http://tommaps.com/wp-content/uploads/2016/09/gtfs-feed-diagram.png
@@ -103,14 +104,8 @@
 ;(with-open [f (io/reader "resources/frankfurt.gtfs/trips.txt")]
 ;  (into [] (take 10 (parse (csv/read-csv f) "trips.txt"))))
 
-
-;; TODO: the mapping is no longer valid but useful
-(def file-ns {"agency.txt"     :agency
-              "calendar.txt"   :service
-              "routes.txt"     :route
-              "trips.txt"      :trip
-              "stops.txt"      :stop
-              "stop_times.txt" :stop_times})
+(def read-order ["agency.txt" "calendar.txt" "routes.txt"
+                 "trips.txt" "stops.txt" "stop_times.txt"])
 
 (def truncators
   "map of GTFS filenames to post-processing functions. Useful to remove
@@ -133,16 +128,16 @@
   "takes a map of gtfs key-name -> content and returns a sequence
   of maps ready to be used for transact"
   ([^ZipInputStream zipstream]
-   (datomize! zipstream (. zipstream (getNextEntry)) file-ns))
+   (datomize! zipstream (. zipstream (getNextEntry)) {}))
 
   ([^ZipInputStream zipstream ^ZipEntry entry result]
    (cond
      ;; nothing more to process return
      (nil? entry)
-     (sequence cat (vals result))
+     (mapcat val (sort-by #(. ^List read-order (indexOf (key %))) result))
 
      ;; unknown file, ignore it
-     (not (contains? file-ns (. entry (getName))))
+     (not (contains? read-order (. entry (getName))))
      (recur zipstream (. zipstream (getNextEntry)) result)
 
      ;; important file -> parse and process it
