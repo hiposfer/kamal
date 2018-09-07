@@ -4,7 +4,8 @@
 
   By convention all queries here return Entities"
   (:require [datascript.core :as data]
-            [hiposfer.kamal.libs.tool :as tool])
+            [hiposfer.kamal.libs.tool :as tool]
+            [clojure.string :as str])
   (:import (java.time LocalDate)))
 
 (defn index-lookup
@@ -107,6 +108,12 @@
       (let [trip (apply min-key :stop_time/departure_time stop_times)]
         [trip (continue-trip network dst (:stop_time/trip trip))]))))
 
+(defn- working?
+  [^LocalDate date service]
+  (let [day  (str/lower-case (str (. date (getDayOfWeek))))
+        work (keyword "service" day)] ;; :service/monday
+    (pos? (work service)))) ;; 1 or 0 according to gtfs spec
+
 (defn day-stop-times
   "returns a set of stop_times entity ids that are available for date"
   [network ^LocalDate date]
@@ -114,7 +121,7 @@
                                  (map #(data/entity network (:e %)))
                                  (filter #(. date (isBefore (:service/end_date %))))
                                  (filter #(. date (isAfter (:service/start_date %))))
-                                 (filter #(contains? (:service/days %) (.getDayOfWeek date)))
+                                 (filter #(working? date %))
                                  (map :db/id))
                        (data/seek-datoms network :avet :calendar/id))
         trips    (into #{} (comp (take-while #(= (:a %) :trip/service))
