@@ -3,21 +3,17 @@
             [hiposfer.geojson.specs :as geojson]
             [hiposfer.kamal.specs.resources :as res]
             [clojure.spec.gen.alpha :as gen]
-            [hiposfer.kamal.services.routing.directions :as dir])
+            [hiposfer.kamal.services.routing.directions :as dir]
+            [hiposfer.kamal.parsers.gtfs.core :as gtfs]
+            [clojure.string :as str])
   (:import (java.time ZoneOffset ZonedDateTime Instant)))
 
 (s/def ::name        (s/and string? not-empty))
 (s/def ::bearing     (s/and number? #(<= 0 % 360)))
 
-;;TODO this is a copy/paste of the gtfs spec but it gets the job done
-(s/def :stop_times/stop ::res/reference)
-(s/def :stop_times/trip ::res/reference)
-(s/def :stop_times/sequence integer?)
-(s/def :stop_times/arrival_time (s/and nat-int? pos?))
-(s/def :stop_times/departure_time (s/and nat-int? pos?))
-(s/def ::stop_time (s/keys :req [:stop_times/trip :stop_times/arrival_time
-                                 :stop_times/departure_time :stop_times/stop
-                                 :stop_times/sequence]))
+(def stop-time-keys (set (filter #(str/starts-with? (name %) "stop_time")
+                                  (gtfs/attributes))))
+(s/def ::stop_time (s/map-of stop-time-keys any?))
 
 (s/def :step/name     ::name)
 (s/def :step/mode     #{"transit" "walking"})
