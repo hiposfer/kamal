@@ -184,7 +184,7 @@
 ; -----------------------------------------------------------------
 ; generative tests for the direction endpoint
 
-(def network (delay (time (router/network {:area/edn "resources/frankfurt_am_main.edn.gzip"}))))
+(def network (delay (time (router/network {:area/edn "resources/frankfurt-am-main.edn.gz"}))))
 
 (defspec routing-directions
   15; tries -> expensive test
