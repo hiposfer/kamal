@@ -238,4 +238,5 @@
 
 ;(time
 ;  (fastq/day-stop-times @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;                        (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")))
+;                        (. (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")
+;                           (toLocalDate))))

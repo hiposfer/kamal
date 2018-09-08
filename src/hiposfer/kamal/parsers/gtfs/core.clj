@@ -19,7 +19,8 @@
             [hiposfer.kamal.network.core :as network]
             [clojure.java.io :as io]
             [clojure.data.csv :as csv]
-            [clojure.tools.reader.edn :as edn])
+            [clojure.tools.reader.edn :as edn]
+            [datascript.impl.entity :as dimp])
   (:import (java.util.zip ZipInputStream ZipEntry)
            (java.time Duration LocalDate ZoneId)
            (java.time.format DateTimeFormatter)
@@ -155,7 +156,7 @@
 
 ;; just for convenience
 (def idents (into #{} (comp (filter :unique) (map :keyword)) reference/fields))
-(def attributes (into #{} (map :keyword) reference/fields))
+(def attributes (into #{} (cons :stop/location (map :keyword reference/fields))))
 
 
 (defn resource
@@ -165,7 +166,7 @@
   (into {} (remove nil?)
     (for [[k v] entity]
       (cond
-        (map? v)
+        (dimp/entity? v)
         [k (select-keys v [(some (set (keys v)) idents)])]
 
         (set? v)
