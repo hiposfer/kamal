@@ -53,7 +53,9 @@
         [hh mm ss] [(Duration/ofHours hh)
                     (Duration/ofMinutes mm)
                     (Duration/ofSeconds ss)]]
-    (.getSeconds (reduce (fn [^Duration res v] (.plus res v)) hh [mm ss]))))
+    (.getSeconds (reduce (fn [^Duration res v] (. res (plus v)))
+                         hh
+                         [mm ss]))))
 
 (def date-format (DateTimeFormatter/ofPattern "uuuuMMdd"))
 (defn- local-date [text] (LocalDate/parse text date-format))
@@ -166,6 +168,9 @@
   (into {} (remove nil?)
     (for [[k v] entity]
       (cond
+        (not (contains? attributes k))
+        nil
+
         (dimp/entity? v)
         [k (select-keys v [(some (set (keys v)) idents)])]
 
