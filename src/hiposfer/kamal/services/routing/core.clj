@@ -108,36 +108,3 @@
   (if (:USE_FAKE_NETWORK config)
     (map->DevRouter {})
     (map->Router {})))
-
-
-;(clojure.data/diff schema schema2)
-;=>
-;({:service/id {:db.unique :db.unique/identity},
-;  :stop_times/stop #:db{:type :db.type/ref, :index true},
-;  :stop_times/trip #:db{:type :db.type/ref, :index true}
-;  {:fare_rule/route #:db{:type :db.type/ref},
-;   :frequencie/trip #:db{:type :db.type/ref},
-;   :fare_attribute/id {:db.unique :db.unique/identity},
-;   :trip/shape #:db{:type :db.type/ref},
-;   :shape/id {:db.unique :db.unique/identity},
-;   :fare_attribute/agency #:db{:type :db.type/ref},
-;   :stop_time/trip #:db{:type :db.type/ref, :index true},
-;   :fare_rule/fare #:db{:type :db.type/ref},
-;   :calendar/id {:db.unique :db.unique/identity},
-;   :calendar_date/service #:db{:type :db.type/ref},
-;   :stop_time/stop #:db{:type :db.type/ref, :index true}}
-;  {:way/nodes {:db.type :db.type/ref, :db.cardinality :db.cardinality/many, :db/index true},
-;   :way/id {:db.unique :db.unique/identity},
-;   :node/successors {:db.type :db.type/ref, :db.cardinality :db.cardinality/many, :db/index true},
-;   :stop/successors {:db.type :db.type/ref, :db.cardinality :db.cardinality/many},
-;   :trip/route #:db{:type :db.type/ref},
-;   :route/id {:db.unique :db.unique/identity},
-;   :trip/id {:db.unique :db.unique/identity},
-;   :agency/id {:db.unique :db.unique/identity},
-;   :node/id {:db.unique :db.unique/identity},
-;   :stop/id {:db.unique :db.unique/identity},
-;   :route/agency #:db{:type :db.type/ref},
-;   :stop/location #:db{:index true},
-;   :node/location #:db{:index true},
-;   :area/name {:db.unique :db.unique/identity},
-;   :trip/service #:db{:type :db.type/ref}}})
