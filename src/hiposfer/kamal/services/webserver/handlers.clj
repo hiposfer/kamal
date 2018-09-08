@@ -99,7 +99,7 @@
         network (select regions (:params request))
         q       (:q (:params request))
         args    (:args (:params request))]
-    (code/ok (data/q q (cons network args)))))
+    (code/ok (apply data/q q (cons network args)))))
 
 ;; ring handlers are matched in order
 (defn create

@@ -7,7 +7,7 @@
 (defn- gtfs-attributes?
   [query]
   (let [ks (set (filter qualified-keyword? (tree-seq coll? seq query)))]
-    (not-empty (set/difference ks gtfs/attributes))))
+    (empty? (set/difference ks gtfs/attributes))))
 
 (defn- no-pull-inside?
   [query]
