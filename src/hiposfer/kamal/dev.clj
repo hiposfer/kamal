@@ -21,7 +21,7 @@
   {:USE_FAKE_NETWORK false
    :JOIN_THREAD false
    :PORT 3000
-   :FRANKFURT_AM_MAIN_AREA_EDN "resources/frankfurt_am_main.edn.gzip"})
+   :FRANKFURT_AM_MAIN_AREA_EDN "resources/frankfurt-am-main.edn.gz"})
 
 (defonce system nil)
 

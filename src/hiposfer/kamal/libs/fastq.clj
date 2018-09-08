@@ -98,9 +98,9 @@
            [(hiposfer.kamal.libs.fastq/after? ?departure ?now)]]
 
   The previous query runs in 118 milliseconds. This function takes 4 milliseconds"
-  [network stop-times src dst now]
+  [network day-stops src dst now]
   (let [?src-id (:db/id src)
-        stop_times (eduction (filter #(contains? stop-times (:e %)))
+        stop_times (eduction (filter #(contains? day-stops (:e %)))
                              (index-lookup network ?src-id)
                              (filter #(> (:stop_time/departure_time %) now))
                              (data/index-range network :stop_time/stop ?src-id nil))]
@@ -117,13 +117,13 @@
 (defn day-stop-times
   "returns a set of stop_times entity ids that are available for date"
   [network ^LocalDate date]
-  (let [services (into #{} (comp (take-while #(= (:a %) :calendar/id))
+  (let [services (into #{} (comp (take-while #(= (:a %) :service/id))
                                  (map #(data/entity network (:e %)))
                                  (filter #(. date (isBefore (:service/end_date %))))
                                  (filter #(. date (isAfter (:service/start_date %))))
                                  (filter #(working? date %))
                                  (map :db/id))
-                       (data/seek-datoms network :avet :calendar/id))
+                       (data/seek-datoms network :avet :service/id))
         trips    (into #{} (comp (take-while #(= (:a %) :trip/service))
                                  (filter #(contains? services (:v %)))
                                  (map :e))

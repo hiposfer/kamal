@@ -34,17 +34,15 @@
 
 (defn- prepare-data
   [area]
-  (let [tx-osm (time (fetch-osm area))
-        db     (data/empty-db routing/schema)]
-    ;; progressively build up the network from the pieces
-    (with-open [z (-> (io/input-stream (:area/gtfs area))
-                      (ZipInputStream.))]
-      (as-> db $
-            (data/db-with $ (concat (time (gtfs/datomize! z))
-                                    tx-osm))
-            (data/db-with $ (fastq/link-stops $))
-            (data/db-with $ (fastq/cache-stop-successors $))
-            (data/db-with $ [area]))))) ;; add the area as transaction)))
+  ;; progressively build up the network from the pieces
+  (with-open [z (-> (io/input-stream (:area/gtfs area))
+                    (ZipInputStream.))]
+    (as-> (data/empty-db routing/schema) $
+          (time (data/db-with $ (gtfs/datomize! z)))
+          (time (data/db-with $ (fetch-osm area)))
+          (time (data/db-with $ (fastq/link-stops $)))
+          (time (data/db-with $ (fastq/cache-stop-successors $)))
+          (time (data/db-with $ [area]))))) ;; add the area as transaction)))
 
 (defn -main
   "Script for preprocessing OSM and GTFS files into gzip files each with
