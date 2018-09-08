@@ -152,8 +152,8 @@
     :where [?src :stop_time/stop ?src-id]
            [?src :stop_time/trip ?trip]
            [?dst :stop_time/trip ?trip]
-           [?src :stop_time/sequence ?s1]
-           [?dst :stop_time/sequence ?s2]
+           [?src :stop_time/stop_sequence ?s1]
+           [?dst :stop_time/stop_sequence ?s2]
            [(> ?s2 ?s1)]
            [?dst :stop_time/stop ?se]
            [?se :stop/id ?id]]
@@ -163,10 +163,10 @@
         :let [stimes2 (references network
                                   :stop_time/trip
                                   (:stop_time/trip st1)
-                                  (filter #(> (:stop_time/sequence %)
-                                              (:stop_time/sequence st1))))]
+                                  (filter #(> (:stop_time/stop_sequence %)
+                                              (:stop_time/stop_sequence st1))))]
         :when (not-empty stimes2)]
-      (:stop_time/stop (apply min-key :stop_time/sequence stimes2))))
+      (:stop_time/stop (apply min-key :stop_time/stop_sequence stimes2))))
 
 ;(time
 ;  (dotimes [n 10000]

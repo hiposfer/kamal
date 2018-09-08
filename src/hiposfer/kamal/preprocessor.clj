@@ -29,18 +29,19 @@
                                (:area/name area))
         url       (str "http://overpass-api.de/api/interpreter?data="
                        (URLEncoder/encode query "UTF-8"))
-        conn      (. ^URL (io/as-url url) (openConnection))
-        db        (data/empty-db routing/schema)]
-    (data/db-with db (osm/datomize! (. conn (getContent))))))
+        conn      (. ^URL (io/as-url url) (openConnection))]
+    (osm/datomize! (. conn (getContent)))))
 
 (defn- prepare-data
   [area]
-  (let [db (time (fetch-osm area))]
+  (let [tx-osm (time (fetch-osm area))
+        db     (data/empty-db routing/schema)]
     ;; progressively build up the network from the pieces
     (with-open [z (-> (io/input-stream (:area/gtfs area))
                       (ZipInputStream.))]
       (as-> db $
-            (data/db-with $ (time (gtfs/datomize! z)))
+            (data/db-with $ (concat (time (gtfs/datomize! z))
+                                    tx-osm))
             (data/db-with $ (fastq/link-stops $))
             (data/db-with $ (fastq/cache-stop-successors $))
             (data/db-with $ [area]))))) ;; add the area as transaction)))
@@ -59,16 +60,18 @@
     (assert (s/valid? ::env areas) (expound/expound-str ::env areas))
     (doseq [area (core/prepare-areas areas)]
       (println "processing area:" (:area/name area))
-      (let [db   (prepare-data area)
+      (let [db   (time (prepare-data area))
             ;; osm is mandatory, use its filename !!
             path (str outdir (str/replace (str/lower-case (:area/name area))
                                           " " "-")
                              ".edn.gz")]
+        (println "writing data to output file")
         (with-open [w (-> (io/output-stream path)
                           (GZIPOutputStream.)
                           (io/writer))]
           (binding [*out* w]
-            (pr db)))))))
+            (pr db)))
+        (println "OK -" (:area/name area))))))
 
 ;example
 ;(-main "resources/")
