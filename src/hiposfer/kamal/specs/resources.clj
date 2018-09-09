@@ -1,7 +1,7 @@
 (ns hiposfer.kamal.specs.resources
   (:require [clojure.spec.alpha :as s]
             [hiposfer.kamal.services.routing.core :as routing]
-            [hiposfer.kamal.parsers.gtfs.core :as gtfs]
+            [hiposfer.kamal.parsers.gtfs :as gtfs]
             [clojure.set :as set]))
 
 (defn- gtfs-attributes?
