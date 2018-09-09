@@ -13,7 +13,7 @@
                  [metosin/ring-http-response "0.9.0"] ;; human names for http codes
                  [ring-middleware-accept "2.0.3"] ;; http accept header
                  [hiposfer/geojson.specs "0.2.0"]
-                 [hiposfer/gtfs.edn "0.1.0"]
+                 [hiposfer/gtfs.edn "0.1.1"]
                  [com.taoensso/timbre "4.10.0"] ;; logging functions
                  [com.stuartsierra/component "0.3.2"] ;; system builder and resource management
                  [org.teneighty/java-heaps "1.0.0"] ;; for performance in dijkstra routing

@@ -24,7 +24,7 @@
 
 (defn fetch-osm
   [area]
-  (let [query     (str/replace (slurp "resources/overpass-api-query.txt")
+  (let [query     (str/replace (slurp (io/resource "overpass-api-query.txt"))
                                "Niederrad"
                                (:area/name area))
         url       (str "http://overpass-api.de/api/interpreter?data="
