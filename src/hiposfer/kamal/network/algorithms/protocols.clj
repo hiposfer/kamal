@@ -9,3 +9,10 @@
 (defprotocol GeoCoordinate
   (lat [this] "latitude in decimal numbers")
   (lon [this] "longitude in decimal numbers"))
+
+(defprotocol Router
+  "An instance used to direct the movement of Dijkstra's traversal algorithm"
+  (weight [this node trail]
+    "returns a Valuable implementation to order node in the Dijkstra heap")
+  (successors [this node]
+    "returns a sequence of node that can be reached from node"))

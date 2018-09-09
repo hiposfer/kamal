@@ -210,11 +210,11 @@
                                      (. departure (toLocalTime)))
         src        (first (fastq/nearest-node network (first coordinates)))
         dst        (first (fastq/nearest-node network (last coordinates)))
+        router     (transit/->StopTimesRouter network stop-times)
        ; both start and dst should be found since we checked that before
-        traversal  (alg/dijkstra network #{[src (. start (getSeconds))]}
-                                 {:value-by   #(transit/timetable-duration network stop-times %1 %2)
-                                  :successors transit/successors
-                                  :comparator transit/by-cost})
+        traversal  (alg/dijkstra router
+                                 #{[src (. start (getSeconds))]}
+                                 transit/by-cost)
         rtrail     (alg/shortest-path dst traversal)]
     (when (some? rtrail)
       (merge

@@ -31,41 +31,29 @@
     (cons (trace from (.getKey entry))
           (lazy-seq (when prev-id (path settled prev-id))))))
 
-(defn- relax!
-  "calculate the weight of traversing arc and updates it if already in
-  the queue or adds it otherwise"
-  [value ^Map settled ^Map unsettled ^Heap$Entry entry ^Heap queue trail node-successors]
-  (if (empty? node-successors) nil ;; nothing more to process
-    (if (.containsKey settled (first node-successors)) ;; node already settled, continue
-      (recur value settled unsettled entry queue trail (rest node-successors))
-      (let [entity  (first node-successors) ;; nothing settled, compute value
-            v       (value entity trail)]
-        (if (nil? v) ;; no path, infinite cost -> ignore it
-          (recur value settled unsettled entry queue trail (rest node-successors))
-          (let [prev    (key (.getValue entry))
-                weight  (np/sum v (.getKey entry))
-                trace2  (trace entity prev)
-                old-entry ^Heap$Entry (.get unsettled entity)]
-            (if (nil? old-entry) ;; new entry
-              (.put unsettled entity (.insert queue weight trace2))
-              (when (< (np/cost weight) (np/cost (.getKey old-entry)))
-                (.setValue old-entry trace2) ;; new entry has better cost
-                (.decreaseKey queue old-entry weight)))
-            (recur value settled unsettled entry queue ;; continue to next node
-                   trail (rest node-successors))))))))
-
 (defn- produce!
   "returns a lazy sequence of traces by sequentially mutating the
    queue and always returning the path from the latest min priority
    node"
-  [graph value successors ^Heap queue ^Map settled ^Map unsettled]
-  (let [entry  (.extractMinimum queue)
-        entity (key (.getValue entry))
-        _      (.put settled entity entry)
-        _      (.remove unsettled entity)
+  [router ^Heap queue ^Map settled ^Map unsettled]
+  (let [entry  (. queue (extractMinimum))
+        entity (key (. entry (getValue)))
+        _      (. settled (put entity entry))
+        _      (. unsettled (remove entity))
         trail  (path settled entity)]
-    (relax! value settled unsettled entry queue
-            trail (successors graph entity))
+    (doseq [node (np/successors router entity)
+            :when (not (. settled (containsKey node)))
+            :let [v (np/weight router node trail)]
+            :when (some? v)]
+      (let [prev    (key (. entry (getValue)))
+            weight  (np/sum v (. entry (getKey)))
+            trace2  (trace node prev)
+            old-entry ^Heap$Entry (. unsettled (get node))]
+        (if (nil? old-entry) ;; new entry
+          (. unsettled (put node (. queue (insert weight trace2))))
+          (when (< (np/cost weight) (np/cost (. old-entry (getKey))))
+            (. old-entry (setValue trace2)) ;; new entry has better cost
+            (. queue (decreaseKey old-entry weight))))))
     trail))
 
 ; inspired by http://insideclojure.org/2015/01/18/reducible-generators/
@@ -94,24 +82,15 @@
 ; - multi source - multi destination shortest path
 ; - single source - any/all destination shortest path
 ; - shortest path with timeout
-;
-; the elements necessary to initialize a Dijkstra collection are
-; - graph: an collection of nodes over which the traversal will happen
-; - ids: a #{ids}
-; - value: a function of next-node, current-trace -> Valuable implementation
-; - successors: a function of id -> [ id ]. Used to get either the outgoing
-;               arcs of a node
-(deftype Dijkstra [graph start-from value successors comparator]
+(deftype Dijkstra [router start-from comparator]
   Seqable
   (seq [_]
     (let [settled   (new HashMap) ;{id {weight {id prev}}}
           queue     (init! start-from settled comparator) ;[{weight {id prev}}]
-          unsettled (new HashMap); {id {weight {id prev}}}
-          trailer!  (fn trailer! []
-                      (if (.isEmpty queue) (list)
-                        (cons (produce! graph value successors queue settled unsettled)
-                              (lazy-seq (trailer!)))))]
-      (trailer!)))
+          unsettled (new HashMap)]; {id {weight {id prev}}}
+      (for [_ (range) ;; HACK: range is infinite so we use the queue to stop :)
+            :while (not (. queue (isEmpty)))]
+        (produce! router queue settled unsettled))))
   ;; ------
   ;; this implementation uses mutable internal data structures but exposes only
   ;; immutable data structures.
@@ -123,11 +102,11 @@
           queue     (init! start-from settled comparator); [Heap.Entry]
           unsettled (new HashMap)]; {id Heap.Entry}
       (loop [ret init
-             trail (produce! graph value successors queue settled unsettled)]
+             trail (produce! router queue settled unsettled)]
         (let [rr (rf ret trail)]
           (if (reduced? rr) @rr
-            (if (.isEmpty queue) rr
-              (recur rr (produce! graph value successors queue settled unsettled))))))))
+            (if (. queue (isEmpty)) rr
+              (recur rr (produce! router queue settled unsettled))))))))
   ;; ------
   IReduce
   (reduce [this rf] (.reduce ^IReduceInit this rf (rf)))

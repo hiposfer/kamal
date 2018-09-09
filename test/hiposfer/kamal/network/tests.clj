@@ -36,13 +36,7 @@
               {:node/id 6
                :node/successors #{}}])
 
-(defn successors
-  "returns only the successors of id. Assuming that all of them are under
-  node/successors"
-  [network node]
-  (:node/successors node))
-
-;; hack. It shouldnt be like this but I am not going to modify the schema just
+;; HACK: It shouldnt be like this but I am not going to modify the schema just
 ;; to make it pretty
 (def lengths {1 {2 7, 3 9, 6 14}
               2 {3 10, 4 15}
@@ -53,19 +47,22 @@
 ;Distances from 1: ((1 0) (2 7) (3 9) (4 20) (5 26) (6 11))
 ;Shortest path: (1 3 4 5)
 
-(defn- length
-  [network dst trail]
-  (let [src-id (:node/id (key (first trail)))
-        dst-id (:node/id dst)]
-    (get-in lengths [src-id dst-id])))
+(defrecord RosettaRouter [graph]
+  np/Router
+  (weight [this dst trail]
+    (let [src-id (:node/id (key (first trail)))
+          dst-id (:node/id dst)]
+      (get-in lengths [src-id dst-id])))
+  (successors [this node]
+    (:node/successors node)))
 
 (deftest shortest-path
   (let [network   (data/create-conn router/schema)
         _         (data/transact! network rosetta)
         dst       (data/entity @network [:node/id 5])
         src       (data/entity @network [:node/id 1])
-        performer (alg/dijkstra @network #{src} {:value-by #(length @network %1 %2)
-                                                 :successors successors})
+        router    (->RosettaRouter @network)
+        performer (alg/dijkstra router #{src})
         traversal (alg/shortest-path dst performer)]
     (is (not (empty? traversal))
         "shortest path not found")
@@ -76,8 +73,8 @@
   (let [network   (data/create-conn router/schema)
         _         (data/transact! network rosetta)
         src       (data/entity @network [:node/id 1])
-        performer (alg/dijkstra @network #{src} {:value-by #(length @network %1 %2)
-                                                 :successors successors})
+        router    (->RosettaRouter @network)
+        performer (alg/dijkstra router #{src})
         traversal (into {} (comp (map first)
                                  (map (juxt (comp :node/id key) (comp np/cost val))))
                            performer)]
@@ -87,8 +84,12 @@
            traversal)
         "shortest path doesnt traverse expected nodes")))
 
-(defn opts [network] {:value-by   #(transit/duration network %1 %2)
-                      :successors fastq/node-successors})
+(defrecord PedestrianRouter [graph]
+  np/Router
+  (weight [this dst trail]
+    (transit/duration graph dst trail))
+  (successors [this node]
+    (fastq/node-successors graph node)))
 
 ; -------------------------------------------------------------------
 ; The Dijkstra algorithm is deterministic, therefore for the same src/dst
@@ -100,7 +101,8 @@
     (let [graph   @(router/pedestrian-graph {:SIZE i})
           src      (rand-nth (alg/nodes graph))
           dst      (rand-nth (alg/nodes graph))
-          coll     (alg/dijkstra graph #{src} (opts graph))
+          router   (->PedestrianRouter graph)
+          coll     (alg/dijkstra router #{src})
           results  (for [_ (range 10)]
                      (alg/shortest-path dst coll))]
       (is (or (every? nil? results)
@@ -117,7 +119,8 @@
      (let [graph   @(router/pedestrian-graph {:SIZE i})
            src      (rand-nth (alg/nodes graph))
            dst      (rand-nth (alg/nodes graph))
-           coll     (alg/dijkstra graph #{src} (opts graph))
+           router   (->PedestrianRouter graph)
+           coll     (alg/dijkstra router #{src})
            result   (alg/shortest-path dst coll)]
        (is (or (nil? result)
                (apply >= (concat (map (comp np/cost val) result)
@@ -133,7 +136,8 @@
   (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
     (let [graph   @(router/pedestrian-graph {:SIZE i})
           src      (rand-nth (alg/nodes graph))
-          coll     (alg/dijkstra graph #{src} (opts graph))
+          router   (->PedestrianRouter graph)
+          coll     (alg/dijkstra router #{src})
           result   (alg/shortest-path src coll)]
       (is (not-empty result)
           "no path from node to himself found")
@@ -146,10 +150,12 @@
 (defspec components
   100; tries
   (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
-    (let [graph   @(router/pedestrian-graph {:SIZE i})
-          r1      (alg/looners graph)
+    (let [graph  @(router/pedestrian-graph {:SIZE i})
+          router  (->PedestrianRouter graph)
+          r1      (alg/looners graph router)
           graph2  (data/db-with graph (for [i r1 ] [:db.fn/retractEntity (:db/id i)]))
-          r2      (alg/looners graph2)]
+          router2 (->PedestrianRouter graph2)
+          r2      (alg/looners graph2 router2)]
       (is (empty? r2)
           "looners should be empty for a strongly connected graph"))))
 
@@ -163,10 +169,12 @@
   100; tries
   (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
     (let [graph   @(router/pedestrian-graph {:SIZE i})
-          r1      (alg/looners graph)
+          router  (->PedestrianRouter graph)
+          r1      (alg/looners graph router)
           graph2  (data/db-with graph (for [i r1 ] [:db.fn/retractEntity (:db/id i)]))
           src     (rand-nth (alg/nodes graph2))
-          coll    (alg/dijkstra graph2 #{src} (opts graph2))]
+          router  (->PedestrianRouter graph2)
+          coll    (alg/dijkstra router #{src})]
       (is (seq? (reduce (fn [r v] v) nil coll))
           "biggest components should not contain links to nowhere"))))
 
@@ -184,7 +192,7 @@
 ; -----------------------------------------------------------------
 ; generative tests for the direction endpoint
 
-(def network (delay (time (router/network {:area/edn "resources/frankfurt-am-main.edn.gz"}))))
+(defonce network (delay (time (router/network {:area/edn "resources/frankfurt-am-main.edn.gz"}))))
 
 (defspec routing-directions
   15; tries -> expensive test
