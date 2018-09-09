@@ -6,8 +6,8 @@
             [hiposfer.kamal.network.algorithms.core :as alg]
             [taoensso.timbre :as timbre]
             [hiposfer.kamal.parsers.edn :as edn]
-            [hiposfer.kamal.parsers.gtfs.core :as gtfs]
-            [hiposfer.kamal.parsers.gtfs.reference :as reference]))
+            [hiposfer.kamal.parsers.gtfs :as gtfs]
+            [hiposfer.gtfs.edn :as gtfs.edn]))
 
 ;; NOTE: we use :db/index true to replace the lack of :VAET index in datascript
 ;; This is for performance. In lots of cases we want to lookup back-references
@@ -41,7 +41,7 @@
                   [id {:db.unique :db.unique/identity}]))
               ;; references
               (into {}
-                (for [f reference/fields :when (gtfs/ref? f)]
+                (for [f gtfs.edn/fields :when (gtfs/ref? f)]
                   [(f :keyword) {:db/type :db.type/ref}]))
               ;; custom extensions
               {:stop/successors {:db.type        :db.type/ref
