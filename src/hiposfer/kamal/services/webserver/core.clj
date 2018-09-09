@@ -11,7 +11,8 @@
             [ring.middleware.accept :as accept]
             [hiposfer.kamal.libs.tool :as tool]
             [clojure.walk :as walk])
-  (:import (org.eclipse.jetty.server Server)))
+  (:import (org.eclipse.jetty.server Server)
+           (clojure.lang ExceptionInfo)))
 
 (defn- inject-networks
   "inject the networks (agent current value) into the request"
@@ -34,7 +35,23 @@
           "application/json" (update response :body #(walk/postwalk tool/jsonista %))
           "application/edn" (update response :body pr-str))))))
 
-;; --------
+(defn wrap-exceptions
+  [handler]
+  (fn [request]
+    (try
+      (handler request)
+      (catch ExceptionInfo e ;; let Jetty catch any other exception
+        ;;(stack/print-stack-trace e)
+        (cond
+          ;; standard ring ex-info exception -> most likely thrown by us
+          (= ::code/response (:type (ex-data e))) (:response (ex-data e))
+          ;; raw ex-info -> return its data directly
+          (contains? (ex-data e) :status) (code/bad-request (ex-data e))
+          ;; something else happened -> internal server error
+          :else (code/internal-server-error {:msg (or (.getMessage e)
+                                                      (ex-data e))}))))))
+
+;; .........................................................
 ;; A Jetty WebServer +  compojure api
 (defrecord WebServer [config router server]
   component/Lifecycle
@@ -43,6 +60,7 @@
       (let [handler (-> (handler/create)
                         (inject-networks (:networks router))
                         (shape-response)
+                        (wrap-exceptions)
                         (accept/wrap-accept {:mime ["application/json" "application/edn"]})
                         (json/wrap-json-response) ;; note efficient but works
                         (json/wrap-json-params)

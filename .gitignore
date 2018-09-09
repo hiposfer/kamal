@@ -47,3 +47,4 @@ fabric.properties
 /resources/osm/saarland.osm
 /resources/linestring.json
 /kamal.iml
+/resources/frankfurt-am-main.edn

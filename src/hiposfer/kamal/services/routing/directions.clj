@@ -17,7 +17,7 @@
             [hiposfer.kamal.libs.geometry :as geometry]
             [hiposfer.kamal.libs.fastq :as fastq]
             [datascript.core :as data]
-            [hiposfer.kamal.libs.tool :as tool])
+            [hiposfer.kamal.parsers.gtfs.core :as gtfs])
   (:import (java.time Duration LocalTime ZonedDateTime)
            (java.time.temporal ChronoUnit)))
 
@@ -67,7 +67,7 @@
       ;; taking a trip on a public transport vehicle
       "continue" ;; only applies to transit
       (let [tstart  (:start (val (first piece)))
-            route   (:trip/route (:stop_times/trip tstart))
+            route   (:trip/route (:stop_time/trip tstart))
             vehicle (transit/route-types (:route/type route))
             id      (str vehicle " " (or (:route/short_name route)
                                          (:route/long_name route)))]
@@ -75,7 +75,7 @@
 
       "notification"
       (let [tend    (:start (val (first piece)))
-            trip    (:stop_times/trip tend)
+            trip    (:stop_time/trip tend)
             route   (:trip/route trip)
             vehicle (transit/route-types (:route/type route))
             id      (str vehicle " " (or (:route/short_name route)
@@ -160,8 +160,8 @@
         {:step/departure (+ start departs)})
       (when (= "transit" mode)
         (if (= "exit vehicle" (:maneuver/type man))
-          (tool/gtfs-resource (:end (val (first piece))))
-          (tool/gtfs-resource (:start (val (first piece)))))))))
+          (gtfs/resource (:end (val (first piece))))
+          (gtfs/resource (:start (val (first piece)))))))))
 
 (defn- route-steps
   "returns a route-steps vector or an empty vector if no steps are needed"
@@ -238,4 +238,5 @@
 
 ;(time
 ;  (fastq/day-stop-times @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;                        (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")))
+;                        (. (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")
+;                           (toLocalDate))))

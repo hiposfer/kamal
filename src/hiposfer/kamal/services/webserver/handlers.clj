@@ -10,7 +10,7 @@
             [datascript.core :as data]
             [clojure.edn :as edn]
             [hiposfer.kamal.libs.tool :as tool]
-            [clojure.string :as str])
+            [hiposfer.kamal.parsers.gtfs.core :as gtfs])
   (:import (java.time ZonedDateTime)))
 
 (def max-distance 1000) ;; meters
@@ -18,10 +18,11 @@
 (defn- select
   "returns a network whose bounding box contains all points"
   [conns params]
-  (when-let [conn (first conns)]
-    (if (not (some? (data/entity @conn [:area/id (:area params)])))
-      (recur (rest conns) params)
-      @conn)))
+  (if-let [conn (first conns)]
+    (if (some? (data/entity @conn [:area/id (:area params)]))
+      (deref conn)
+      (recur (rest conns) params))
+    (code/bad-request! {:msg "unknown area" :data (:area params)})))
 
 (defn- match-coordinates
   [network params]
@@ -39,18 +40,6 @@
     (when (= (count (:coordinates params)) (count coords))
       coords)))
 
-(defn- entity
-  "try to retrieve an entity from Datascript. Since we dont know if the id is a
-  string or a number, we just try both and which one works"
-  [network params]
-  (let [k (keyword (:name params) "id")]
-    (try
-      (data/entity network [k (edn/read-string (:id params))])
-      (catch Exception _
-        (try
-          (data/entity network [k (:id params)])
-          (catch Exception _ nil))))))
-
 (defn preprocess
   "checks that the passed request conforms to spec and coerce its params
   if so. Returns a possibly modified request.
@@ -63,9 +52,9 @@
   [request spec coercer]
   (let [params      (tool/coerce (:params request) coercer)
         errors      (tool/assert params spec)]
-    (if (empty? errors)
-      (assoc request :params params)
-      (assoc request :params params :kamal/errors errors))))
+    (if (some? errors)
+      (code/bad-request! errors)
+      (assoc request :params params))))
 
 (defn- get-area
   [request]
@@ -82,30 +71,35 @@
 
 (defn- get-directions
   [request]
-  (if (some? (:kamal/errors request))
-    (code/bad-request (:kamal/errors request))
-    (let [networks (:kamal/networks request)]
-      (when-let [network (select networks (:params request))]
-        (if (not (inside? network (:params request)))
+  (let [networks (:kamal/networks request)
+        network  (select networks (:params request))]
+    (if (inside? network (:params request))
+      (let [response (dir/direction network (:params request))]
+        (if (some? response)
+          (code/ok response)
           (code/precondition-failed
-            {:code    "NoSegment"
-             :message "No road segment could be matched for coordinates"})
-          (let [response (dir/direction network (:params request))]
-            (if (not (some? response))
-              (code/precondition-failed
-                {:code "NoRoute"
-                 :message "There was no route found for the given coordinates. Check for
-                       impossible routes (e.g. routes over oceans without ferry connections)."})
-              (code/ok response))))))))
+            {:code "NoRoute"
+             :msg "There was no route found for the given coordinates. Check for
+                   impossible routes (e.g. routes over oceans without ferry connections)."})))
+      (code/precondition-failed
+        {:code "NoSegment"
+         :msg  "No road segment could be matched for coordinates"}))))
 
 (defn- get-resource
   [request]
-  (if (some? (:kamal/errors request))
-    (code/bad-request (:kamal/errors request))
-    (let [regions (:kamal/networks request)]
-      (when-let [network (select regions (:params request))]
-        (when-let [e (entity network (:params request))]
-          (code/ok (tool/gtfs-resource e)))))))
+  (let [regions (:kamal/networks request)
+        network (select regions (:params request))
+        k       (keyword (:name (:params request)) "id")
+        v       (gtfs/coerce (:id (:params request)))]
+    (code/ok (gtfs/resource (data/entity network [k v])))))
+
+(defn- query-area
+  [request]
+  (let [regions (:kamal/networks request)
+        network (select regions (:params request))
+        q       (:q (:params request))
+        args    (:args (:params request))]
+    (code/ok (apply data/q q (cons network args)))))
 
 ;; ring handlers are matched in order
 (defn create
@@ -114,9 +108,15 @@
   (api/routes
     (api/GET "/area" request (get-area request))
     (api/GET "/area/:area/directions" request
-      (get-directions (preprocess request ::dirspecs/params directions-coercer)))
+      (-> (preprocess request ::dirspecs/params directions-coercer)
+          (get-directions)))
     (api/GET "/area/:area/:name/:id" request
-      (get-resource (preprocess request ::resource/params {:area #(str/replace % "_" " ")})))
+      (-> (preprocess request ::resource/params {})
+          (get-resource)))
+    (api/GET "/area/:area" request
+      (-> (preprocess request ::resource/query {:q edn/read-string
+                                                :args edn/read-string})
+          (query-area)))
     ;; TODO: implement some persistency for user suggestions
     ;; (api/PUT "/area/:area/suggestions" request
     ;;  (put-suggestions (preprocess request ::dirspecs/params directions-coercer)))
