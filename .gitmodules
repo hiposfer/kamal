@@ -1,0 +1,3 @@
+[submodule "gtfs.edn"]
+	path = gtfs.edn
+	url = https://github.com/hiposfer/gtfs.edn.git

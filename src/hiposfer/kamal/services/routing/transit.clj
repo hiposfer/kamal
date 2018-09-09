@@ -35,7 +35,7 @@
   (walk-time (key (first trail)) next-entity))
 
 ;; a TripStep represents the transition between two stops in a GTFS feed
-;; Both the source and destination :stop_times are kept to avoid future lookups
+;; Both the source and destination :stop_time are kept to avoid future lookups
 (defrecord TripStep [start end ^Long value]
   np/Valuable
   (cost [_] value)
@@ -140,13 +140,13 @@
         (when (some? st2) ;; nil if no trip was found
           ;(println {:src (:stop/name src)
           ;          :dst (:stop/name dst)
-          ;          :route (:route/short_name (:trip/route (:stop_times/trip st1)))
-          ;          :duration (- (:stop_times/arrival_time st2) now)})
-          (->TripStep st1 st2 (- (:stop_times/arrival_time st2) now))))
+          ;          :route (:route/short_name (:trip/route (:stop_time/trip st1)))
+          ;          :duration (- (:stop_time/arrival_time st2) now)})
+          (->TripStep st1 st2 (- (:stop_time/arrival_time st2) now))))
       ;; the user is already in a trip. Just find the trip going to dst
       :else
-      (let [?trip (:stop_times/trip (:start value))
+      (let [?trip (:stop_time/trip (:start value))
             st    (fastq/continue-trip network dst ?trip)]
         (when (some? st)
           (->TripStep (:end value) st
-                      (- (:stop_times/arrival_time st) now)))))))
+                      (- (:stop_time/arrival_time st) now)))))))
