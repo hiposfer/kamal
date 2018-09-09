@@ -1,4 +1,4 @@
-(defproject hiposfer/kamal "0.13.0"
+(defproject hiposfer/kamal "0.13.1"
   :description "An application that provides routing based on external sources and OSM data"
   :url "https://github.com/hiposfer/kamal"
   :license {:name "LGPLv3"
@@ -13,6 +13,7 @@
                  [metosin/ring-http-response "0.9.0"] ;; human names for http codes
                  [ring-middleware-accept "2.0.3"] ;; http accept header
                  [hiposfer/geojson.specs "0.2.0"]
+                 [hiposfer/gtfs.edn "0.1.1"]
                  [com.taoensso/timbre "4.10.0"] ;; logging functions
                  [com.stuartsierra/component "0.3.2"] ;; system builder and resource management
                  [org.teneighty/java-heaps "1.0.0"] ;; for performance in dijkstra routing
@@ -22,9 +23,9 @@
   ;; preprocessor - env vars are not passed along, so better run manually
   ;; ["trampoline" "run" "-m" "hiposfer.kamal.preprocessor"]}
   :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
-                                  [expound "0.7.0"]
+                                  [expound "0.7.1"]
                                   [org.clojure/tools.namespace "0.2.11"]]
-                   :plugins [[jonase/eastwood "0.2.6"]]
+                   :plugins [[jonase/eastwood "0.2.9"]]
                    :eastwood {:config-files ["resources/eastwood.clj"]}}
              :release {:aot [hiposfer.kamal.core] ;; compile the entry point and all of its dependencies}
                        :main hiposfer.kamal.core

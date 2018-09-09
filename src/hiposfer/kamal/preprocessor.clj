@@ -10,7 +10,7 @@
             [clojure.string :as str]
             [datascript.core :as data]
             [hiposfer.kamal.libs.fastq :as fastq]
-            [hiposfer.kamal.parsers.gtfs.core :as gtfs]
+            [hiposfer.kamal.parsers.gtfs :as gtfs]
             [hiposfer.kamal.parsers.osm :as osm]
             [expound.alpha :as expound])
   (:import (java.net URLEncoder URL)
@@ -24,7 +24,7 @@
 
 (defn fetch-osm
   [area]
-  (let [query     (str/replace (slurp "resources/overpass-api-query.txt")
+  (let [query     (str/replace (slurp (io/resource "overpass-api-query.txt"))
                                "Niederrad"
                                (:area/name area))
         url       (str "http://overpass-api.de/api/interpreter?data="
