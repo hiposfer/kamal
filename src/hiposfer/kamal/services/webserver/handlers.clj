@@ -10,7 +10,7 @@
             [datascript.core :as data]
             [clojure.edn :as edn]
             [hiposfer.kamal.libs.tool :as tool]
-            [hiposfer.kamal.parsers.gtfs.core :as gtfs])
+            [hiposfer.kamal.parsers.gtfs :as gtfs])
   (:import (java.time ZonedDateTime)))
 
 (def max-distance 1000) ;; meters

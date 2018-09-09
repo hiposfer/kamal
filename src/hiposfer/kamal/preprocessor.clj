@@ -10,7 +10,7 @@
             [clojure.string :as str]
             [datascript.core :as data]
             [hiposfer.kamal.libs.fastq :as fastq]
-            [hiposfer.kamal.parsers.gtfs.core :as gtfs]
+            [hiposfer.kamal.parsers.gtfs :as gtfs]
             [hiposfer.kamal.parsers.osm :as osm]
             [expound.alpha :as expound])
   (:import (java.net URLEncoder URL)
