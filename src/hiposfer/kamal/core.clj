@@ -58,8 +58,8 @@
                     [k (edn/read-string v)]))
         sconfig (into {} server)
         areas   (into {} (filter #(re-matches area-regex (name (key %)))) env)]
-    (assert (s/valid? ::areas areas) (s/explain ::areas areas))
-    (assert (s/valid? ::env sconfig) (s/explain ::env sconfig))
+    (assert (s/valid? ::areas areas) (s/explain-str ::areas areas))
+    (assert (s/valid? ::env sconfig) (s/explain-str ::env sconfig))
     (merge sconfig {:networks (prepare-areas areas)})))
 
 (defn system
