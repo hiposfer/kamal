@@ -1,4 +1,4 @@
-(defproject hiposfer/kamal "0.13.1"
+(defproject hiposfer/kamal "0.14.0"
   :description "An application that provides routing based on external sources and OSM data"
   :url "https://github.com/hiposfer/kamal"
   :license {:name "LGPLv3"
@@ -30,8 +30,8 @@
              :release {:aot [hiposfer.kamal.core] ;; compile the entry point and all of its dependencies}
                        :main hiposfer.kamal.core
                        :uberjar-name "kamal.jar"
-                       :jar-exclusions [#".*\.gzip" #".*\.zip"]
-                       :uberjar-exclusions [#".*\.gzip" #".*\.zip"]
+                       :jar-exclusions [#".*\.gz" #".*\.zip"]
+                       :uberjar-exclusions [#".*\.gz" #".*\.zip"]
                        :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}}
   :test-selectors {:default (complement :benchmark)
                    :benchmark :benchmark}
