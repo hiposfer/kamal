@@ -26,14 +26,12 @@
                ;; Open Street Map - entities
                :node/id         {:db.unique :db.unique/identity}
                :node/location   {:db/index true}
+               :node/ways       {:db.type        :db.type/ref
+                                 :db.cardinality :db.cardinality/many}
                :node/successors {:db.type        :db.type/ref
                                  :db.cardinality :db.cardinality/many
                                  :db/index       true}
-
-                 :way/id          {:db.unique :db.unique/identity}
-                 :way/nodes       {:db.type        :db.type/ref
-                                   :db.cardinality :db.cardinality/many
-                                   :db/index       true}}
+               :way/id          {:db.unique :db.unique/identity}}
               ;; General Transfer Feed Specification - entities
               ;; identities
               (into {}
