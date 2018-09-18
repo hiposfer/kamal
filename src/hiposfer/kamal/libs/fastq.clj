@@ -154,11 +154,12 @@
                     :let [entries (eduction (index-lookup network (:e trip))
                                             (data/index-range network :stop_time/trip (:e trip) nil))
                           stop_times (sort-by :stop_time/stop_sequence entries)]
-                    pair (map vector stop_times (rest stop_times))]
-                pair)]
-    (for [[from to] (distinct pairs)]
-      {:stop/id (:stop/id (:stop_time/stop from))
-       :stop/successors #{[:stop/id (:stop/id (:stop_time/stop to))]}})))
+                    [from to] (map vector stop_times (rest stop_times))]
+                [(:stop/id (:stop_time/stop from))
+                 (:stop/id (:stop_time/stop to))])]
+    (for [[from-id to-id] (distinct pairs)]
+      {:stop/id from-id
+       :stop/successors #{[:stop/id to-id]}})))
 
 ;(time (last (data/with @(first @(:networks (:router hiposfer.kamal.dev/system)))
 ;                       (cache-stop-successors @(first @(:networks (:router hiposfer.kamal.dev/system)))))))
