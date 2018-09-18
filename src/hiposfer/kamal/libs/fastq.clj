@@ -189,6 +189,8 @@
          :node/successors #{[:stop/id (:stop/id stop)]}}))))
 
 ;; this reduced my test query from 30 seconds to 8 seconds
+;; TODO: this process is still very slow. It takes around 45 seconds
+;; on the frankfurt area
 (defn cache-stop-successors
   "computes the next-stops for each stop and returns a transaction
   that will cache those results inside the :stop entities"
