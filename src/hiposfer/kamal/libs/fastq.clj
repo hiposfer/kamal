@@ -141,46 +141,13 @@
                    xform)
              (data/index-range network k (:db/id entity) nil))))
 
-(defn next-stops
-  "return the next stop entities for ?src-id based on :stop_time
-
-  This function might return duplicates
-
-  replaces:
-  '[:find [?id ...]
-    :in $ ?src-id
-    :where [?src :stop_time/stop ?src-id]
-           [?src :stop_time/trip ?trip]
-           [?dst :stop_time/trip ?trip]
-           [?src :stop_time/stop_sequence ?s1]
-           [?dst :stop_time/stop_sequence ?s2]
-           [(> ?s2 ?s1)]
-           [?dst :stop_time/stop ?se]
-           [?se :stop/id ?id]]
-  the previous query takes 145 milliseconds. This function takes 0.2 milliseconds"
-  [network src]
-  (for [st1  (references network :stop_time/stop src)
-        :let [stimes2 (references network
-                                  :stop_time/trip
-                                  (:stop_time/trip st1)
-                                  (filter #(> (:stop_time/stop_sequence %)
-                                              (:stop_time/stop_sequence st1))))]
-        :when (not-empty stimes2)]
-      (:stop_time/stop (apply min-key :stop_time/stop_sequence stimes2))))
-
-;(time
-;  (dotimes [n 10000]
-;    (next-stops @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;                (data/entity @(first @(:networks (:router hiposfer.kamal.dev/system))) 230963))))
-
-
 ;; This might not be the best approach but it gets the job done for the time being
 (defn link-stops
   "takes a network, looks up the nearest node for each stop and returns
   a transaction that will link those"
   [network]
   (for [stop (map #(data/entity network (:e %))
-                  (data/datoms network :aevt :stop/id))]
+                   (data/datoms network :aevt :stop/id))]
     (let [node (first (nearest-node network (:stop/location stop)))]
       (if (not (some? node))
         (throw (ex-info "stop didnt match to any known node in the OSM data"
@@ -188,15 +155,19 @@
         {:node/id (:node/id node)
          :node/successors #{[:stop/id (:stop/id stop)]}}))))
 
-;; this reduced my test query from 30 seconds to 8 seconds
-;; TODO: this process is still very slow. It takes around 45 seconds
-;; on the frankfurt area
 (defn cache-stop-successors
   "computes the next-stops for each stop and returns a transaction
   that will cache those results inside the :stop entities"
   [network]
-  (for [stop (map #(data/entity network (:e %))
-                  (data/datoms network :aevt :stop/id))]
-    (let [neighbours (distinct (next-stops network stop))]
-      {:stop/id (:stop/id stop)
-       :stop/successors (for [n neighbours] [:stop/id (:stop/id n)])})))
+  (let [pairs (for [trip (data/datoms network :aevt :trip/id)
+                    :let [entries (eduction (index-lookup network (:e trip))
+                                            (data/index-range network :stop_time/trip (:e trip) nil))
+                          stop_times (sort-by :stop_time/stop_sequence entries)]
+                    pair (map vector stop_times (rest stop_times))]
+                pair)]
+    (for [[from to] (distinct pairs)]
+      {:stop/id (:stop/id (:stop_time/stop from))
+       :stop/successors #{[:stop/id (:stop/id (:stop_time/stop to))]}})))
+
+;(time (last (data/with @(first @(:networks (:router hiposfer.kamal.dev/system)))
+;                       (cache-stop-successors @(first @(:networks (:router hiposfer.kamal.dev/system)))))))
