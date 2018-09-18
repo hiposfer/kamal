@@ -132,15 +132,6 @@
                     (map :e))
               (data/datoms network :avet :stop_time/trip))))
 
-(defn- references
-  "returns all entities that reference entity through attribute k"
-  ([network k entity]
-   (references network k entity (map identity)))
-  ([network k entity xform]
-   (eduction (comp (index-lookup network (:db/id entity))
-                   xform)
-             (data/index-range network k (:db/id entity) nil))))
-
 ;; This might not be the best approach but it gets the job done for the time being
 (defn link-stops
   "takes a network, looks up the nearest node for each stop and returns
