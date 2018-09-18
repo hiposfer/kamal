@@ -55,7 +55,7 @@
   "returns the ways sequence including only the first/last and intersection
    nodes i.e. the connected nodes in a graph structure.
 
-  Uses the ::nodes of each way and counts which nodes appear more than once"
+  Uses the :way/nodes of each way and counts which nodes appear more than once"
   [ways]
   (let [point-count (frequencies (mapcat :way/nodes ways))]
     (for [way ways]
@@ -80,6 +80,37 @@
         (when-let [wn (some :way/name group)]
           {:way/name wn})))))
 
+(defn- join-ways
+  "merges ways that are linked to each other by their head or their tail.
+
+  This is an optimization HACK.
+
+  We artificially merge ways because OSM might decide to break a road into
+  reusable pieces (ways) which makes the graph representation very redundant.
+  This way we reduce both the amount of way entries in Datascript and the
+  amount of nodes"
+  ([group] (join-ways (rest group) (first group) nil))
+  ([ways current result]
+   (let [fncurrent (first (:way/nodes current))
+         lncurrent (last (:way/nodes current))
+         [point match] (some (fn [way]
+                               (cond
+                                 (= fncurrent (last  (:way/nodes way))) [:start way]
+                                 (= lncurrent (first (:way/nodes way))) [:end way]))
+                             ways)]
+     (cond
+       (empty? ways)
+       (conj result current)
+
+       (some? point)
+       (recur (remove #(= % match) ways)
+              (if (= :start point)
+                (update match :way/nodes concat (rest (:way/nodes current)))
+                (update current :way/nodes concat (rest (:way/nodes match))))
+              result)
+
+       :else (recur (rest ways) (first ways) (conj result current))))))
+
 (defn- entries
   "returns a [id node], {id way} or nil otherwise"
   [xml-entry]
@@ -96,21 +127,26 @@
   (let [nodes&ways    (into [] (comp (map entries) (remove nil?))
                                (:content (xml/parse raw-data)))
         ;; separate ways from nodes
-        ways          (simplify (filter :way/id nodes&ways))
+        way-groups    (group-by :way/name (filter :way/id nodes&ways))
+        ;ways          (simplify (filter :way/id nodes&ways))
+        ways          (simplify (mapcat (fn [[way-name group]]
+                                          (if (empty? way-name) group
+                                            (join-ways group)))
+                                        way-groups))
         roads         (roads ways)
         ;; post-processing nodes
         ids           (into #{} (mapcat :way/nodes) ways)
-        nodes         (eduction (filter :node/id)
-                                (filter #(contains? ids (:node/id %)))
-                                nodes&ways)
-        neighbours    (mapcat (fn [way]
-                                (map (fn [from to]
-                                       {:node/id         from
-                                        :node/successors #{[:node/id to]}})
-                                     (:way/nodes way)
-                                     (rest (:way/nodes way))))
-                              ways)]
-    (concat nodes neighbours roads
+        nodes         (for [entry nodes&ways
+                            :when (contains? ids (:node/id entry))]
+                        entry)
+        neighbours    (for [way ways
+                            [from to] (map vector (:way/nodes way)
+                                                  (rest (:way/nodes way)))]
+                        {:node/id         from
+                         :node/successors #{[:node/id to]}})]
+    (concat nodes
+            (map #(dissoc % :way/nodes) roads)
+            neighbours
             (for [way roads
                   n (:way/nodes way)]
               {:node/id n
