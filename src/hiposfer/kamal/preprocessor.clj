@@ -22,7 +22,7 @@
                      (s/map-of core/area-id? string?)
                      (s/map-of gtfs-area? string?)))
 
-(defn fetch-osm
+(defn fetch-osm!
   [area]
   (let [query     (str/replace (slurp (io/resource "overpass-api-query.txt"))
                                "Niederrad"
@@ -30,16 +30,17 @@
         url       (str "http://overpass-api.de/api/interpreter?data="
                        (URLEncoder/encode query "UTF-8"))
         conn      (. ^URL (io/as-url url) (openConnection))]
-    (osm/datomize! (. conn (getContent)))))
+    (with-open [file-rdr (. conn (getContent))]
+      (osm/datomize file-rdr))))
 
-(defn- prepare-data
+(defn- prepare-data!
   [area]
   ;; progressively build up the network from the pieces
   (with-open [z (-> (io/input-stream (:area/gtfs area))
                     (ZipInputStream.))]
     (as-> (data/empty-db routing/schema) $
           (time (data/db-with $ (gtfs/datomize! z)))
-          (time (data/db-with $ (fetch-osm area)))
+          (time (data/db-with $ (fetch-osm! area)))
           (time (data/db-with $ (fastq/link-stops $)))
           (time (data/db-with $ (fastq/cache-stop-successors $)))
           (time (data/db-with $ [area]))))) ;; add the area as transaction)))
@@ -58,7 +59,7 @@
     (assert (s/valid? ::env areas) (expound/expound-str ::env areas))
     (doseq [area (core/prepare-areas areas)]
       (println "processing area:" (:area/name area))
-      (let [db   (time (prepare-data area))
+      (let [db   (time (prepare-data! area))
             ;; osm is mandatory, use its filename !!
             path (str outdir (str/replace (str/lower-case (:area/name area))
                                           " " "-")

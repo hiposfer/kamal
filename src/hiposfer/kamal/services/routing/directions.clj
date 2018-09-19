@@ -55,7 +55,7 @@
 (defn- instruction
   "returns a human readable version of the maneuver to perform"
   [network result piece next-piece]
-  (let [context  (transit/context network piece)
+  (let [context  (transit/context piece)
         modifier (:maneuver/modifier result)
         maneuver (:maneuver/type result)
         name     (transit/name context)]
@@ -88,7 +88,7 @@
 
       ;; This is the first instruction that the user gets
       "depart"
-      (let [n2 (transit/name (transit/context network next-piece))]
+      (let [n2 (transit/name (transit/context next-piece))]
         (if (or name n2)
           (str "Head on to " (or name n2))
           "Depart"))
@@ -100,9 +100,9 @@
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
 (defn- maneuver-type
   [network prev-piece piece next-piece]
-  (let [last-context (transit/context network prev-piece)
-        context      (transit/context network piece)
-        next-context (transit/context network next-piece)]
+  (let [last-context (transit/context prev-piece)
+        context      (transit/context piece)
+        next-context (transit/context next-piece)]
     (cond
       (= prev-piece piece) "depart"
       (= piece next-piece) "arrive"
@@ -142,7 +142,7 @@
 (defn- step ;; piece => [trace ...]
   "includes one StepManeuver object and travel to the following RouteStep"
   [start network prev-piece piece next-piece]
-  (let [context (transit/context network piece)
+  (let [context (transit/context piece)
         line    (linestring (map key (concat piece [(first next-piece)])))
         man     (maneuver network prev-piece piece next-piece)
         mode    (if (transit/stop? context) "transit" "walking")
@@ -167,7 +167,7 @@
   "returns a route-steps vector or an empty vector if no steps are needed"
   [network pieces midnight] ;; piece => [[trace via] ...]
   (let [start     [(first pieces)] ;; add depart and arrival pieces into the calculation
-        end       (repeat 2 [(last (last pieces))]) ;; use only the last point as end - not the entire piece
+        end       [[(last (last pieces))]] ;; use only the last point as end - not the entire piece
         extended  (concat start pieces end)]
     (map step (repeat midnight)
               (repeat network)
@@ -184,7 +184,7 @@
     (if (= (count trail) 1) ;; a single trace is returned for src = dst
       {:directions/distance 0 :directions/duration 0 :directions/steps []}
       (let [previous    (volatile! (first trail))
-            pieces      (partition-by #(transit/name (transit/context! network % previous))
+            pieces      (partition-by #(transit/name (transit/context % previous))
                                        trail)
             departs     (np/cost (val (first trail)))
             arrives     (np/cost (val (last trail)))]
@@ -220,11 +220,9 @@
       (merge
         {:directions/uuid      (data/squuid)
          :directions/waypoints
-         [{:waypoint/name     (some (comp not-empty :way/name)
-                                    (fastq/node-ways network src))
+         [{:waypoint/name     (some :way/name (:node/ways src))
            :waypoint/location (->coordinates (location src))}
-          {:waypoint/name     (some (comp not-empty :way/name)
-                                    (fastq/node-ways network dst))
+          {:waypoint/name     (some :way/name (:node/ways dst))
            :waypoint/location (->coordinates (location dst))}]}
         (route network rtrail (-> departure (.truncatedTo ChronoUnit/DAYS)
                                             (.toEpochSecond)))))))

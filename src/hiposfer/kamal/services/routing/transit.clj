@@ -57,46 +57,41 @@
 (defn- common-road
   "attempt to find the way that connect the passed arguments. Performs
   a best guess otherwise"
-  ([network e1 e2]
-   (let [s1 (fastq/node-ways network e1)
-         s2 (fastq/node-ways network e2)
-         ss (set/intersection (set s1) (set s2))]
-     (tool/some :way/name ss)))
-  ([network e1] ;; make the best guest
-   (tool/some :way/name (fastq/node-ways network e1))))
-
-(defn context!
-  "Returns an entity holding the 'context' of the trace. For pedestrian routing
-  that is the road name. For transit routing it is the stop name"
-  [network trace vprev]
-  (let [previous (key (deref vprev))
-        current  (key trace)]
-    (vreset! vprev trace)
-    (cond
-      ;; walking normally -> return the way
-      (and (node? previous) (node? current))
-      (common-road network previous current)
-      ;; getting into a trip -> return the way of the road
-      (and (node? previous) (stop? current))
-      (common-road network previous);;  guessing here
-      ;; on a trip -> return the stop
-      (and (stop? previous) (stop? current))
-      current
-      ;; leaving a trip -> return the last stop
-      (and (stop? previous) (node? current))
-      previous)))
+  [e1 e2]
+  (let [s1 (:node/ways e1)
+        s2 (:node/ways e2)
+        ss (set/intersection (set s1) (set s2))]
+    (tool/some :way/name ss)))
 
 (defn context
-  "utility function to give a common name to the repetitive execution of
-  (key (first piece)) to retrieve the previously computed context
-
-  Returns a stop or a way"
-  [network piece] ;; a piece already represents a context ;)
-  (let [e (key (first piece))]
-    (if (stop? e) e ;; node otherwise
-      (if (> 1 (count piece)) ;; TODO: can this be improved?
-        (common-road network (key (first piece)) (key (second piece)))
-        (common-road network (key (first piece)))))))
+  "Returns an entity holding the 'context' of the trace. For pedestrian routing
+  that is the road name. For transit routing it is the stop name"
+  ([piece] ;; a piece already represents a context ;)
+   (let [e (key (first piece))]
+     (cond
+       (stop? e) e ;; node otherwise
+       ;; TODO: can this be improved?
+       (> 1 (count piece)) (common-road (key (first piece))
+                                        (key (second piece)))
+       ;;  guessing here
+       :else (tool/some :way/name (:node/ways (key (first piece)))))))
+  ([trace vprev]
+   (let [previous (key (deref vprev))
+         current  (key trace)]
+     (vreset! vprev trace)
+     (cond
+       ;; walking normally -> return the way
+       (and (node? previous) (node? current))
+       (common-road previous current)
+       ;; getting into a trip -> return the way of the road
+       (and (node? previous) (stop? current))
+       (tool/some :way/name (:node/ways previous));;  guessing here
+       ;; on a trip -> return the stop
+       (and (stop? previous) (stop? current))
+       current
+       ;; leaving a trip -> return the last stop
+       (and (stop? previous) (node? current))
+       previous))))
 
 ;; a TripStep represents the transition between two stops in a GTFS feed
 ;; Both the source and destination :stop_time are kept to avoid future lookups
