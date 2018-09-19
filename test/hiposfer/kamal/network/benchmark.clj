@@ -30,7 +30,7 @@
         (alg/shortest-path dst coll))
       :os :runtime :verbose)))
 
-(def network (delay (time (preprocessor/fetch-osm {:area/name "Frankfurt am Main"}))))
+(def network (delay (time (preprocessor/fetch-osm! {:area/name "Frankfurt am Main"}))))
 
 ;;(type @network) ;; force read
 

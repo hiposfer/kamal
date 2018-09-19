@@ -14,7 +14,7 @@
 ;; name_1=* Street Name (Alternate). Also reg_name / loc_name / old_name
 ;; ref=*    Route network and number, but information from parent Route Relations has priority,
 ;;          see below. Also int_ref=* / nat_ref=* / reg_ref=* / loc_ref=* / old_ref=*
-(def way-attrs #{"name" "id" "nodes"}) ;:name_1 :ref}})
+(def way-attrs #{"name"})
 
 ;; <node id="298884269" lat="54.0901746" lon="12.2482632" user="SvenHRO"
 ;;      uid="46882" visible="true" version="1" changeset="676636"
@@ -38,95 +38,119 @@
 (defn- ways-entry
   "parse a OSM xml-way into a [way-id {attrs}] representing the same way"
   [element] ;; returns '(arc1 arc2 ...)
-  (let [attrs (into {} (comp (filter #(= :tag (:tag %)))
-                             (map    (fn [el] [(:k (:attrs el))
-                                               (:v (:attrs el))])))
-                       (:content element))
-        nodes (into [] (comp (filter #(= :nd (:tag %)))
-                             (map (comp :ref :attrs))
-                             (map #(Long/parseLong %)))
-                       (:content element))]
-    (merge attrs
-      {"id" (Long/parseLong (:id (:attrs element)))
-       "nodes" nodes})))
-
-;; we ignore the oneway tag since we only care about pedestrian routing. See
-;; https://wiki.openstreetmap.org/wiki/OSM_tags_for_routing/Telenav
-(defn- postprocess
-  "return a {id way} pair with all unnecessary attributes removed with the
-   exception of ::nodes. Reverse nodes if necessary"
-  [way]
-  (into {} (map (fn [[k v]] [(keyword "way" k) v])
-                (select-keys way way-attrs))))
-
-(defn- strip-points
-  "returns way with only the first/last and intersection nodes"
-  [intersections way]
-  (let [intersections (conj intersections (first (:way/nodes way))
-                                          (last  (:way/nodes way)))]
-    (assoc way :way/nodes (filter intersections (:way/nodes way)))))
+  (let [attrs (eduction (filter #(= :tag (:tag %)))
+                        (filter #(contains? way-attrs (:k (:attrs %))))
+                        (map    #(vector (keyword "way" (:k (:attrs %)))
+                                         (:v (:attrs %))))
+                        (:content element))
+        nodes (eduction (filter #(= :nd (:tag %)))
+                        (map (comp :ref :attrs))
+                        (map #(Long/parseLong %))
+                        (:content element))]
+    (into {:way/id (Long/parseLong (:id (:attrs element)))
+           :way/nodes nodes}
+          attrs)))
 
 (defn simplify
   "returns the ways sequence including only the first/last and intersection
    nodes i.e. the connected nodes in a graph structure.
 
-  Uses the ::nodes of each way and counts which nodes appear more than once"
+  Uses the :way/nodes of each way and counts which nodes appear more than once"
   [ways]
-  (let [point-count   (frequencies (mapcat :way/nodes ways))
-        intersections (into #{} (comp (filter #(>= (second %) 2))
-                                      (map first))
-                                point-count)]
-    (map #(strip-points intersections %) ways)))
+  (let [point-count (frequencies (mapcat :way/nodes ways))]
+    (for [way ways]
+      (assoc way :way/nodes
+        (filter #(or (= % (first (:way/nodes way)))
+                     (>= (point-count %) 2)
+                     (= % (last (:way/nodes way))))
+                 (:way/nodes way))))))
+
+(defn- roads
+  "group all ways with the same name into a single entity to avoid redundancy
+
+  HACK: since we are not interested in the attributes of the ways, this reduces
+  the amount of data in Datascript significantly"
+  [ways]
+  (let [groups (group-by :way/name ways)]
+    (for [[_ group] groups]
+      ;; the minus is to make "explicit" that this is not part of OSM
+      (merge
+        {:way/id (- (:way/id (first group)))
+         :way/nodes (mapcat :way/nodes group)}
+        (when-let [wn (some :way/name group)]
+          {:way/name wn})))))
+
+(defn- join-ways
+  "merges ways that are linked to each other by their head or their tail.
+
+  This is an optimization HACK.
+
+  We artificially merge ways because OSM might decide to break a road into
+  reusable pieces (ways) which makes the graph representation very redundant.
+  This way we reduce both the amount of way entries in Datascript and the
+  amount of nodes"
+  ([group] (join-ways (rest group) (first group) nil))
+  ([ways current result]
+   (let [fncurrent (first (:way/nodes current))
+         lncurrent (last (:way/nodes current))
+         [point match] (some (fn [way]
+                               (cond
+                                 (= fncurrent (last  (:way/nodes way))) [:start way]
+                                 (= lncurrent (first (:way/nodes way))) [:end way]))
+                             ways)]
+     (cond
+       (empty? ways)
+       (conj result current)
+
+       (some? point)
+       (recur (remove #(= % match) ways)
+              (if (= :start point)
+                (update match :way/nodes concat (rest (:way/nodes current)))
+                (update current :way/nodes concat (rest (:way/nodes match))))
+              result)
+
+       :else (recur (rest ways) (first ways) (conj result current))))))
 
 (defn- entries
   "returns a [id node], {id way} or nil otherwise"
   [xml-entry]
   (case (:tag xml-entry)
     :node (point-entry xml-entry)
-    :way  (postprocess (ways-entry xml-entry))
+    :way  (ways-entry xml-entry)
     nil))
 
-;; There are generally speaking two ways to process an OSM file for routing
-; - read all points and ways and transform them in memory
-; - read it once, extract the ways and then read it again and extract only the relevant nodes
-
-;; The first option is faster since reading from disk is always very slow
-;; The second option uses less memory but takes at least twice as long (assuming reading takes the most time)
-
-;; We use the first option since it provides faster server start time. We assume
-;; that preprocessing the files was already performed and that only the useful
-;; data is part of the OSM file. See README
-
-;; TODO: deduplicate strings in ways name
-(defn datomize!
-  "read an OSM file and transforms it into a network of {:graph :ways :points},
-   such that the graph represent only the connected nodes, the points represent
-   the shape of the connection and the ways are the metadata associated with
-   the connections"
-  [input-stream] ;; read all elements into memory
-  (let [nodes&ways    (with-open [file-rdr input-stream]
-                        (into [] (comp (map entries)
-                                       (remove nil?))
-                              (:content (xml/parse file-rdr))))
+;; We assume that preprocessing the files was already performed and that only
+;; the useful data is part of the OSM file. See README
+(defn datomize
+  "read an OSM file and transforms it into a sequence of datascript transactions"
+  [raw-data] ;; read all elements into memory
+  (let [nodes&ways    (into [] (comp (map entries) (remove nil?))
+                               (:content (xml/parse raw-data)))
         ;; separate ways from nodes
-        ways          (simplify (filter :way/id nodes&ways))
+        way-groups    (group-by :way/name (filter :way/id nodes&ways))
+        ;ways          (simplify (filter :way/id nodes&ways))
+        ways          (simplify (mapcat (fn [[way-name group]]
+                                          (if (empty? way-name) group
+                                            (join-ways group)))
+                                        way-groups))
+        roads         (roads ways)
         ;; post-processing nodes
         ids           (into #{} (mapcat :way/nodes) ways)
-        nodes         (sequence (comp (filter :node/id)
-                                      (filter #(contains? ids (:node/id %))))
-                                nodes&ways)
-        neighbours    (for [way ways]
-                        (map (fn [from to]
-                               {:node/id         from
-                                :node/successors #{[:node/id to]}})
-                             (:way/nodes way)
-                             (rest (:way/nodes way))))]
+        nodes         (for [entry nodes&ways
+                            :when (contains? ids (:node/id entry))]
+                        entry)
+        neighbours    (for [way ways
+                            [from to] (map vector (:way/nodes way)
+                                                  (rest (:way/nodes way)))]
+                        {:node/id         from
+                         :node/successors #{[:node/id to]}})]
     (concat nodes
-            (sequence cat neighbours)
-            (for [way ways]
-              (assoc way :way/nodes
-                (for [n (:way/nodes way)]
-                  [:node/id n]))))))
+            (map #(dissoc % :way/nodes) roads)
+            neighbours
+            (for [way roads
+                  n (:way/nodes way)]
+              {:node/id n
+               :node/ways [:way/id (:way/id way)]}))))
 
 
 ;; https://www.wikiwand.com/en/Preferred_walking_speed
