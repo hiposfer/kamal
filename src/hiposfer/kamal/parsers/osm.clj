@@ -128,16 +128,13 @@
 (defn transaction!
   "read an OSM file and transforms it into a sequence of datascript transactions"
   [raw-data] ;; read all elements into memory
-  (let [nodes&ways    (sequence (comp (map entries) (remove nil?))
-                                (:content (xml/parse raw-data)))
+  (let [nodes&ways    (keep entries (:content (xml/parse raw-data)))
         ;; separate ways from nodes
         ways          (trim-ways (filter :way/id nodes&ways))
         roads         (roads ways)
         ;; post-processing nodes
         ids           (into #{} (mapcat :way/nodes) ways)
-        nodes         (for [entry nodes&ways
-                            :when (contains? ids (:node/id entry))]
-                        entry)
+        nodes         (filter #(contains? ids (:node/id %)) nodes&ways)
         neighbours    (for [way ways
                             [from to] (map vector (:way/nodes way)
                                                   (rest (:way/nodes way)))]
