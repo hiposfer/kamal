@@ -19,13 +19,25 @@ You can install `kamal` from _clojars_ using _lein_ or use our _docker_ image.
 ### Leiningen
 ```
 $ git clone https://github.com/hiposfer/kamal.git && cd kamal
+
+## set up environment variables
+$ export FRANKFURT_AREA_NAME="Frankfurt am Main"
+$ export FRANKFURT_AREA_GTFS=resources/test/frankfurt.gtfs.zip
+
+## preprocess input data
+$ lein run -m hiposfer.kamal.preprocessor resources/test/
+
+## compile application - you can run it with lein as well
 $ lein with-profile release uberjar
+
+export FRANKFURT_AREA_EDN resources/test/frankfurt.edn.gz
 $ java -jar target/kamal.jar
 ```
 
 ### Docker
 Use our latest docker image:
 
+    $ ## setup env vars like above and pass them to docker
     $ docker run -it -p 3000:3000 hiposfer/kamal
 
 ## Development
