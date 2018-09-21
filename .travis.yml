@@ -3,26 +3,19 @@ jdk:
 - oraclejdk8
 script:
 - lein do clean, compile, check, eastwood
-# test requires quite some memory so free it afterwards
+# HACK: download the file before the test starts
+- wget -O ./resources/test/frankfurt-am-main.edn.gz ${FRANKFURT_AREA_EDN}
 - lein trampoline test
-notifications:
-  email:
-    on_success: change
-    on_failure: always
-env:
-  global:
-  - secure: piWUUgJePy5EFQmVyd/dAN4EG9wgubzr+i5qfmcyjbuhLPd+DzI1SYIhGDJ0PcrZDPVf/vG0uCCyWbFXaNCB4LJETt1/N7stR5H7mGl8QY05KBB04DFlfqUf3gfIeQCfILfxdpI1+//5YNUQHVgXB0RQ25FreHEOpPvS02uOziNVifrwQgMH2zYgMVycUSqsb1fkU+/obTU8DeeGrdexHLPhacRYJr8UYury98uZHVFfpdd6zFp7lTqGf2js424u/ER7zNmrUQiVzIEtNp86ZOh+IeUUGPETzf3OJhDntPpHlbDzE09DkJt16qGo5HUZjtH//+kO3nBoZid5SA1jY6Lk1UI9Piw3Ihnob5XwCZ4xiI3ts6vfeOU1HFOvtAoVe7ZDoyF/ErEZlvLM+VTvbhhQjJuNJq1hqc2XJbcg7IrvmDYJbdcI4x3MBt3HD/slUTlm2wZB0XQCpuYMWDrT99otTfKzM996tWa9h1mNalcSooLOMaKhuQxy448K14wI2rWObr8xvK6swMbuk5ZUsi+HiFwNcMORIjUvCUbbyq2ZVPfVYhHQB7SzwNtsZhXtpOJ7CNSIrrCUV8Y65xOdk9by9VA635GC1FRysrm/yj1S5V+sCXqjI2rO2s0aUCC7hh/EMqdLEkyTbbE76xczF2ypNl7mdL6bECAttLdHzGs=
-  - secure: aj5xYi4auQ2fInEVfA8NrbNqz+0DwBhWNa6jtrd7/+jtEgxyUpFe3N+KnSVfyDXiPdFlv2u2Z+IO0LzG79D0Db0LdhHII83UXg1x296AC+ydZwSXmmc4BeK1fSYYkc56JMhyW3ovPsfdSCnqS2eutXuqOj49QnjHq097QqZZPj9Izoghwzwnv9L6xoeTmPAW8M6vDjhxZULArW1gwCEILGGm+sLlxksPxY8WH226kHSk4c8FiORTYjAIaoIHzxhamkH9+kc0AMCHZz7/48T31Gs3xA6ZWdh1eXikSM3nwM5BusQZq6xwFEJMpP96/nhERIk+YpsbMCxlWsHNpMtBA5A2wh3RTEqNdpVi3J1F5PkDrnIIjb7jAOJDyOlY+9/WGclDqoXT4YsdoDm9a6z7btdna9Mo+vAfoCKlqDWryyjLJQfQlCYwaH+l2e0Qp4uU7XxSm2m6AaMitxzFZmuh4cEME1CR5syquVnI/Qr51CbY+ZIsjmqsPCk5587ig9sNNH5FUwDVv6R0tDsb9JkFmtfheQp3Bxml+y83NkJnOg+oUPkrZW4eZVROgpoDJHp5+WJBlIeiwX5shEMPeoAoPdjCNQoIAILDIjQV84HUwW9zn9TMdPFESW+31kPUARy8AfWd8LS5yzRmRKe/Xf5Jxg0f7Bc2h9mnTptTltmydSY=
 deploy:
+# deploy to clojars
 - provider: script
   skip_cleanup: true
   script: lein deploy
   on:
     branch: master
     tags: true
+# deploy the jar directly to github
 - provider: releases
-  api_key:
-    secure: lsXO5yrJEwt8NLYcpKjyxsPnx9m1bQ68lOFo15LhO5+BdBBOjqTU1/bgwOGfoTpFCaJ6F2jaC9oxqhDohHYSs8X70oNWK+quuNmbu237EOZrPm2pV5YE7H2PMcVuR+DpgPRc53AaJ+uEo/VEyuXA8d+p11kI+jXHf5rrRgMQI5pFUuXMKRl8bjGb7MB2P9DCn/LWIlXeRc8qI5SX7VjeK9oSJc6Pgbq61cN9s8mrookr8fIK/mJmc+SObv9QQHCWA1Xb+tV+iHRwomGj252mBwuzeRnkU91ObQ50vH1XCLN4HgU3pvt4stYWXtQl1N7CdmDx0liP7023RM2g7YAzNzU+oK8tav4HV+RjBWAKSNonPKgY3iD7h8JqJxLAdHcirD0UDp3bqiV4RiwMyu3b9mq5K9i69EgX3Lvy4l2ThYhwXAsqmnjzfCotm6qOJVpBwXmei01TL07xa+/Bu8SQaMdnte0T5macA5gZdEPDhNExbxDcjlOW1XedfQNW27R0Ja5vPz3nNQC4R7iE6Sa9WZ6nx8v0Vdgrv0U5hTVRHmDDhXmswLQekrko6TxuRGG0P+80fImjQafcccPO55e/7sNO+v/gBBpcXzTsNcdTgHUVhdH1wQItIGpSOGC3O4784NAtDnScMGfp7yFSmAHaoWm2fU1qFBqVGEaKGb3Fkfo=
   file_glob: true
   file: target/kamal*.jar
   skip_cleanup: true
