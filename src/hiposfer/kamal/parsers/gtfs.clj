@@ -82,6 +82,18 @@
 ;(coerce "65123245")
 ;(coerce "Europe/Berlin")
 
+(def truncators
+  "map of GTFS filenames to post-processing functions. Useful to remove
+   unnecessary information from the GTFS feed; just to reduce the amount
+    of datoms in datascript"
+  {"routes.txt"   #(dissoc % :route/url)
+   "trips.txt"    #(dissoc % :trip/shape)
+   "stops.txt"    (fn [stop]
+                    (let [removable [:stop/lat :stop/lon]
+                          ks (apply disj (set (keys stop)) removable)
+                          loc (network/->Location (:stop/lon stop) (:stop/lat stop))]
+                      (assoc (select-keys stop ks) :stop/location loc)))})
+
 (defn ref?
   "a reference is a field that links to a unique field in another file
   and that is not that field itself"
@@ -94,10 +106,12 @@
   "takes a filename and parses its content if supported by this parser.
    Entries that do not conform to the gtfs spec are removed. Returns
    a vector of conformed entries"
-  [csv-content filename]
-  (let [head   (map #(reference/get-mapping filename %) (first csv-content))
-        fields (into {} (map (juxt :keyword identity) head))]
-    (for [row (rest csv-content)]
+  [^ZipInputStream zipstream filename]
+  (let [file    (io/reader zipstream)
+        content (csv/read-csv file)
+        head    (map #(reference/get-mapping filename %) (first content))
+        fields  (into {} (map (juxt :keyword identity) head))]
+    (for [row (rest content)]
       (into {}
         (for [[k v] (map vector (map :keyword head) row)
               :when (not-empty v)]
@@ -113,53 +127,44 @@
 (def read-order ["agency.txt" "calendar.txt" "routes.txt"
                  "trips.txt" "stops.txt" "stop_times.txt"])
 
-(def truncators
-  "map of GTFS filenames to post-processing functions. Useful to remove
-   unnecessary information from the GTFS feed; just to reduce the amount
-    of datoms in datascript"
-  {"routes.txt"   #(dissoc % :route/url)
-   "trips.txt"    #(dissoc % :trip/shape)
-   "stops.txt"    (fn [stop]
-                    (let [removable [:stop/lat :stop/lon]
-                          ks (apply disj (set (keys stop)) removable)
-                          loc (network/->Location (:stop/lon stop) (:stop/lat stop))]
-                      (assoc (select-keys stop ks) :stop/location loc)))})
+(defn- transaction*
+  "returns a sequence of [filename transaction].
 
-;; TODO: this function is not very efficient since it parses all the content
-;; before returning. A better approach would be to lazy return files.
-;; However this would require keeping some book keeping to know which files
-;; have already been read and which are to come. Furthermore, we cannot read
-;; the files in random order since there are dependencies among them
-(defn datomize!
-  "takes a map of gtfs key-name -> content and returns a sequence
-  of maps ready to be used for transact"
-  ([^ZipInputStream zipstream]
-   (datomize! zipstream (. zipstream (getNextEntry)) {}))
+  WARNING: The order of the sequence is not guarantee to be consistent
+  for a Datascript transaction"
+  [^ZipInputStream zipstream]
+  (for [entry  ^ZipEntry (repeatedly #(. zipstream (getNextEntry)))
+        :while (some? entry)
+        :when  (contains? (set read-order) (. entry (getName)))]
+    (let [filename (. entry (getName))
+          truncate (get truncators filename identity)]
+      ;; NOTE: we are forced to use into [] because otherwise the stream
+      ;; would close before we get to read all values
+      [filename (into [] (map truncate) (parse zipstream filename))])))
 
-  ([^ZipInputStream zipstream ^ZipEntry entry result]
-   (cond
-     ;; nothing more to process return
-     (nil? entry)
-     (mapcat val (sort-by #(. ^List read-order (indexOf (key %))) result))
-
-     ;; gtfs feed file, parse and process it
-     (contains? (set read-order) (. entry (getName)))
-     (let [filename (. entry (getName))
-           trunc    (get truncators filename identity)
-           file     (io/reader zipstream)
-           content  (into [] (map trunc) (parse (csv/read-csv file) filename))]
-       (recur zipstream
-              (. zipstream (getNextEntry))
-              (assoc result filename content)))
-
-     ;; something else ... ignore it
-     :else
-     (recur zipstream (. zipstream (getNextEntry)) result))))
+;; NOTE: the commented lines below allow a lazy sorting but are much
+;; more complicated and since the processing time is completely dominated
+;; by stop_times.txt file, it is almost irrelevant to make this lazy
+;; maybe in the future it could be different
+(defn transaction!
+  "returns a Datascript transaction of the complete gtfs feed"
+  [zipstream]
+  (mapcat second (sort-by #(. ^List read-order (indexOf (first %)))
+                           (transaction* zipstream))))
+  ;([files-content stack]
+  ; (lazy-seq
+  ;   (when (and (not-empty stack) (not-empty files-content))
+  ;     (let [tx (some (fn [[file content]]
+  ;                      (when (= file (first stack))
+  ;                        content))
+  ;                    files-content)]
+  ;       (concat tx (transaction! (remove (fn [[file]] (= file (first stack)))
+  ;                                        files-content)
+  ;                                (rest stack))))))))
 
 ;; just for convenience
 (def idents (into #{} (comp (filter :unique) (map :keyword)) reference/fields))
 (def attributes (into #{} (cons :stop/location (map :keyword reference/fields))))
-
 
 (defn resource
   "takes a datascript entity and checks if any of its values are entities, if so
@@ -180,6 +185,6 @@
         (contains? attributes k) [k v]))))
 
 ;(with-open [z (ZipInputStream. (io/input-stream "resources/frankfurt.gtfs.zip"))]
-;  (time (take 100 (drop 300 (datomize! z)))))
+;  (time (vec (drop 100 (transaction! z)))))
 
 ;(filter :unique reference/fields)
