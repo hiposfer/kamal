@@ -29,3 +29,4 @@ cmake-build-debug/
 /kamal.iml
 resources/test
 /wget-log
+!/resources/test/README.md
