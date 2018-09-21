@@ -1,15 +1,12 @@
 language: clojure
 jdk:
 - oraclejdk8
+before_script:
+  - wget -O ./resources/test/frankfurt-am-main.edn.gz ${FRAKFURT_AREA_EDN}
 script:
 - lein do clean, compile, check, eastwood
 # HACK: download the file before the test starts
-- wget -O ./resources/test/frankfurt-am-main.edn.gz ${FRAKFURT_AREA_EDN}
 - lein trampoline test
-notifications:
-  email:
-    on_success: change
-    on_failure: always
 env:
   global:
   - secure: piWUUgJePy5EFQmVyd/dAN4EG9wgubzr+i5qfmcyjbuhLPd+DzI1SYIhGDJ0PcrZDPVf/vG0uCCyWbFXaNCB4LJETt1/N7stR5H7mGl8QY05KBB04DFlfqUf3gfIeQCfILfxdpI1+//5YNUQHVgXB0RQ25FreHEOpPvS02uOziNVifrwQgMH2zYgMVycUSqsb1fkU+/obTU8DeeGrdexHLPhacRYJr8UYury98uZHVFfpdd6zFp7lTqGf2js424u/ER7zNmrUQiVzIEtNp86ZOh+IeUUGPETzf3OJhDntPpHlbDzE09DkJt16qGo5HUZjtH//+kO3nBoZid5SA1jY6Lk1UI9Piw3Ihnob5XwCZ4xiI3ts6vfeOU1HFOvtAoVe7ZDoyF/ErEZlvLM+VTvbhhQjJuNJq1hqc2XJbcg7IrvmDYJbdcI4x3MBt3HD/slUTlm2wZB0XQCpuYMWDrT99otTfKzM996tWa9h1mNalcSooLOMaKhuQxy448K14wI2rWObr8xvK6swMbuk5ZUsi+HiFwNcMORIjUvCUbbyq2ZVPfVYhHQB7SzwNtsZhXtpOJ7CNSIrrCUV8Y65xOdk9by9VA635GC1FRysrm/yj1S5V+sCXqjI2rO2s0aUCC7hh/EMqdLEkyTbbE76xczF2ypNl7mdL6bECAttLdHzGs=
