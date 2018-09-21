@@ -1,11 +1,9 @@
 language: clojure
 jdk:
 - oraclejdk8
-before_script:
-  - env
-  - wget --verbose -O ./resources/test/frankfurt-am-main.edn.gz ${FRANKFURT_AREA_EDN}
 script:
 - lein do clean, compile, check, eastwood
+- env
 # HACK: download the file before the test starts
 - lein trampoline test
 deploy:
@@ -15,6 +13,7 @@ deploy:
   on:
     branch: master
     tags: true
+# deploy the jar directly to github
 - provider: releases
   file_glob: true
   file: target/kamal*.jar
