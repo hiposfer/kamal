@@ -27,5 +27,5 @@ cmake-build-debug/
 
 # Crashlytics plugin (for Android Studio and IntelliJ)
 /kamal.iml
-*.edn.gz
-*.zip
+resources/test
+/wget-log
