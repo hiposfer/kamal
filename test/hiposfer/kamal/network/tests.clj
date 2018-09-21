@@ -14,8 +14,6 @@
             [hiposfer.kamal.services.routing.directions :as dir]
             [expound.alpha :as expound]))
 
-(println "FRANKFURT_AREA_EDN:" (System/getenv "FRANKFURT_AREA_EDN"))
-
 ;; Example taken from
 ;; https://rosettacode.org/wiki/Dijkstra%27s_algorithm
 ;; we assume bidirectional links

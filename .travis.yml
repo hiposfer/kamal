@@ -1,12 +1,14 @@
 language: clojure
 jdk:
 - oraclejdk8
+before_script:
+  - wget -O ./resources/test/frankfurt-am-main.edn.gz ${FRANKFURT_AREA_EDN}
 script:
 - lein do clean, compile, check, eastwood
-- env
 # HACK: download the file before the test starts
 - lein trampoline test
 deploy:
+# deploy to clojars
 - provider: script
   skip_cleanup: true
   script: lein deploy
