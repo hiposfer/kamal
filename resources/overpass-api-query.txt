@@ -1,43 +1,43 @@
-
 [out:xml][timeout:180];
-// get the specific search area
+
 area["name"="Niederrad"]->.searchArea;
-// get all ways that are accessible to pedestrians
-(
-	way["access"!~"no|private"](area.searchArea);
-  	way["foot"="yes"](area.searchArea);
-)->.accessible;
 
-// get all highways that can be traversed by pedestrian
-(
-  way["highway"="trunk"](area.searchArea);
-  way["highway"="trunk_link"](area.searchArea);
-  way["highway"="primary"](area.searchArea);
-  way["highway"="primary_link"](area.searchArea);
-  way["highway"="secondary"](area.searchArea);
-  way["highway"="secondary_link"](area.searchArea);
-  way["highway"="residential"](area.searchArea);
-  way["highway"="residential_link"](area.searchArea);
-  way["highway"="service"](area.searchArea);
-  way["highway"="tertiary"](area.searchArea);
-  way["highway"="tertiary_link"](area.searchArea);
-  way["highway"="road"](area.searchArea);
-  way["highway"="track"](area.searchArea);
-  way["highway"="unclassified"](area.searchArea);
-  way["highway"="undefined"](area.searchArea);
-  way["highway"="unknown"](area.searchArea);
-  way["highway"="living_street"](area.searchArea);
-  way["highway"="private"](area.searchArea);
-  way["highway"="footway"](area.searchArea);
-  way["highway"="pedestrian"](area.searchArea);
-  way["highway"="steps"](area.searchArea);
-)->.walkable;
+relation
+  ["deleted"!~".*"]
+  ["type"="route"]
+  ["route"~"tram|subway|bus|ex-bus|light_rail|rail|railway"]
+  (area.searchArea);
 
-// compute the intersection of walkable and accessible
-way.accessible.walkable;
-// print ways
-out body;
-// find nodes of ways
->;
-// print nodes
-out body;
+(._;>;);
+
+out;
+
+way
+  ["access"!~"no|private"]
+  ["foot"="yes"]
+  ["highway"="trunk"]
+  ["highway"="trunk_link"]
+  ["highway"="primary"]
+  ["highway"="primary_link"]
+  ["highway"="secondary"]
+  ["highway"="secondary_link"]
+  ["highway"="residential"]
+  ["highway"="residential_link"]
+  ["highway"="service"]
+  ["highway"="tertiary"]
+  ["highway"="tertiary_link"]
+  ["highway"="road"]
+  ["highway"="track"]
+  ["highway"="unclassified"]
+  ["highway"="undefined"]
+  ["highway"="unknown"]
+  ["highway"="living_street"]
+  ["highway"="private"]
+  ["highway"="footway"]
+  ["highway"="pedestrian"]
+  ["highway"="steps"]
+  (area.searchArea);
+
+(._;>;);
+
+out;
