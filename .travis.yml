@@ -3,7 +3,8 @@ jdk:
 - oraclejdk8
 script:
 - lein do clean, compile, check, eastwood
-# test requires quite some memory so free it afterwards
+# HACK: download the file before the test starts
+- wget -O ./resources/test/frankfurt-am-main.edn.gz $REMOTE_AREA_EDN
 - lein trampoline test
 notifications:
   email:
