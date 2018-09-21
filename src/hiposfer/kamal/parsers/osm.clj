@@ -51,35 +51,6 @@
            :way/nodes nodes}
           attrs)))
 
-(defn simplify
-  "returns the ways sequence including only the first/last and intersection
-   nodes i.e. the connected nodes in a graph structure.
-
-  Uses the :way/nodes of each way and counts which nodes appear more than once"
-  [ways]
-  (let [point-count (frequencies (mapcat :way/nodes ways))]
-    (for [way ways]
-      (assoc way :way/nodes
-        (filter #(or (= % (first (:way/nodes way)))
-                     (>= (point-count %) 2)
-                     (= % (last (:way/nodes way))))
-                 (:way/nodes way))))))
-
-(defn- roads
-  "group all ways with the same name into a single entity to avoid redundancy
-
-  HACK: since we are not interested in the attributes of the ways, this reduces
-  the amount of data in Datascript significantly"
-  [ways]
-  (let [groups (group-by :way/name ways)]
-    (for [[_ group] groups]
-      ;; the minus is to make "explicit" that this is not part of OSM
-      (merge
-        {:way/id (- (:way/id (first group)))
-         :way/nodes (mapcat :way/nodes group)}
-        (when-let [wn (some :way/name group)]
-          {:way/name wn})))))
-
 (defn- join-ways
   "merges ways that are linked to each other by their head or their tail.
 
@@ -111,6 +82,39 @@
 
        :else (recur (rest ways) (first ways) (conj result current))))))
 
+(defn- trim-ways
+  "returns the ways sequence including only the first/last and intersection
+   nodes i.e. the connected nodes in a graph structure.
+
+  Uses the :way/nodes of each way and counts which nodes appear more than once"
+  [ways]
+  (let [groups      (group-by :way/name ways)
+        point-count (frequencies (mapcat :way/nodes ways))]
+    (for [[way-name group] groups
+          :let [group-ways (if (empty? way-name) group
+                             (join-ways group))]
+          way group-ways]
+      (assoc way :way/nodes
+        (filter #(or (= % (first (:way/nodes way)))
+                     (>= (point-count %) 2)
+                     (= % (last (:way/nodes way))))
+                 (:way/nodes way))))))
+
+(defn- roads
+  "group all ways with the same name into a single entity to avoid redundancy
+
+  HACK: since we are not interested in the attributes of the ways, this reduces
+  the amount of data in Datascript significantly"
+  [ways]
+  (let [groups (group-by :way/name ways)]
+    (for [[_ group] groups]
+      ;; the minus is to make "explicit" that this is not part of OSM
+      (merge
+        {:way/id (- (:way/id (first group)))
+         :way/nodes (mapcat :way/nodes group)}
+        (when-let [wn (some :way/name group)]
+          {:way/name wn})))))
+
 (defn- entries
   "returns a [id node], {id way} or nil otherwise"
   [xml-entry]
@@ -121,18 +125,13 @@
 
 ;; We assume that preprocessing the files was already performed and that only
 ;; the useful data is part of the OSM file. See README
-(defn datomize
+(defn transaction!
   "read an OSM file and transforms it into a sequence of datascript transactions"
   [raw-data] ;; read all elements into memory
-  (let [nodes&ways    (into [] (comp (map entries) (remove nil?))
-                               (:content (xml/parse raw-data)))
+  (let [nodes&ways    (sequence (comp (map entries) (remove nil?))
+                                (:content (xml/parse raw-data)))
         ;; separate ways from nodes
-        way-groups    (group-by :way/name (filter :way/id nodes&ways))
-        ;ways          (simplify (filter :way/id nodes&ways))
-        ways          (simplify (mapcat (fn [[way-name group]]
-                                          (if (empty? way-name) group
-                                            (join-ways group)))
-                                        way-groups))
+        ways          (trim-ways (filter :way/id nodes&ways))
         roads         (roads ways)
         ;; post-processing nodes
         ids           (into #{} (mapcat :way/nodes) ways)

@@ -31,7 +31,7 @@
                        (URLEncoder/encode query "UTF-8"))
         conn      (. ^URL (io/as-url url) (openConnection))]
     (with-open [file-rdr (. conn (getContent))]
-      (osm/datomize file-rdr))))
+      (osm/transaction! file-rdr))))
 
 (defn- prepare-data!
   [area]
@@ -39,11 +39,11 @@
   (with-open [z (-> (io/input-stream (:area/gtfs area))
                     (ZipInputStream.))]
     (as-> (data/empty-db routing/schema) $
-          (time (data/db-with $ (gtfs/datomize! z)))
+          (time (data/db-with $ (gtfs/transaction! z)))
           (time (data/db-with $ (fetch-osm! area)))
           (time (data/db-with $ (fastq/link-stops $)))
           (time (data/db-with $ (fastq/cache-stop-successors $)))
-          (time (data/db-with $ [area]))))) ;; add the area as transaction)))
+          (time (data/db-with $ [area]))))) ;; add the area as transaction
 
 (defn -main
   "Script for preprocessing OSM and GTFS files into gzip files each with
