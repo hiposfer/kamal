@@ -30,7 +30,7 @@
 
 (defn- read-osm
   [area]
-  (println "reading OSM cache file from" (osm-filename area))
+  (println "OK - OSM cache file found at" (osm-filename area))
   (with-open [stream (io/input-stream (osm-filename area))]
     (osm/transaction! stream)))
 
@@ -59,8 +59,8 @@
   (with-open [z (-> (io/input-stream (:area/gtfs area))
                     (ZipInputStream.))]
     (as-> (data/empty-db routing/schema) $
-          (time (data/db-with $ (gtfs/transaction! z)))
           (time (data/db-with $ (fetch-osm! area)))
+          (time (data/db-with $ (gtfs/transaction! z)))
           (time (data/db-with $ (fastq/link-stops $)))
           (time (data/db-with $ (fastq/cache-stop-successors $)))
           (time (data/db-with $ [area]))))) ;; add the area as transaction
