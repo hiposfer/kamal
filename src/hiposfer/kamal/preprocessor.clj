@@ -17,10 +17,12 @@
            (java.util.zip ZipInputStream GZIPOutputStream)))
 
 (defn gtfs-area? [k] (str/ends-with? (name k) "GTFS"))
+(defn area-name? [k] (str/ends-with? (name k) "NAME"))
 
+(s/def ::entry (s/or :name area-name? :gtfs gtfs-area?))
 (s/def ::env (s/and #(pos? (count %))
-                     (s/map-of core/area-id? string?)
-                     (s/map-of gtfs-area? string?)))
+                     (s/map-of core/area-entry? string?)
+                     (s/map-of ::entry string?)))
 
 (defn fetch-osm!
   [area]
@@ -56,14 +58,13 @@
   (timbre/info "preprocessing OSM and GTFS files")
   (let [env    (walk/keywordize-keys (into {} (System/getenv)))
         areas  (into {} (filter #(re-matches core/area-regex (name (key %)))) env)]
-    (assert (s/valid? ::env areas) (expound/expound-str ::env areas))
+    (assert (s/valid? ::env areas)
+            (expound/expound-str ::env areas))
     (doseq [area (core/prepare-areas areas)]
       (println "processing area:" (:area/name area))
       (let [db   (time (prepare-data! area))
             ;; osm is mandatory, use its filename !!
-            path (str outdir (str/replace (str/lower-case (:area/name area))
-                                          " " "-")
-                             ".edn.gz")]
+            path (str outdir (:area/id area) ".edn.gz")]
         (println "writing data to output file")
         (with-open [w (-> (io/output-stream path)
                           (GZIPOutputStream.)
