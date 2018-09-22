@@ -14,7 +14,8 @@
             [hiposfer.kamal.parsers.osm :as osm]
             [expound.alpha :as expound])
   (:import (java.net URLEncoder URL)
-           (java.util.zip ZipInputStream GZIPOutputStream)))
+           (java.util.zip ZipInputStream GZIPOutputStream)
+           (java.io File)))
 
 (defn gtfs-area? [k] (str/ends-with? (name k) "GTFS"))
 (defn area-name? [k] (str/ends-with? (name k) "NAME"))
@@ -24,16 +25,31 @@
                      (s/map-of core/area-entry? string?)
                      (s/map-of ::entry string?)))
 
+;; predefined output directory to avoid committing the files to the history
+(def outdir "resources/test/")
+(defn- osm-filename [area] (str outdir (:area/id area) ".osm"))
+
+(defn- read-osm
+  [area]
+  (println "reading OSM cache file from" (osm-filename area))
+  (with-open [stream (io/input-stream (osm-filename area))]
+    (osm/transaction! stream)))
+
 (defn fetch-osm!
   [area]
-  (let [query     (str/replace (slurp (io/resource "overpass-api-query.txt"))
-                               "Niederrad"
-                               (:area/name area))
-        url       (str "http://overpass-api.de/api/interpreter?data="
-                       (URLEncoder/encode query "UTF-8"))
-        conn      (. ^URL (io/as-url url) (openConnection))]
-    (with-open [file-rdr (. conn (getContent))]
-      (osm/transaction! file-rdr))))
+  (if (.exists (io/file (osm-filename area)))
+    (read-osm area)
+    (let [query     (str/replace (slurp (io/resource "overpass-api-query.txt"))
+                                 "Niederrad"
+                                 (:area/name area))
+          url       (str "http://overpass-api.de/api/interpreter?data="
+                         (URLEncoder/encode query "UTF-8"))
+          conn      (. ^URL (io/as-url url) (openConnection))]
+      (println "no OSM cache file found ... fetching")
+      (io/copy (. conn (getContent)) (io/file (osm-filename area)))
+      (println "DONE - writing OSM cache file" (osm-filename area))
+      (read-osm area))))
+;;(fetch-osm! {:area/id "frankfurt" :area/name "Frankfurt am Main"})
 
 (defn- prepare-data!
   [area]
@@ -50,12 +66,12 @@
 (defn -main
   "Script for preprocessing OSM and GTFS files into gzip files each with
   a Datascript EDN representation inside"
-  [outdir]
-  (assert (some? outdir) "missing output file")
+  []
   ;; setup spec instrumentation and expound for better feedback
   (clojure.spec.test.alpha/instrument)
   (alter-var-root #'s/*explain-out* (constantly dev/custom-printer))
   (timbre/info "preprocessing OSM and GTFS files")
+
   (let [env    (walk/keywordize-keys (into {} (System/getenv)))
         areas  (into {} (filter #(re-matches core/area-regex (name (key %)))) env)]
     (assert (s/valid? ::env areas)
@@ -63,7 +79,6 @@
     (doseq [area (core/prepare-areas areas)]
       (println "processing area:" (:area/name area))
       (let [db   (time (prepare-data! area))
-            ;; osm is mandatory, use its filename !!
             path (str outdir (:area/id area) ".edn.gz")]
         (println "writing data to output file")
         (with-open [w (-> (io/output-stream path)
