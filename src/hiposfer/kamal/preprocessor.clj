@@ -14,8 +14,7 @@
             [hiposfer.kamal.parsers.osm :as osm]
             [expound.alpha :as expound])
   (:import (java.net URLEncoder URL)
-           (java.util.zip ZipInputStream GZIPOutputStream)
-           (java.io File)))
+           (java.util.zip ZipInputStream GZIPOutputStream)))
 
 (defn gtfs-area? [k] (str/ends-with? (name k) "GTFS"))
 (defn area-name? [k] (str/ends-with? (name k) "NAME"))
@@ -36,6 +35,7 @@
     (osm/transaction! stream)))
 
 (defn fetch-osm!
+  "read OSM data either from a local cache file or from the overpass api"
   [area]
   (if (.exists (io/file (osm-filename area)))
     (read-osm area)
@@ -47,11 +47,13 @@
           conn      (. ^URL (io/as-url url) (openConnection))]
       (println "no OSM cache file found ... fetching")
       (io/copy (. conn (getContent)) (io/file (osm-filename area)))
-      (println "DONE - writing OSM cache file" (osm-filename area))
+      (println "OK - writing OSM cache file" (osm-filename area))
       (read-osm area))))
 ;;(fetch-osm! {:area/id "frankfurt" :area/name "Frankfurt am Main"})
 
 (defn- prepare-data!
+  "reads both OSM and GTFS files, converts them into Datascript transactions
+  and returns a Datascript in-memory Database"
   [area]
   ;; progressively build up the network from the pieces
   (with-open [z (-> (io/input-stream (:area/gtfs area))
@@ -80,7 +82,7 @@
       (println "processing area:" (:area/name area))
       (let [db   (time (prepare-data! area))
             path (str outdir (:area/id area) ".edn.gz")]
-        (println "writing data to output file")
+        (println "writing data to" path)
         (with-open [w (-> (io/output-stream path)
                           (GZIPOutputStream.)
                           (io/writer))]

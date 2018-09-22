@@ -24,8 +24,8 @@ $ git clone https://github.com/hiposfer/kamal.git && cd kamal
 $ export FRANKFURT_AREA_NAME="Frankfurt am Main"
 $ export FRANKFURT_AREA_GTFS=resources/test/frankfurt.gtfs.zip
 
-## preprocess input data
-$ lein run -m hiposfer.kamal.preprocessor resources/test/
+## preprocess input data -> output to ./resources/test
+$ lein run -m hiposfer.kamal.preprocessor
 
 ## compile application - you can run it with lein as well
 $ lein with-profile release uberjar
