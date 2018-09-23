@@ -13,8 +13,7 @@
             [expound.alpha :as expound]
             [clojure.spec.alpha :as s]
             [clojure.spec.test.alpha]
-            [clojure.tools.namespace.repl :as repl]
-            [taoensso.timbre :as timbre]))
+            [clojure.tools.namespace.repl :as repl]))
 
 (def env
   "a fake environment variables setting for development"
@@ -34,13 +33,13 @@
 (defn start!
   "Starts the current development system."
   []
-  (timbre/debug "Starting System")
+  (println "Starting System")
   (alter-var-root #'system component/start))
 
 (defn stop!
   "Shuts down and destroys the current development system."
   []
-  (timbre/debug "Stopping System\n")
+  (println "Stopping System\n")
   (alter-var-root #'system (fn [s] (when s (component/stop s)))))
 
 (defn custom-printer

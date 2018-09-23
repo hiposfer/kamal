@@ -4,7 +4,6 @@
             [datascript.core :as data]
             [com.stuartsierra.component :as component]
             [hiposfer.kamal.network.algorithms.core :as alg]
-            [taoensso.timbre :as timbre]
             [hiposfer.kamal.parsers.edn :as edn]
             [hiposfer.kamal.parsers.gtfs :as gtfs]
             [hiposfer.gtfs.edn :as gtfs.edn]))
@@ -70,33 +69,34 @@
 (defrecord DevRouter [config networks]
   component/Lifecycle
   (start [this]
-    (timbre/info "starting dev router with:" config)
-    (if (not-empty (:networks this)) this
+    (println "starting dev router with:" config)
+    (if (some? (:networks this)) this
       (let [values (into #{} (map pedestrian-graph (:networks config)))
-            ag     (agent values :error-handler #(timbre/fatal %2 (deref %1))
+            ag     (agent values :error-handler println
                                  :error-mode :fail)]
         (assoc this :networks ag))))
   (stop [this]
-    (timbre/info "stopping router")
+    (println "stopping router")
     (assoc this :networks nil)))
 
 (defn- stop-process
   [agnt error]
-  (timbre/fatal error (deref agnt))
+  (binding [*out* *err*]
+    (println error (deref agnt)))
   (System/exit 1)) ;; stop program execution
 
 (defrecord Router [config networks]
   component/Lifecycle
   (start [this]
-    (if (not-empty (:networks this)) this
+    (if (some? (:networks this)) this
       (let [ag (agent #{} :error-handler stop-process
                           :error-mode :fail)]
         (doseq [area (:networks config)]
-          (timbre/info "starting area router:" area)
-          (send-off ag #(time (conj %1 (network %2))) area))
+          (println "starting area router:" area)
+          (send ag #(time (conj %1 (network %2))) area))
         (assoc this :networks ag))))
   (stop [this]
-    (timbre/info "stopping router")
+    (println "stopping router")
     (assoc this :networks nil)))
 
 (defn service

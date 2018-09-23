@@ -4,62 +4,74 @@
             [clojure.spec.gen.alpha :as gen]
             [hiposfer.kamal.network.generators :as ng]
             [hiposfer.kamal.network.algorithms.core :as alg]
-            [hiposfer.kamal.preprocessor :as preprocessor]
             [hiposfer.kamal.libs.geometry :as geometry]
             [hiposfer.kamal.services.routing.core :as router]
             [hiposfer.kamal.libs.fastq :as fastq]
             [hiposfer.kamal.network.tests :as kt]
             [datascript.core :as data]
-            [taoensso.timbre :as timbre]))
+            [hiposfer.kamal.services.routing.transit :as transit])
+  (:import (java.time ZonedDateTime Duration LocalTime)))
+
+;; NOTE: we put a letter in the test names, because apparently the benchmarks
+;; are ran in alphabetic order
 
 ;; This is just to show the difference between a randomly generated network
 ;; and a real-world network. The randomly generated network does not have a structure
 ;; meant to go from one place to the other, thus Dijkstra almost always fails to
 ;; finds a path (really fast)
-(test/deftest ^:benchmark dijkstra-random-graph
+(test/deftest ^:benchmark A-dijkstra-random-graph
   (let [dt      (gen/generate (ng/graph 1000))
         network (data/create-conn router/schema)
         _       (data/transact! network dt)
         src     (rand-nth (alg/nodes @network))
         dst     (rand-nth (alg/nodes @network))
         router  (kt/->PedestrianRouter @network)]
-    (timbre/info "\n\nDIJKSTRA forward with:" (count (alg/nodes @network)) "nodes")
-    (timbre/info "**random graph")
+    (newline) (newline)
+    (println "DIJKSTRA forward with:" (count (alg/nodes @network)) "nodes")
     (c/quick-bench
       (let [coll (alg/dijkstra router #{src})]
         (alg/shortest-path dst coll))
       :os :runtime :verbose)))
 
-(def network (delay (time (preprocessor/fetch-osm! {:area/name "Frankfurt am Main"}))))
-
-;;(type @network) ;; force read
-
-(test/deftest ^:benchmark dijkstra-saarland-graph
-  (let [src  (first (alg/nodes @network))
-        dst  (last (alg/nodes @network))
-        router (kt/->PedestrianRouter @network)
-        r1   (alg/looners @network router)
-        router (kt/->PedestrianRouter @network)
-        coll (alg/dijkstra router #{src})]
-    (timbre/info "\n\nDIJKSTRA forward with:" (count (alg/nodes @network)) "nodes")
-    (timbre/info "saarland graph:")
-    (c/quick-bench (alg/shortest-path dst coll)
-      :os :runtime :verbose)
-    (timbre/info "--------")
-    (timbre/info "using only strongly connected components of the original graph")
-    (data/transact! @network (map #(vector :db.fn/retractEntity (:db/id %)) r1))
-    (timbre/info "with:" (count (alg/nodes @network)) "nodes")
-    (let [coll (alg/dijkstra router #{src})]
-      (c/quick-bench (alg/shortest-path dst coll)
-        :os :runtime :verbose))))
-
 ;; note src nil search will search for points greater or equal to src
 ;; I think nil src then search points less than src
-(test/deftest ^:benchmark nearest-neighbour-search
-  (let [src   [7.038535 49.345088]
-        point (:node/location (first (fastq/nearest-node @network src)))]
-    (timbre/info "\n\nsaarland graph: nearest neighbour search with random src/dst")
-    (timbre/info "B+ tree with:" (count (data/datoms @network :eavt)) "nodes")
-    (timbre/info "accuraccy: " (geometry/haversine src point) "meters")
-    (c/quick-bench (:node/location (first (fastq/nearest-node @network src)))
+(test/deftest ^:benchmark B-nearest-neighbour-search
+  (let [network (deref (deref kt/network))
+        src     [8.645333, 50.087314]
+        point   (:node/location (first (fastq/nearest-node network src)))]
+    (newline) (newline)
+    (println "Road network: nearest neighbour search with random src/dst")
+    (println "B+ tree with:" (count (data/datoms network :eavt)) "nodes")
+    (println "accuracy: " (geometry/haversine src point) "meters")
+    (c/quick-bench (:node/location (first (fastq/nearest-node network src)))
+                   :os :runtime :verbose)))
+
+;;(type @kt/network) ;; force read
+(test/deftest ^:benchmark C-pedestrian-road-network
+  (let [network (deref (deref kt/network))
+        src     (first (alg/nodes network))
+        dst     (last (alg/nodes network))
+        router  (kt/->PedestrianRouter network)
+        coll    (alg/dijkstra router #{src})]
+    (newline) (newline)
+    (println "Pedestrian routing with:" (count (alg/nodes network)) "nodes")
+    (c/quick-bench (alg/shortest-path dst coll)
+      :os :runtime :verbose)))
+
+(test/deftest ^:benchmark D-transit-road-network
+  (let [network    (deref (deref kt/network))
+        departure  (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")
+        stop-times (fastq/day-stop-times network (. departure (toLocalDate)))
+        coordinates [[8.645333, 50.087314]
+                     [8.635897, 50.104172]]
+        start      (Duration/between (LocalTime/MIDNIGHT) (. departure (toLocalTime)))
+        src        (first (fastq/nearest-node network (first coordinates)))
+        dst        (first (fastq/nearest-node network (last coordinates)))
+        router     (transit/->StopTimesRouter network stop-times)
+        coll       (alg/dijkstra router
+                                 #{[src (. start (getSeconds))]}
+                                 transit/by-cost)]
+    (newline) (newline)
+    (println "Transit routing with:" (count (alg/nodes network)) "nodes")
+    (c/quick-bench (alg/shortest-path dst coll)
                    :os :runtime :verbose)))

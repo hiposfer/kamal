@@ -1,7 +1,6 @@
 (ns hiposfer.kamal.preprocessor
   (:gen-class)
   (:require [clojure.java.io :as io]
-            [taoensso.timbre :as timbre]
             [hiposfer.kamal.dev :as dev]
             [hiposfer.kamal.services.routing.core :as routing]
             [hiposfer.kamal.core :as core]
@@ -72,7 +71,7 @@
   ;; setup spec instrumentation and expound for better feedback
   (clojure.spec.test.alpha/instrument)
   (alter-var-root #'s/*explain-out* (constantly dev/custom-printer))
-  (timbre/info "preprocessing OSM and GTFS files")
+  (println "preprocessing OSM and GTFS files")
 
   (let [env    (walk/keywordize-keys (into {} (System/getenv)))
         areas  (into {} (filter #(re-matches core/area-regex (name (key %)))) env)]
