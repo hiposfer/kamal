@@ -12,7 +12,6 @@
   (:require [com.stuartsierra.component :as component]
             [hiposfer.kamal.services.webserver.core :as webserver]
             [hiposfer.kamal.services.routing.core :as routing]
-            [taoensso.timbre :as timbre]
             [clojure.walk :as walk]
             [clojure.spec.alpha :as s]
             [clojure.string :as str]
@@ -76,7 +75,7 @@
 
 (defn -main
   [& args]
-  (timbre/info "\n\nWelcome to the hiposfer/kamal App")
+  (println "\n\nWelcome to the hiposfer/kamal App")
   (let [env    (walk/keywordize-keys (into {} (System/getenv)))
         config (prepare-env env)]
     (component/start (system config))))

@@ -2,7 +2,6 @@
   (:require [com.stuartsierra.component :as component]
             [hiposfer.kamal.services.webserver.handlers :as handler]
             [ring.adapter.jetty :as jetty]
-            [taoensso.timbre :as timbre]
             [ring.middleware.keyword-params :refer [wrap-keyword-params]]
             [ring.middleware.nested-params :refer [wrap-nested-params]]
             [ring.middleware.params :refer [wrap-params]]
@@ -69,11 +68,11 @@
                         (wrap-params))
             server  (jetty/run-jetty handler {:join? (:JOIN_THREAD config)
                                               :port  (:PORT config)})]
-        (timbre/info "-- Starting App server")
+        (println "-- Starting App server")
         (assoc this :server server))))
   (stop [this]
     (if-let [server (:server this)]
-      (do (timbre/info "-- Stopping App server")
+      (do (println "-- Stopping App server")
           (.stop ^Server server)
           (.join ^Server server)
           (assoc this :server nil router nil)))
