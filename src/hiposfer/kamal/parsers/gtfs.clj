@@ -19,7 +19,7 @@
             [hiposfer.kamal.network.core :as network]
             [clojure.java.io :as io]
             [clojure.data.csv :as csv]
-            [clojure.tools.reader.edn :as edn]
+            [clojure.edn :as edn]
             [datascript.impl.entity :as dimp])
   (:import (java.util.zip ZipInputStream ZipEntry)
            (java.time Duration LocalDate ZoneId)
