@@ -13,10 +13,13 @@ jobs:
     if: type != cron
     script:
       - lein do clean, compile, check, eastwood
+      - wget -O ./resources/test/frankfurt-am-main.edn.gz ${FRANKFURT_AREA_EDN}
       - lein trampoline test
   - stage: benchmark
     if: type = cron
-    script: lein trampoline test :benchmark
+    script:
+      - wget -O ./resources/test/frankfurt-am-main.edn.gz ${FRANKFURT_AREA_EDN}
+      - lein trampoline test :benchmark
 
 deploy:
 # deploy to clojars
