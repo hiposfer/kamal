@@ -19,16 +19,20 @@ jobs:
 
   - stage: Release
     script: echo "Deploying to GitHub releases ..."
-    if: branch = master AND tag IS present
+    if: branch = master
     deploy:
       provider: releases
       file_glob: true
       file: target/kamal*.jar
       skip_cleanup: true
+      on:
+        tags: true
   - stage: Release
     script: echo "Deploying to Clojars ..."
-    if: branch = master AND tag IS present
+    if: branch = master
     deploy:
       provider: script
       script: lein deploy
       skip_cleanup: true
+      on:
+        tags: true
