@@ -2,38 +2,29 @@ language: clojure
 jdk:
 - oraclejdk8
 
-stages:
-- test
-- benchmark
-#- benchmark
-
 jobs:
   include:
-  - stage: test
+  - stage: Generative Tests
     if: type != cron
     script:
-      - lein do clean, compile, check, eastwood
       - wget -O ./resources/test/frankfurt-am-main.edn.gz ${FRANKFURT_AREA_EDN}
-      - lein trampoline test
-  - stage: benchmark
+      - lein do clean, compile, check, eastwood, test
+  - stage: Benchmark
     if: type = cron
     script:
       - wget -O ./resources/test/frankfurt-am-main.edn.gz ${FRANKFURT_AREA_EDN}
       - lein trampoline test :benchmark
-
-deploy:
-# deploy to clojars
-- provider: script
-  skip_cleanup: true
-  script: lein deploy
-  on:
-    branch: master
-    tags: true
-# deploy the jar directly to github
-- provider: releases
-  file_glob: true
-  file: target/kamal*.jar
-  skip_cleanup: true
-  on:
-    branch: master
-    tags: true
+  - stage: Github Release
+    script: echo "Deploying to GitHub releases ..."
+    if: branch = master AND tag = true
+    deploy:
+      provider: releases
+      file_glob: true
+      skip_cleanup: true
+  - stage: Clojars Release
+    script: echo "Deploying to Clojars ..."
+    if: branch = master AND tag = true
+    deploy:
+      provider: script
+      script: lein deploy
+      skip_cleanup: true
