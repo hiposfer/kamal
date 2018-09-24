@@ -1,15 +1,20 @@
 language: clojure
 jdk:
 - oraclejdk8
-script:
-- lein do clean, compile, check, eastwood
-# HACK: download the file before the test starts
-- wget -O ./resources/test/frankfurt-am-main.edn.gz ${FRANKFURT_AREA_EDN}
-- if [ "${TRAVIS_EVENT_TYPE}" == "cron" ]; then
-    lein trampoline test :benchmark;
-  else
-    lein trampoline test;
-  fi
+
+stages:
+- smoke
+- test
+#- benchmark
+
+jobs:
+  include:
+  - stage: smoke
+    script: lein do clean, compile, check, eastwood
+  - stage: test
+    script: lein trampoline test
+  #- stage: test
+  #    script: lein trampoline test :benchmark
 
 deploy:
 # deploy to clojars
