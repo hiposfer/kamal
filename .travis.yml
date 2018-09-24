@@ -19,7 +19,7 @@ jobs:
 
   - stage: Release
     script: echo "Deploying to GitHub releases ..."
-    if: branch = master AND tag = true
+    if: branch = master AND tag IS present
     deploy:
       provider: releases
       file_glob: true
@@ -27,7 +27,7 @@ jobs:
       skip_cleanup: true
   - stage: Release
     script: echo "Deploying to Clojars ..."
-    if: branch = master AND tag = true
+    if: branch = master AND tag IS present
     deploy:
       provider: script
       script: lein deploy
