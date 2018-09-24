@@ -1,29 +1,34 @@
 language: clojure
 jdk:
 - oraclejdk8
-script:
-- lein do clean, compile, check, eastwood
-# HACK: download the file before the test starts
-- wget -O ./resources/test/frankfurt-am-main.edn.gz ${FRANKFURT_AREA_EDN}
-- if [ "${TRAVIS_EVENT_TYPE}" == "cron" ]; then
-    lein trampoline test :benchmark;
-  else
-    lein trampoline test;
-  fi
 
-deploy:
-# deploy to clojars
-- provider: script
-  skip_cleanup: true
-  script: lein deploy
-  on:
-    branch: master
-    tags: true
-# deploy the jar directly to github
-- provider: releases
-  file_glob: true
-  file: target/kamal*.jar
-  skip_cleanup: true
-  on:
-    branch: master
-    tags: true
+jobs:
+  include:
+  - stage: Generative Tests
+    script: lein do clean, compile, check, eastwood, test
+  - stage: Integration Tests
+    script:
+    - wget -O ./resources/test/frankfurt-am-main.edn.gz ${FRANKFURT_AREA_EDN}
+    - lein trampoline test :integration
+
+  - stage: Benchmark
+    if: type = cron
+    script:
+      - wget -O ./resources/test/frankfurt-am-main.edn.gz ${FRANKFURT_AREA_EDN}
+      - lein trampoline test :benchmark
+
+  - stage: Release
+    script: echo "Deploying to GitHub releases ..."
+    if: branch = master AND tag = true
+    deploy:
+      provider: releases
+      file_glob: true
+      file: target/kamal*.jar
+      skip_cleanup: true
+  - stage: Release
+    script: echo "Deploying to Clojars ..."
+    if: branch = master AND tag = true
+    deploy:
+      provider: script
+      script: lein deploy
+      skip_cleanup: true
