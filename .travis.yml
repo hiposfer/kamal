@@ -3,18 +3,20 @@ jdk:
 - oraclejdk8
 
 stages:
-- smoke
 - test
+- benchmark
 #- benchmark
 
 jobs:
   include:
-  - stage: smoke
-    script: lein do clean, compile, check, eastwood
   - stage: test
-    script: lein trampoline test
-  #- stage: test
-  #    script: lein trampoline test :benchmark
+    if: type != cron
+    script:
+      - lein do clean, compile, check, eastwood
+      - lein trampoline test
+  - stage: benchmark
+    if: type = cron
+    script: lein trampoline test :benchmark
 
 deploy:
 # deploy to clojars
