@@ -32,8 +32,9 @@
                        :jar-exclusions [#".*\.gz" #".*\.zip"]
                        :uberjar-exclusions [#".*\.gz" #".*\.zip"]
                        :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}}
-  :test-selectors {:default (complement :benchmark)
-                   :benchmark :benchmark}
+  :test-selectors {:default (fn [m] (not (some #{:benchmark :integration} (keys m))))
+                   :benchmark :benchmark
+                   :integration :integration}
   ;;FIXME: https://github.com/technomancy/leiningen/issues/2173
   :monkeypatch-clojure-test false
   :repositories [["releases"  {:url      "https://clojars.org/repo"

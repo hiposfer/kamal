@@ -8,6 +8,7 @@
             [hiposfer.kamal.services.routing.core :as router]
             [hiposfer.kamal.libs.fastq :as fastq]
             [hiposfer.kamal.network.tests :as kt]
+            [hiposfer.kamal.network.road :as road]
             [datascript.core :as data]
             [hiposfer.kamal.services.routing.transit :as transit])
   (:import (java.time ZonedDateTime Duration LocalTime)))
@@ -36,7 +37,7 @@
 ;; note src nil search will search for points greater or equal to src
 ;; I think nil src then search points less than src
 (test/deftest ^:benchmark B-nearest-neighbour-search
-  (let [network (deref (deref kt/network))
+  (let [network (deref (deref road/network))
         src     [8.645333, 50.087314]
         point   (:node/location (first (fastq/nearest-node network src)))]
     (newline) (newline)
@@ -48,7 +49,7 @@
 
 ;;(type @kt/network) ;; force read
 (test/deftest ^:benchmark C-pedestrian-road-network
-  (let [network (deref (deref kt/network))
+  (let [network (deref (deref road/network))
         src     (first (alg/nodes network))
         dst     (last (alg/nodes network))
         router  (kt/->PedestrianRouter network)
@@ -59,7 +60,7 @@
       :os :runtime :verbose)))
 
 (test/deftest ^:benchmark D-transit-road-network
-  (let [network    (deref (deref kt/network))
+  (let [network    (deref (deref road/network))
         departure  (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")
         stop-times (fastq/day-stop-times network (. departure (toLocalDate)))
         coordinates [[8.645333, 50.087314]

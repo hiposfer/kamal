@@ -5,23 +5,27 @@ jdk:
 jobs:
   include:
   - stage: Generative Tests
-    if: type != cron
+    script: lein do clean, compile, check, eastwood, test
+  - stage: Integration Tests
     script:
-      - wget -O ./resources/test/frankfurt-am-main.edn.gz ${FRANKFURT_AREA_EDN}
-      - lein do clean, compile, check, eastwood, test
+    - wget -O ./resources/test/frankfurt-am-main.edn.gz ${FRANKFURT_AREA_EDN}
+    - lein trampoline test :integration
+
   - stage: Benchmark
     if: type = cron
     script:
       - wget -O ./resources/test/frankfurt-am-main.edn.gz ${FRANKFURT_AREA_EDN}
       - lein trampoline test :benchmark
-  - stage: Github Release
+
+  - stage: Release
     script: echo "Deploying to GitHub releases ..."
     if: branch = master AND tag = true
     deploy:
       provider: releases
       file_glob: true
+      file: target/kamal*.jar
       skip_cleanup: true
-  - stage: Clojars Release
+  - stage: Release
     script: echo "Deploying to Clojars ..."
     if: branch = master AND tag = true
     deploy:
