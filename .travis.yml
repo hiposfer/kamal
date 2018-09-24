@@ -19,7 +19,6 @@ jobs:
 
   - stage: Release
     script: echo "Deploying to GitHub releases ..."
-    if: branch = master
     deploy:
       provider: releases
       file_glob: true
@@ -29,7 +28,6 @@ jobs:
         tags: true
   - stage: Release
     script: echo "Deploying to Clojars ..."
-    if: branch = master
     deploy:
       provider: script
       script: lein deploy
