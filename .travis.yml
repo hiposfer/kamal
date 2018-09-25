@@ -32,6 +32,8 @@ jobs:
       file_glob: true
       file: target/kamal*.jar
       skip_cleanup: true
+      on:
+        tags: true
   - stage: Release
     if: tag IS present
     script: echo "Deploying to Clojars ..."
@@ -39,3 +41,5 @@ jobs:
       provider: script
       script: lein deploy
       skip_cleanup: true
+      on:
+        tags: true
