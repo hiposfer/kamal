@@ -14,11 +14,11 @@
    sources id to the beginning of the queue and to the settled map."
   ^Heap [init-set ^Map settled comparator]
   (let [queue  ^Heap (new FibonacciHeap comparator)]
-    (run! (fn [value] (let [[e v] (if (vector? value) value [value 0])
-                            t (trace e nil)
-                            he (.insert queue v t)]
-                        (.put settled value he)))
-          init-set)
+    (doseq [entry init-set]
+      (let [[id cost]  (if (vector? entry) entry [entry 0])
+            pair       (trace id nil)
+            heap-entry (.insert queue cost pair)]
+        (.put settled entry heap-entry)))
     queue))
 
 (defn- path

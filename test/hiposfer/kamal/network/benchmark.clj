@@ -39,19 +39,19 @@
 (test/deftest ^:benchmark B-nearest-neighbour-search
   (let [network (deref (deref road/network))
         src     [8.645333, 50.087314]
-        point   (:node/location (first (fastq/nearest-node network src)))]
+        point   (:node/location (first (fastq/nearest-nodes network src)))]
     (newline) (newline)
     (println "Road network: nearest neighbour search with random src/dst")
     (println "B+ tree with:" (count (data/datoms network :eavt)) "nodes")
     (println "accuracy: " (geometry/haversine src point) "meters")
-    (c/quick-bench (:node/location (first (fastq/nearest-node network src)))
+    (c/quick-bench (:node/location (first (fastq/nearest-nodes network src)))
                    :os :runtime :verbose)))
 
 ;;(type @kt/network) ;; force read
 (test/deftest ^:benchmark C-pedestrian-road-network
   (let [network (deref (deref road/network))
-        src     (first (alg/nodes network))
-        dst     (last (alg/nodes network))
+        src     (first (fastq/nearest-nodes network [8.645333, 50.087314]))
+        dst     (first (fastq/nearest-nodes network [8.635897, 50.104172]))
         router  (kt/->PedestrianRouter network)
         coll    (alg/dijkstra router #{src})]
     (newline) (newline)
@@ -63,11 +63,9 @@
   (let [network    (deref (deref road/network))
         departure  (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")
         stop-times (fastq/day-stop-times network (. departure (toLocalDate)))
-        coordinates [[8.645333, 50.087314]
-                     [8.635897, 50.104172]]
         start      (Duration/between (LocalTime/MIDNIGHT) (. departure (toLocalTime)))
-        src        (first (fastq/nearest-node network (first coordinates)))
-        dst        (first (fastq/nearest-node network (last coordinates)))
+        src        (first (fastq/nearest-nodes network [8.645333, 50.087314]))
+        dst        (first (fastq/nearest-nodes network [8.635897, 50.104172]))
         router     (transit/->StopTimesRouter network stop-times)
         coll       (alg/dijkstra router
                                  #{[src (. start (getSeconds))]}

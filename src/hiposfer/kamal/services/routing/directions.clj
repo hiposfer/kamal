@@ -208,8 +208,8 @@
         stop-times (fastq/day-stop-times network (. departure (toLocalDate)))
         start      (Duration/between (LocalTime/MIDNIGHT)
                                      (. departure (toLocalTime)))
-        src        (first (fastq/nearest-node network (first coordinates)))
-        dst        (first (fastq/nearest-node network (last coordinates)))
+        src        (first (fastq/nearest-nodes network (first coordinates)))
+        dst        (first (fastq/nearest-nodes network (last coordinates)))
         router     (transit/->StopTimesRouter network stop-times)
        ; both start and dst should be found since we checked that before
         traversal  (alg/dijkstra router

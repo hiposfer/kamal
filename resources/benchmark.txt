@@ -1,74 +1,72 @@
 
 Testing hiposfer.kamal.network.benchmark
-"Elapsed time: 22082.581716 msecs"
+"Elapsed time: 23708.986592 msecs"
 
 
-DIJKSTRA forward with: 126261 nodes
-saarland graph:
-x86_64 Mac OS X 10.13.3 8 cpu(s)
+Road network: nearest neighbour search with random src/dst
+B+ tree with: 1886816 nodes
+accuracy:  14.397657786540089 meters
+x86_64 Mac OS X 10.13.6 8 cpu(s)
 Java HotSpot(TM) 64-Bit Server VM 25.101-b13
-Runtime arguments: -Dfile.encoding=UTF-8 -Xmx1g -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/Users/Camilo/Proyectos/kamal/target/classes -Dkamal.version=0.4.0 -Dclojure.debug=false
+Runtime arguments: -Dfile.encoding=UTF-8 -XX:-OmitStackTraceInFastThrow -XX:+TieredCompilation -XX:TieredStopAtLevel=1 -Dclojure.compile.path=/Users/Camilo/Proyectos/kamal/target/classes -Dkamal.version=0.16.1 -Dclojure.debug=false
+Evaluation count : 11580 in 6 samples of 1930 calls.
+      Execution time sample mean : 56.852442 µs
+             Execution time mean : 56.890906 µs
+Execution time sample std-deviation : 4.987741 µs
+    Execution time std-deviation : 5.047377 µs
+   Execution time lower quantile : 52.667665 µs ( 2.5%)
+   Execution time upper quantile : 65.434293 µs (97.5%)
+                   Overhead used : 9.785290 ns
+
+Found 1 outliers in 6 samples (16.6667 %)
+	low-severe	 1 (16.6667 %)
+ Variance from outliers : 15.7477 % Variance is moderately inflated by outliers
+
+
+Pedestrian routing with: 50900 nodes
+x86_64 Mac OS X 10.13.6 8 cpu(s)
+Java HotSpot(TM) 64-Bit Server VM 25.101-b13
+Runtime arguments: -Dfile.encoding=UTF-8 -XX:-OmitStackTraceInFastThrow -XX:+TieredCompilation -XX:TieredStopAtLevel=1 -Dclojure.compile.path=/Users/Camilo/Proyectos/kamal/target/classes -Dkamal.version=0.16.1 -Dclojure.debug=false
 Evaluation count : 6 in 6 samples of 1 calls.
-      Execution time sample mean : 323.520807 ms
-             Execution time mean : 323.678169 ms
-Execution time sample std-deviation : 12.205431 ms
-    Execution time std-deviation : 12.262344 ms
-   Execution time lower quantile : 317.359162 ms ( 2.5%)
-   Execution time upper quantile : 344.430490 ms (97.5%)
-                   Overhead used : 1.777881 ns
+      Execution time sample mean : 475.860954 ms
+             Execution time mean : 475.737000 ms
+Execution time sample std-deviation : 5.111158 ms
+    Execution time std-deviation : 5.255535 ms
+   Execution time lower quantile : 467.205702 ms ( 2.5%)
+   Execution time upper quantile : 480.110394 ms (97.5%)
+                   Overhead used : 9.785290 ns
+
+
+Transit routing with: 50900 nodes
+x86_64 Mac OS X 10.13.6 8 cpu(s)
+Java HotSpot(TM) 64-Bit Server VM 25.101-b13
+Runtime arguments: -Dfile.encoding=UTF-8 -XX:-OmitStackTraceInFastThrow -XX:+TieredCompilation -XX:TieredStopAtLevel=1 -Dclojure.compile.path=/Users/Camilo/Proyectos/kamal/target/classes -Dkamal.version=0.16.1 -Dclojure.debug=false
+Evaluation count : 6 in 6 samples of 1 calls.
+      Execution time sample mean : 893.860483 ms
+             Execution time mean : 893.831166 ms
+Execution time sample std-deviation : 1.174853 ms
+    Execution time std-deviation : 1.342164 ms
+   Execution time lower quantile : 891.913395 ms ( 2.5%)
+   Execution time upper quantile : 895.305971 ms (97.5%)
+                   Overhead used : 9.785290 ns
 
 Found 1 outliers in 6 samples (16.6667 %)
 	low-severe	 1 (16.6667 %)
  Variance from outliers : 13.8889 % Variance is moderately inflated by outliers
---------
-using only strongly connected components of the original graph
-with: 124163 nodes
-x86_64 Mac OS X 10.13.3 8 cpu(s)
+
+
+DIJKSTRA forward with: 1018 nodes
+x86_64 Mac OS X 10.13.6 8 cpu(s)
 Java HotSpot(TM) 64-Bit Server VM 25.101-b13
-Runtime arguments: -Dfile.encoding=UTF-8 -Xmx1g -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/Users/Camilo/Proyectos/kamal/target/classes -Dkamal.version=0.4.0 -Dclojure.debug=false
-Evaluation count : 6 in 6 samples of 1 calls.
-      Execution time sample mean : 332.523516 ms
-             Execution time mean : 332.563869 ms
-Execution time sample std-deviation : 6.032307 ms
-    Execution time std-deviation : 6.403917 ms
-   Execution time lower quantile : 324.420256 ms ( 2.5%)
-   Execution time upper quantile : 338.288564 ms (97.5%)
-                   Overhead used : 1.777881 ns
+Runtime arguments: -Dfile.encoding=UTF-8 -XX:-OmitStackTraceInFastThrow -XX:+TieredCompilation -XX:TieredStopAtLevel=1 -Dclojure.compile.path=/Users/Camilo/Proyectos/kamal/target/classes -Dkamal.version=0.16.1 -Dclojure.debug=false
+Evaluation count : 24 in 6 samples of 4 calls.
+      Execution time sample mean : 31.065121 ms
+             Execution time mean : 31.084560 ms
+Execution time sample std-deviation : 637.045963 µs
+    Execution time std-deviation : 645.379502 µs
+   Execution time lower quantile : 30.590367 ms ( 2.5%)
+   Execution time upper quantile : 32.071815 ms (97.5%)
+                   Overhead used : 9.785290 ns
 
-
-DIJKSTRA forward with: 1027 nodes
-**random graph
-x86_64 Mac OS X 10.13.3 8 cpu(s)
-Java HotSpot(TM) 64-Bit Server VM 25.101-b13
-Runtime arguments: -Dfile.encoding=UTF-8 -Xmx1g -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/Users/Camilo/Proyectos/kamal/target/classes -Dkamal.version=0.4.0 -Dclojure.debug=false
-Evaluation count : 30 in 6 samples of 5 calls.
-      Execution time sample mean : 21.542457 ms
-             Execution time mean : 21.540849 ms
-Execution time sample std-deviation : 351.648657 µs
-    Execution time std-deviation : 352.570812 µs
-   Execution time lower quantile : 21.361698 ms ( 2.5%)
-   Execution time upper quantile : 22.153571 ms (97.5%)
-                   Overhead used : 1.777881 ns
-
-Found 1 outliers in 6 samples (16.6667 %)
-	low-severe	 1 (16.6667 %)
- Variance from outliers : 13.8889 % Variance is moderately inflated by outliers
-
-
-saarland graph: nearest neighbour search with random src/dst
-B+ tree with: 762902 nodes
-accuraccy:  40.21630396035512 meters
-x86_64 Mac OS X 10.13.3 8 cpu(s)
-Java HotSpot(TM) 64-Bit Server VM 25.101-b13
-Runtime arguments: -Dfile.encoding=UTF-8 -Xmx1g -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/Users/Camilo/Proyectos/kamal/target/classes -Dkamal.version=0.4.0 -Dclojure.debug=false
-Evaluation count : 57948 in 6 samples of 9658 calls.
-      Execution time sample mean : 10.563998 µs
-             Execution time mean : 10.571648 µs
-Execution time sample std-deviation : 180.675629 ns
-    Execution time std-deviation : 189.814221 ns
-   Execution time lower quantile : 10.411067 µs ( 2.5%)
-   Execution time upper quantile : 10.812759 µs (97.5%)
-                   Overhead used : 1.777881 ns
-
-Ran 3 tests containing 0 assertions.
+Ran 4 tests containing 0 assertions.
 0 failures, 0 errors.
