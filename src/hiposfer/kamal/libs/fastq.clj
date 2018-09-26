@@ -35,7 +35,7 @@
                       (data/index-range network :node/successors id nil)))))
 
 
-(defn nearest-node
+(defn nearest-nodes
   "returns the nearest node/location to point"
   [network point]
   (eduction (map :e)
@@ -139,7 +139,7 @@
   [network]
   (for [stop (map #(data/entity network (:e %))
                    (data/datoms network :aevt :stop/id))]
-    (let [node (first (nearest-node network (:stop/location stop)))]
+    (let [node (first (nearest-nodes network (:stop/location stop)))]
       (if (not (some? node))
         (throw (ex-info "stop didnt match to any known node in the OSM data"
                         (into {} stop)))
