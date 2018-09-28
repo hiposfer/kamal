@@ -21,9 +21,12 @@
    7 "Funicular"}); Any rail system designed for steep inclines.})
 
 (defn- walk-time
-  [p1 p2]
-  (/ (geometry/earth-distance p1 p2)
-     osm/walking-speed))
+  ([p1 p2]
+   (/ (geometry/earth-distance p1 p2)
+      osm/walking-speed))
+  ([lon1 lat1 lon2 lat2]
+   (/ (geometry/earth-distance lon1 lat1 lon2 lat2)
+      osm/walking-speed)))
 
 (defn duration
   "A very simple value computation function for arcs in a network.
@@ -113,14 +116,20 @@
 
         ;; The user is walking to a stop
         [true false] ;; [node stop]
-        (long (walk-time (:node/location src)
-                         [(:stop/lon dst) (:stop/lat dst)]))
+        (let [location (:node/location src)]
+          (long (walk-time (np/lon location)
+                           (np/lat location)
+                           (:stop/lon dst)
+                           (:stop/lat dst))))
 
         ;; the user is trying to leave a vehicle. Apply penalty but route
         ;; normally
         [false true] ; [stop node]
-        (+ penalty (long (walk-time [(:stop/lon src) (:stop/lat src)]
-                                    (:node/location src))))
+        (let [location (:node/location dst)]
+          (+ penalty (long (walk-time (:stop/lon src)
+                                      (:stop/lat src)
+                                      (np/lon location)
+                                      (np/lat location)))))
 
         ;; riding on public transport - [stop stop]
         [false false]
