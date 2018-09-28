@@ -44,7 +44,6 @@
               {:stop/successors {:db.type        :db.type/ref
                                  :db.cardinality :db.cardinality/many}
                ;; to allow index-range usage
-               :stop/location   {:db/index true}
                :stop_time/trip {:db/index true}
                :stop_time/stop {:db/index true}}))
 

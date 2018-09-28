@@ -36,7 +36,7 @@
 
 (def ->coordinates (juxt np/lon np/lat))
 
-(defn- location [e] (or (:node/location e) (:stop/location e)))
+(defn- location [e] (or (:node/location e) [(:stop/lon e) (:stop/lat e)]))
 
 (defn- linestring
   "get a geojson linestring based on the route path"
