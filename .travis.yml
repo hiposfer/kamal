@@ -15,7 +15,7 @@ jobs:
     env:
       - LEIN_JVM_OPTS="" # disable tiered compilation
     script:
-    - wget -O ./resources/test/frankfurt-am-main.edn.gz ${FRANKFURT_AREA_EDN}
+    - wget -O ./resources/test/frankfurt.edn.gz ${FRANKFURT_AREA_EDN}
     - lein trampoline test :integration
 
   - stage: Benchmark
@@ -23,7 +23,7 @@ jobs:
     env:
       - LEIN_JVM_OPTS="" # disable tiered compilation
     script:
-      - wget -O ./resources/test/frankfurt-am-main.edn.gz ${FRANKFURT_AREA_EDN}
+      - wget -O ./resources/test/frankfurt.edn.gz ${FRANKFURT_AREA_EDN}
       - lein trampoline test :benchmark
 
   - stage: Release

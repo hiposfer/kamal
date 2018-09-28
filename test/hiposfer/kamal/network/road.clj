@@ -10,7 +10,7 @@
             [hiposfer.kamal.services.routing.directions :as dir]
             [expound.alpha :as expound]))
 
-(defonce network (delay (time (router/network {:area/edn "resources/test/frankfurt-am-main.edn.gz"}))))
+(defonce network (delay (time (router/network {:area/edn "resources/test/frankfurt.edn.gz"}))))
 
 (defspec ^:integration routing-directions
   15; tries -> expensive test

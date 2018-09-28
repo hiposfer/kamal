@@ -139,7 +139,7 @@
   [network]
   (for [stop (map #(data/entity network (:e %))
                    (data/datoms network :aevt :stop/id))]
-    (let [node (first (nearest-nodes network (:stop/location stop)))]
+    (let [node (first (nearest-nodes network [(:stop/lon stop) (:stop/lat stop)]))]
       (if (not (some? node))
         (throw (ex-info "stop didnt match to any known node in the OSM data"
                         (into {} stop)))

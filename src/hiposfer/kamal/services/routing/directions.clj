@@ -36,7 +36,7 @@
 
 (def ->coordinates (juxt np/lon np/lat))
 
-(defn- location [e] (or (:node/location e) (:stop/location e)))
+(defn- location [e] (or (:node/location e) [(:stop/lon e) (:stop/lat e)]))
 
 (defn- linestring
   "get a geojson linestring based on the route path"
@@ -233,8 +233,3 @@
 ;                            [8.635897, 50.104172]]
 ;              :departure (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")
 ;              :steps true}))
-
-;(time
-;  (fastq/day-stop-times @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;                        (. (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")
-;                           (toLocalDate))))

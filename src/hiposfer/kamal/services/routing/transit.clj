@@ -6,9 +6,9 @@
             [hiposfer.kamal.libs.fastq :as fastq]
             [hiposfer.kamal.parsers.osm :as osm]
             [hiposfer.kamal.libs.geometry :as geometry]
-            [datascript.core :as data]
             [clojure.set :as set]
-            [hiposfer.kamal.libs.tool :as tool]))
+            [hiposfer.kamal.libs.tool :as tool]
+            [datascript.core :as data]))
 
 ;; https://developers.google.com/transit/gtfs/reference/#routestxt
 (def route-types
@@ -21,18 +21,21 @@
    6 "Gondola"; Suspended cable car. Typically used for aerial cable cars where the car is suspended from the cable.
    7 "Funicular"}); Any rail system designed for steep inclines.})
 
-(defn- walk-time [src dst]
-  (/ (geometry/earth-distance (or (:node/location src)
-                                  (:stop/location src))
-                              (or (:node/location dst)
-                                  (:stop/location dst)))
-     osm/walking-speed))
+(defn- walk-time
+  ([p1 p2]
+   (/ (geometry/earth-distance p1 p2)
+      osm/walking-speed))
+  ([lon1 lat1 lon2 lat2]
+   (/ (geometry/earth-distance lon1 lat1 lon2 lat2)
+      osm/walking-speed)))
 
 (defn duration
   "A very simple value computation function for arcs in a network.
   Returns the time it takes to go from src to dst based on walking speeds"
   [network next-entity trail] ;; 1 is a simple value used for test whenever no other value would be suitable
-  (walk-time (key (first trail)) next-entity))
+  (walk-time (:node/location (key (first trail)))
+             (or (:node/location next-entity)
+                 [(:stop/lon next-entity) (:stop/lat next-entity)])))
 
 (defn by-cost
   "comparator to avoid CastClassException due to Java's Long limited comparison"
@@ -42,9 +45,9 @@
 
 (def penalty 30) ;; seconds
 
-(defn node? [e] (:node/id e))
-(defn way? [e] (:way/id e))
-(defn stop? [e] (:stop/id e))
+(defn node? [e] (boolean (:node/id e)))
+(defn way? [e] (boolean (:way/id e)))
+(defn stop? [e] (boolean (:stop/id e)))
 
 (defn name
   "returns a name that represents this entity in the network.
@@ -101,41 +104,53 @@
   (sum [this that] (assoc this :value (+ value (np/cost that)))))
 
 (defn trip-step? [o] (instance? TripStep o))
-;; compare based on value not on trip. Useful for Fibonacci Heap order
-;Comparable
-;(compareTo [_ that] (compare value (np/cost that))))
-
 
 (defrecord StopTimesRouter [network day-stops]
   np/Router
   (weight [this dst trail]
     (let [[src value] (first trail)
           now         (np/cost value)]
-      (cond
+      (case [(node? src) (node? dst)]
         ;; The user just walking so we route based on walking duration
-        (node? src)
-        (long (walk-time src dst))
+        [true true] ;; [node node]
+        (long (walk-time (:node/location src) (:node/location dst)))
+
+        ;; The user is walking to a stop
+        [true false] ;; [node stop]
+        (let [location (:node/location src)]
+          (long (walk-time (np/lon location)
+                           (np/lat location)
+                           (:stop/lon dst)
+                           (:stop/lat dst))))
+
         ;; the user is trying to leave a vehicle. Apply penalty but route
         ;; normally
-        (and (stop? src) (node? dst))
-        (+ penalty (long (walk-time src dst)))
-        ;; the user is trying to get into a vehicle. We need to find the next
-        ;; coming trip
-        (and (stop? src) (stop? dst) (not (trip-step? value)))
-        (let [[st1 st2] (fastq/find-trip network day-stops src dst now)]
-          (when (some? st2) ;; nil if no trip was found
-            (->TripStep st1 st2 (- (:stop_time/arrival_time st2) now))))
-        ;; the user is already in a trip. Just find the trip going to dst
-        :else
-        (let [?trip (:stop_time/trip (:start value))
-              st    (fastq/continue-trip network dst ?trip)]
-          (when (some? st)
-            (->TripStep (:end value) st
-                        (- (:stop_time/arrival_time st) now)))))))
+        [false true] ; [stop node]
+        (let [location (:node/location dst)]
+          (+ penalty (long (walk-time (:stop/lon src)
+                                      (:stop/lat src)
+                                      (np/lon location)
+                                      (np/lat location)))))
+
+        ;; riding on public transport - [stop stop]
+        [false false]
+        (if (trip-step? value)
+          ;; the user is already in a trip. Just find the trip going to dst
+          (let [?trip (:stop_time/trip (:start value))
+                st    (fastq/continue-trip network dst ?trip)]
+            (when (some? st)
+              (->TripStep (:end value) st
+                          (- (:stop_time/arrival_time st) now))))
+
+          ;; the user is trying to get on a vehicle - find the next trip
+          (let [[st1 st2] (fastq/find-trip network day-stops src dst now)]
+            (when (some? st2) ;; nil if no trip was found
+              (->TripStep st1 st2 (- (:stop_time/arrival_time st2) now))))))))
   (successors [this entity]
-    (let [id           (:db/id entity)
-          predecessors (eduction (fastq/index-lookup network id)
-                                 (data/index-range network :node/successors id nil))]
+    (let [id (:db/id entity)
+          predecesors (eduction (fastq/index-lookup network id)
+                                (data/index-range network :node/successors id nil))]
+
       (if (node? entity)
-        (concat predecessors (:node/successors entity))
-        (concat predecessors (:stop/successors entity))))))
+        (concat predecesors (:node/successors entity))
+        (concat predecesors (:stop/successors entity))))))

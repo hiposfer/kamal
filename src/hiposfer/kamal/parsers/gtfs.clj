@@ -87,12 +87,7 @@
    unnecessary information from the GTFS feed; just to reduce the amount
     of datoms in datascript"
   {"routes.txt"   #(dissoc % :route/url)
-   "trips.txt"    #(dissoc % :trip/shape)
-   "stops.txt"    (fn [stop]
-                    (let [removable [:stop/lat :stop/lon]
-                          ks (apply disj (set (keys stop)) removable)
-                          loc (network/->Location (:stop/lon stop) (:stop/lat stop))]
-                      (assoc (select-keys stop ks) :stop/location loc)))})
+   "trips.txt"    #(dissoc % :trip/shape)})
 
 (defn ref?
   "a reference is a field that links to a unique field in another file
@@ -164,7 +159,7 @@
 
 ;; just for convenience
 (def idents (into #{} (comp (filter :unique) (map :keyword)) reference/fields))
-(def attributes (into #{} (cons :stop/location (map :keyword reference/fields))))
+(def attributes (into #{} (map :keyword reference/fields)))
 
 (defn resource
   "takes a datascript entity and checks if any of its values are entities, if so
