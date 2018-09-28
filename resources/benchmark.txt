@@ -1,6 +1,8 @@
+/Library/Java/JavaVirtualMachines/jdk1.8.0_101.jdk/Contents/Home/bin/java -Dfile.encoding=UTF-8 -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/Users/Camilo/Proyectos/kamal/target/classes -Dkamal.version=0.16.1 -Dclojure.debug=false "-javaagent:/Users/Camilo/Library/Application Support/JetBrains/Toolbox/apps/IDEA-C/ch-0/182.4129.33/IntelliJ IDEA CE.app/Contents/lib/idea_rt.jar=49542:/Users/Camilo/Library/Application Support/JetBrains/Toolbox/apps/IDEA-C/ch-0/182.4129.33/IntelliJ IDEA CE.app/Contents/bin" -classpath /Users/Camilo/Proyectos/kamal/test:/Users/Camilo/Proyectos/kamal/src:/Users/Camilo/Proyectos/kamal/dev-resources:/Users/Camilo/Proyectos/kamal/resources:/Users/Camilo/Proyectos/kamal/target/classes:/Users/Camilo/.m2/repository/clj-time/clj-time/0.11.0/clj-time-0.11.0.jar:/Users/Camilo/.m2/repository/metosin/ring-http-response/0.9.0/ring-http-response-0.9.0.jar:/Users/Camilo/.m2/repository/instaparse/instaparse/1.4.8/instaparse-1.4.8.jar:/Users/Camilo/.m2/repository/tigris/tigris/0.1.1/tigris-0.1.1.jar:/Users/Camilo/.m2/repository/commons-io/commons-io/2.5/commons-io-2.5.jar:/Users/Camilo/.m2/repository/org/clojure/tools.macro/0.1.5/tools.macro-0.1.5.jar:/Users/Camilo/.m2/repository/ring/ring-servlet/1.6.3/ring-servlet-1.6.3.jar:/Users/Camilo/.m2/repository/org/clojure/data.xml/0.0.8/data.xml-0.0.8.jar:/Users/Camilo/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-smile/2.5.3/jackson-dataformat-smile-2.5.3.jar:/Users/Camilo/.m2/repository/expound/expound/0.7.1/expound-0.7.1.jar:/Users/Camilo/.m2/repository/compojure/compojure/1.6.1/compojure-1.6.1.jar:/Users/Camilo/.m2/repository/com/stuartsierra/component/0.3.2/component-0.3.2.jar:/Users/Camilo/.m2/repository/org/eclipse/jetty/jetty-util/9.2.21.v20170120/jetty-util-9.2.21.v20170120.jar:/Users/Camilo/.m2/repository/commons-fileupload/commons-fileupload/1.3.3/commons-fileupload-1.3.3.jar:/Users/Camilo/.m2/repository/datascript/datascript/0.16.6/datascript-0.16.6.jar:/Users/Camilo/.m2/repository/org/eclipse/jetty/jetty-http/9.2.21.v20170120/jetty-http-9.2.21.v20170120.jar:/Users/Camilo/.m2/repository/org/clojure/tools.nrepl/0.2.12/tools.nrepl-0.2.12.jar:/Users/Camilo/.m2/repository/ring/ring-core/1.6.3/ring-core-1.6.3.jar:/Users/Camilo/.m2/repository/clojure-complete/clojure-complete/0.2.4/clojure-complete-0.2.4.jar:/Users/Camilo/.m2/repository/medley/medley/1.0.0/medley-1.0.0.jar:/Users/Camilo/.m2/repository/crypto-equality/crypto-equality/1.0.0/crypto-equality-1.0.0.jar:/Users/Camilo/.m2/repository/criterium/criterium/0.4.4/criterium-0.4.4.jar:/Users/Camilo/.m2/repository/potemkin/potemkin/0.4.3/potemkin-0.4.3.jar:/Users/Camilo/.m2/repository/org/clojure/clojure/1.9.0/clojure-1.9.0.jar:/Users/Camilo/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.5.3/jackson-core-2.5.3.jar:/Users/Camilo/.m2/repository/ring/ring-json/0.4.0/ring-json-0.4.0.jar:/Users/Camilo/.m2/repository/clout/clout/2.2.1/clout-2.2.1.jar:/Users/Camilo/.m2/repository/clj-tuple/clj-tuple/0.2.2/clj-tuple-0.2.2.jar:/Users/Camilo/.m2/repository/com/stuartsierra/dependency/0.2.0/dependency-0.2.0.jar:/Users/Camilo/.m2/repository/org/clojure/test.check/0.9.0/test.check-0.9.0.jar:/Users/Camilo/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-cbor/2.5.3/jackson-dataformat-cbor-2.5.3.jar:/Users/Camilo/.m2/repository/org/clojure/core.specs.alpha/0.1.24/core.specs.alpha-0.1.24.jar:/Users/Camilo/.m2/repository/hiposfer/gtfs.edn/0.1.1/gtfs.edn-0.1.1.jar:/Users/Camilo/.m2/repository/org/clojure/tools.namespace/0.2.11/tools.namespace-0.2.11.jar:/Users/Camilo/.m2/repository/crypto-random/crypto-random/1.2.0/crypto-random-1.2.0.jar:/Users/Camilo/.m2/repository/javax/servlet/javax.servlet-api/3.1.0/javax.servlet-api-3.1.0.jar:/Users/Camilo/.m2/repository/org/clojure/data.csv/0.1.4/data.csv-0.1.4.jar:/Users/Camilo/.m2/repository/riddley/riddley/0.1.12/riddley-0.1.12.jar:/Users/Camilo/.m2/repository/cheshire/cheshire/5.5.0/cheshire-5.5.0.jar:/Users/Camilo/.m2/repository/ch/hsr/geohash/1.3.0/geohash-1.3.0.jar:/Users/Camilo/.m2/repository/ring-middleware-accept/ring-middleware-accept/2.0.3/ring-middleware-accept-2.0.3.jar:/Users/Camilo/.m2/repository/ring/ring-codec/1.1.0/ring-codec-1.1.0.jar:/Users/Camilo/.m2/repository/org/teneighty/java-heaps/1.0.0/java-heaps-1.0.0.jar:/Users/Camilo/.m2/repository/ring/ring-jetty-adapter/1.6.3/ring-jetty-adapter-1.6.3.jar:/Users/Camilo/.m2/repository/org/eclipse/jetty/jetty-server/9.2.21.v20170120/jetty-server-9.2.21.v20170120.jar:/Users/Camilo/.m2/repository/hiposfer/geojson.specs/0.2.0/geojson.specs-0.2.0.jar:/Users/Camilo/.m2/repository/commons-codec/commons-codec/1.10/commons-codec-1.10.jar:/Users/Camilo/.m2/repository/joda-time/joda-time/2.8.2/joda-time-2.8.2.jar:/Users/Camilo/.m2/repository/org/clojure/spec.alpha/0.1.143/spec.alpha-0.1.143.jar:/Users/Camilo/.m2/repository/org/eclipse/jetty/jetty-io/9.2.21.v20170120/jetty-io-9.2.21.v20170120.jar clojure.main -i /private/var/folders/0g/rhf3vjjn66gd53dbptzqs8bc0000gn/T/form-init1050424401967601536.clj
+objc[86715]: Class JavaLaunchHelper is implemented in both /Library/Java/JavaVirtualMachines/jdk1.8.0_101.jdk/Contents/Home/bin/java (0x10bba74c0) and /Library/Java/JavaVirtualMachines/jdk1.8.0_101.jdk/Contents/Home/jre/lib/libinstrument.dylib (0x10dbeb4e0). One of the two will be used. Which one is undefined.
 
 Testing hiposfer.kamal.network.benchmark
-"Elapsed time: 23708.986592 msecs"
+"Elapsed time: 15058.82458 msecs"
 
 
 Road network: nearest neighbour search with random src/dst
@@ -8,65 +10,57 @@ B+ tree with: 1886816 nodes
 accuracy:  14.397657786540089 meters
 x86_64 Mac OS X 10.13.6 8 cpu(s)
 Java HotSpot(TM) 64-Bit Server VM 25.101-b13
-Runtime arguments: -Dfile.encoding=UTF-8 -XX:-OmitStackTraceInFastThrow -XX:+TieredCompilation -XX:TieredStopAtLevel=1 -Dclojure.compile.path=/Users/Camilo/Proyectos/kamal/target/classes -Dkamal.version=0.16.1 -Dclojure.debug=false
-Evaluation count : 11580 in 6 samples of 1930 calls.
-      Execution time sample mean : 56.852442 µs
-             Execution time mean : 56.890906 µs
-Execution time sample std-deviation : 4.987741 µs
-    Execution time std-deviation : 5.047377 µs
-   Execution time lower quantile : 52.667665 µs ( 2.5%)
-   Execution time upper quantile : 65.434293 µs (97.5%)
-                   Overhead used : 9.785290 ns
-
-Found 1 outliers in 6 samples (16.6667 %)
-	low-severe	 1 (16.6667 %)
- Variance from outliers : 15.7477 % Variance is moderately inflated by outliers
+Runtime arguments: -Dfile.encoding=UTF-8 -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/Users/Camilo/Proyectos/kamal/target/classes -Dkamal.version=0.16.1 -Dclojure.debug=false -javaagent:/Users/Camilo/Library/Application Support/JetBrains/Toolbox/apps/IDEA-C/ch-0/182.4129.33/IntelliJ IDEA CE.app/Contents/lib/idea_rt.jar=49542:/Users/Camilo/Library/Application Support/JetBrains/Toolbox/apps/IDEA-C/ch-0/182.4129.33/IntelliJ IDEA CE.app/Contents/bin
+Evaluation count : 23910 in 6 samples of 3985 calls.
+      Execution time sample mean : 25.725489 µs
+             Execution time mean : 25.717252 µs
+Execution time sample std-deviation : 704.399568 ns
+    Execution time std-deviation : 729.683878 ns
+   Execution time lower quantile : 24.720459 µs ( 2.5%)
+   Execution time upper quantile : 26.366157 µs (97.5%)
+                   Overhead used : 1.826571 ns
 
 
 Pedestrian routing with: 50900 nodes
 x86_64 Mac OS X 10.13.6 8 cpu(s)
 Java HotSpot(TM) 64-Bit Server VM 25.101-b13
-Runtime arguments: -Dfile.encoding=UTF-8 -XX:-OmitStackTraceInFastThrow -XX:+TieredCompilation -XX:TieredStopAtLevel=1 -Dclojure.compile.path=/Users/Camilo/Proyectos/kamal/target/classes -Dkamal.version=0.16.1 -Dclojure.debug=false
+Runtime arguments: -Dfile.encoding=UTF-8 -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/Users/Camilo/Proyectos/kamal/target/classes -Dkamal.version=0.16.1 -Dclojure.debug=false -javaagent:/Users/Camilo/Library/Application Support/JetBrains/Toolbox/apps/IDEA-C/ch-0/182.4129.33/IntelliJ IDEA CE.app/Contents/lib/idea_rt.jar=49542:/Users/Camilo/Library/Application Support/JetBrains/Toolbox/apps/IDEA-C/ch-0/182.4129.33/IntelliJ IDEA CE.app/Contents/bin
 Evaluation count : 6 in 6 samples of 1 calls.
-      Execution time sample mean : 475.860954 ms
-             Execution time mean : 475.737000 ms
-Execution time sample std-deviation : 5.111158 ms
-    Execution time std-deviation : 5.255535 ms
-   Execution time lower quantile : 467.205702 ms ( 2.5%)
-   Execution time upper quantile : 480.110394 ms (97.5%)
-                   Overhead used : 9.785290 ns
+      Execution time sample mean : 191.693977 ms
+             Execution time mean : 191.557781 ms
+Execution time sample std-deviation : 6.812695 ms
+    Execution time std-deviation : 7.281137 ms
+   Execution time lower quantile : 184.142031 ms ( 2.5%)
+   Execution time upper quantile : 200.244923 ms (97.5%)
+                   Overhead used : 1.826571 ns
 
 
 Transit routing with: 50900 nodes
 x86_64 Mac OS X 10.13.6 8 cpu(s)
 Java HotSpot(TM) 64-Bit Server VM 25.101-b13
-Runtime arguments: -Dfile.encoding=UTF-8 -XX:-OmitStackTraceInFastThrow -XX:+TieredCompilation -XX:TieredStopAtLevel=1 -Dclojure.compile.path=/Users/Camilo/Proyectos/kamal/target/classes -Dkamal.version=0.16.1 -Dclojure.debug=false
+Runtime arguments: -Dfile.encoding=UTF-8 -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/Users/Camilo/Proyectos/kamal/target/classes -Dkamal.version=0.16.1 -Dclojure.debug=false -javaagent:/Users/Camilo/Library/Application Support/JetBrains/Toolbox/apps/IDEA-C/ch-0/182.4129.33/IntelliJ IDEA CE.app/Contents/lib/idea_rt.jar=49542:/Users/Camilo/Library/Application Support/JetBrains/Toolbox/apps/IDEA-C/ch-0/182.4129.33/IntelliJ IDEA CE.app/Contents/bin
 Evaluation count : 6 in 6 samples of 1 calls.
-      Execution time sample mean : 893.860483 ms
-             Execution time mean : 893.831166 ms
-Execution time sample std-deviation : 1.174853 ms
-    Execution time std-deviation : 1.342164 ms
-   Execution time lower quantile : 891.913395 ms ( 2.5%)
-   Execution time upper quantile : 895.305971 ms (97.5%)
-                   Overhead used : 9.785290 ns
-
-Found 1 outliers in 6 samples (16.6667 %)
-	low-severe	 1 (16.6667 %)
- Variance from outliers : 13.8889 % Variance is moderately inflated by outliers
+      Execution time sample mean : 390.151847 ms
+             Execution time mean : 390.395294 ms
+Execution time sample std-deviation : 14.028055 ms
+    Execution time std-deviation : 14.613334 ms
+   Execution time lower quantile : 374.896974 ms ( 2.5%)
+   Execution time upper quantile : 409.422012 ms (97.5%)
+                   Overhead used : 1.826571 ns
 
 
-DIJKSTRA forward with: 1018 nodes
+DIJKSTRA forward with: 1024 nodes
 x86_64 Mac OS X 10.13.6 8 cpu(s)
 Java HotSpot(TM) 64-Bit Server VM 25.101-b13
-Runtime arguments: -Dfile.encoding=UTF-8 -XX:-OmitStackTraceInFastThrow -XX:+TieredCompilation -XX:TieredStopAtLevel=1 -Dclojure.compile.path=/Users/Camilo/Proyectos/kamal/target/classes -Dkamal.version=0.16.1 -Dclojure.debug=false
-Evaluation count : 24 in 6 samples of 4 calls.
-      Execution time sample mean : 31.065121 ms
-             Execution time mean : 31.084560 ms
-Execution time sample std-deviation : 637.045963 µs
-    Execution time std-deviation : 645.379502 µs
-   Execution time lower quantile : 30.590367 ms ( 2.5%)
-   Execution time upper quantile : 32.071815 ms (97.5%)
-                   Overhead used : 9.785290 ns
+Runtime arguments: -Dfile.encoding=UTF-8 -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/Users/Camilo/Proyectos/kamal/target/classes -Dkamal.version=0.16.1 -Dclojure.debug=false -javaagent:/Users/Camilo/Library/Application Support/JetBrains/Toolbox/apps/IDEA-C/ch-0/182.4129.33/IntelliJ IDEA CE.app/Contents/lib/idea_rt.jar=49542:/Users/Camilo/Library/Application Support/JetBrains/Toolbox/apps/IDEA-C/ch-0/182.4129.33/IntelliJ IDEA CE.app/Contents/bin
+Evaluation count : 54 in 6 samples of 9 calls.
+      Execution time sample mean : 11.650679 ms
+             Execution time mean : 11.654194 ms
+Execution time sample std-deviation : 857.848285 µs
+    Execution time std-deviation : 918.773591 µs
+   Execution time lower quantile : 10.770846 ms ( 2.5%)
+   Execution time upper quantile : 12.626676 ms (97.5%)
+                   Overhead used : 1.826571 ns
 
 Ran 4 tests containing 0 assertions.
 0 failures, 0 errors.
