@@ -7,7 +7,8 @@
             [hiposfer.kamal.parsers.osm :as osm]
             [hiposfer.kamal.libs.geometry :as geometry]
             [clojure.set :as set]
-            [hiposfer.kamal.libs.tool :as tool]))
+            [hiposfer.kamal.libs.tool :as tool]
+            [datascript.core :as data]))
 
 ;; https://developers.google.com/transit/gtfs/reference/#routestxt
 (def route-types
@@ -120,7 +121,7 @@
         ;; normally
         [false true] ; [stop node]
         (+ penalty (long (walk-time [(:stop/lon src) (:stop/lat src)]
-                                    (:node/location src))))
+                                    (:node/location dst))))
 
         ;; riding on public transport - [stop stop]
         [false false]
@@ -137,6 +138,10 @@
             (when (some? st2) ;; nil if no trip was found
               (->TripStep st1 st2 (- (:stop_time/arrival_time st2) now))))))))
   (successors [this entity]
-    (if (node? entity)
-      (fastq/node-successors network entity)
-      (:stop/successors entity))))
+    (let [id (:db/id entity)
+          predecesors (eduction (fastq/index-lookup network id)
+                                (data/index-range network :node/successors id nil))]
+
+      (if (node? entity)
+        (concat predecesors (:node/successors entity))
+        (concat predecesors (:stop/successors entity))))))
