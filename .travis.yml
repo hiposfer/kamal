@@ -19,7 +19,7 @@ jobs:
     - lein trampoline test :integration
 
   - stage: Benchmark
-    if: type = cron OR tag IS present
+    if: type = cron OR branch = master
     env:
       - LEIN_JVM_OPTS="" # disable tiered compilation
     script:
