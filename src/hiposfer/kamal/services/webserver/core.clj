@@ -56,16 +56,20 @@
   component/Lifecycle
   (start [this]
     (if (:server this) this
-      (let [handler (-> (handler/create)
-                        (inject-networks (:networks router))
-                        (shape-response)
-                        (wrap-exceptions)
-                        (accept/wrap-accept {:mime ["application/json" "application/edn"]})
-                        (json/wrap-json-response) ;; note efficient but works
-                        (json/wrap-json-params)
-                        (wrap-keyword-params)
-                        (wrap-nested-params)
-                        (wrap-params))
+      ;; this is not the standard way of composing middleware but it feels more
+      ;; natural to me ...
+      ;; request top -> bottom
+      ;; response bottom -> up
+      (let [handler (wrap-params
+                      (wrap-nested-params
+                        (wrap-keyword-params
+                          (json/wrap-json-params
+                            (json/wrap-json-response
+                              (accept/wrap-accept
+                                (wrap-exceptions
+                                  (shape-response
+                                    (inject-networks handler/server (:networks router))))
+                                {:mime ["application/json" "application/edn"]}))))))
             server  (jetty/run-jetty handler {:join? (:JOIN_THREAD config)
                                               :port  (:PORT config)})]
         (println "-- Starting App server")
