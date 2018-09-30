@@ -104,6 +104,8 @@
 ;; ring handlers are matched in order
 (def server "all API handlers"
   (api/routes
+    (api/GET "/" request
+      (code/ok {:version (System/getProperty "kamal.version")}))
     (api/GET "/area" request (get-area request))
     (api/GET "/area/:area/directions" request
       (-> (tool/coerce-request request directions-coercer)
