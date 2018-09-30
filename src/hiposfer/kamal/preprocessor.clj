@@ -11,7 +11,9 @@
             [hiposfer.kamal.libs.fastq :as fastq]
             [hiposfer.kamal.parsers.gtfs :as gtfs]
             [hiposfer.kamal.parsers.osm :as osm]
-            [expound.alpha :as expound])
+            [expound.alpha :as expound]
+            [hiposfer.geojson.specs :as geojson]
+            [hiposfer.kamal.network.algorithms.protocols :as np])
   (:import (java.net URLEncoder URL)
            (java.util.zip ZipInputStream GZIPOutputStream)))
 
@@ -27,7 +29,7 @@
 (def outdir "resources/test/")
 (defn- osm-filename [area] (str outdir (:area/id area) ".osm"))
 
-(defn- read-osm
+(defn- read-osm!
   [area]
   (println "OK - OSM cache file found at" (osm-filename area))
   (with-open [stream (io/input-stream (osm-filename area))]
@@ -37,7 +39,7 @@
   "read OSM data either from a local cache file or from the overpass api"
   [area]
   (if (.exists (io/file (osm-filename area)))
-    (read-osm area)
+    (read-osm! area)
     (let [query     (str/replace (slurp (io/resource "overpass-api-query.txt"))
                                  "Niederrad"
                                  (:area/name area))
@@ -47,8 +49,17 @@
       (println "no OSM cache file found ... fetching")
       (io/copy (. conn (getContent)) (io/file (osm-filename area)))
       (println "OK - writing OSM cache file" (osm-filename area))
-      (read-osm area))))
+      (read-osm! area))))
 ;;(fetch-osm! {:area/id "frankfurt" :area/name "Frankfurt am Main"})
+
+(defn- area-transaction
+  [network area]
+  (let [points  (map :v (data/datoms network :avet :node/location))
+        coords  (juxt np/lon np/lat)
+        bbox    (geojson/bbox {:type "MultiPoint"
+                               :coordinates (map coords points)})]
+    [(-> area (dissoc :area/gtfs)
+              (assoc :area/bbox bbox))]))
 
 (defn- prepare-data!
   "reads both OSM and GTFS files, converts them into Datascript transactions
@@ -62,7 +73,7 @@
           (time (data/db-with $ (gtfs/transaction! z)))
           (time (data/db-with $ (fastq/link-stops $)))
           (time (data/db-with $ (fastq/cache-stop-successors $)))
-          (time (data/db-with $ [area]))))) ;; add the area as transaction
+          (time (data/db-with $ (area-transaction $ area)))))) ;; add the area as transaction
 
 (defn -main
   "Script for preprocessing OSM and GTFS files into gzip files each with
