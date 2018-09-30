@@ -118,7 +118,7 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "localhost:3000/area/frankfurt/gtfs?q=[:find [?stop ?attr] :where [?stop ?attr 763067498]]",
+					"raw": "localhost:3000/area/frankfurt/gtfs?q=[:find ?name . :where [?stop :stop/id 763067498] [?stop :stop/name ?name]]",
 					"host": [
 						"localhost"
 					],
@@ -131,7 +131,7 @@
 					"query": [
 						{
 							"key": "q",
-							"value": "[:find [?stop ?attr] :where [?stop ?attr 763067498]]"
+							"value": "[:find ?name . :where [?stop :stop/id 763067498] [?stop :stop/name ?name]]"
 						}
 					]
 				}
