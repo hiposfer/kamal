@@ -8,13 +8,6 @@
             [clojure.string :as str])
   (:import (java.time LocalDate)))
 
-(defn index-lookup
-  "returns a transducer that can be used together with index-range to get all
-  entities whose value equals id i.e. the entities that have a reference to id"
-  [network id]
-  (comp (take-while #(= (:v %) id))
-        (map #(data/entity network (:e %)))))
-
 (defn node-successors
   "takes a network and an entity and returns the successors of that entity.
    Only valid for OSM nodes. Assumes bidirectional links i.e. nodes with
@@ -31,32 +24,14 @@
   [network entity]
   (let [id (:db/id entity)]
     (concat (:node/successors entity)
-            (eduction (index-lookup network id)
-                      (data/index-range network :node/successors id nil)))))
-
+            (map #(data/entity network (:e %))
+                  (data/datoms network :avet :node/successors id)))))
 
 (defn nearest-nodes
   "returns the nearest node/location to point"
   [network point]
-  (eduction (map :e)
-            (map #(data/entity network %))
-            (data/index-range network :node/location point nil)))
-
-(defn node-ways
-  "takes a dereferenced Datascript connection and an entity id and returns
-  the OSM ways that reference it. Only valid for OSM node ids
-
-  replaces:
-  '[:find ?way
-    :in $ ?id
-    :where [?way :way/nodes ?id]]
-
-  The previous query takes around 50 milliseconds to finish. This one takes
-  around 0.15 milliseconds"
-  [network entity]
-  (let [id (:db/id entity)]
-    (eduction (index-lookup network id)
-              (data/index-range network :way/nodes id nil))))
+  (map #(data/entity network (:e %))
+        (data/index-range network :node/location point nil)))
 
 (defn continue-trip
   "returns the :stop_time entity to reach ?dst-id via ?trip
@@ -77,8 +52,8 @@
   (let [?dst-id  (:db/id dst)
         ?trip-id (:db/id trip)]
     (tool/some #(= ?dst-id (:db/id (:stop_time/stop %)))
-               (eduction (index-lookup network ?trip-id)
-                         (data/index-range network :stop_time/trip ?trip-id nil)))))
+                (map #(data/entity network (:e %))
+                      (data/datoms network :avet :stop_time/trip ?trip-id)))))
 
 (defn find-trip
   "Returns a [src dst] :stop_time pair for the next trip between ?src-id
@@ -99,14 +74,17 @@
 
   The previous query runs in 118 milliseconds. This function takes 4 milliseconds"
   [network day-stops src dst now]
-  (let [?src-id (:db/id src)
-        stop_times (eduction (filter #(contains? day-stops (:e %)))
-                             (index-lookup network ?src-id)
+  (let [stop_times (eduction (filter #(contains? day-stops (:e %)))
+                             (map #(data/entity network (:e %)))
                              (filter #(> (:stop_time/departure_time %) now))
-                             (data/index-range network :stop_time/stop ?src-id nil))]
+                             (data/datoms network :avet :stop_time/stop (:db/id src)))]
     (when (not-empty stop_times)
       (let [trip (apply min-key :stop_time/departure_time stop_times)]
         [trip (continue-trip network dst (:stop_time/trip trip))]))))
+
+;; src - 74592
+;; dst - 74593
+;; now = 37049
 
 (defn- working?
   [^LocalDate date service]
@@ -151,8 +129,8 @@
   that will cache those results inside the :stop entities"
   [network]
   (let [pairs (for [trip (data/datoms network :aevt :trip/id)
-                    :let [entries (eduction (index-lookup network (:e trip))
-                                            (data/index-range network :stop_time/trip (:e trip) nil))
+                    :let [entries (map #(data/entity network (:e %))
+                                        (data/datoms network :avet :stop_time/trip (:e trip)))
                           stop_times (sort-by :stop_time/stop_sequence entries)]
                     [from to] (map vector stop_times (rest stop_times))]
                 [(:stop/id (:stop_time/stop from))
@@ -160,6 +138,3 @@
     (for [[from-id to-id] (distinct pairs)]
       {:stop/id from-id
        :stop/successors #{[:stop/id to-id]}})))
-
-;(time (last (data/with @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;                       (cache-stop-successors @(first @(:networks (:router hiposfer.kamal.dev/system)))))))

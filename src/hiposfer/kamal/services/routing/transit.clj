@@ -148,8 +148,8 @@
               (->TripStep st1 st2 (- (:stop_time/arrival_time st2) now))))))))
   (successors [this entity]
     (let [id (:db/id entity)
-          predecesors (eduction (fastq/index-lookup network id)
-                                (data/index-range network :node/successors id nil))]
+          predecesors (map #(data/entity network (:e %))
+                            (data/datoms network :avet :node/successors id))]
 
       (if (node? entity)
         (concat predecesors (:node/successors entity))
