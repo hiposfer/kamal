@@ -112,7 +112,8 @@
           now         (np/cost value)]
       (case [(node? src) (node? dst)]
         ;; The user just walking so we route based on walking duration
-        [true true] ;; [node node]
+        [true true]
+        ;; [node node]
         (long (walk-time (:node/location src) (:node/location dst)))
 
         ;; The user is walking to a stop
@@ -125,15 +126,17 @@
 
         ;; the user is trying to leave a vehicle. Apply penalty but route
         ;; normally
-        [false true] ; [stop node]
+        [false true]
+        ;; [stop node]
         (let [location (:node/location dst)]
           (+ penalty (long (walk-time (:stop/lon src)
                                       (:stop/lat src)
                                       (np/lon location)
                                       (np/lat location)))))
 
-        ;; riding on public transport - [stop stop]
+        ;; riding on public transport
         [false false]
+        ;; [stop stop]
         (if (trip-step? value)
           ;; the user is already in a trip. Just find the trip going to dst
           (let [?trip (:stop_time/trip (:start value))
