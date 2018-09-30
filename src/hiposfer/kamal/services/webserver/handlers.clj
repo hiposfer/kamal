@@ -96,7 +96,8 @@
 
 (defn- query-area
   [request]
-  (let [network (:network (:params request))
+  (let [network (data/filter (:network (:params request))
+                             (fn [_ datom] (contains? gtfs/attributes (:a datom))))
         q       (:q (:params request))
         args    (:args (:params request))]
     (code/ok (apply data/q q (cons network args)))))
