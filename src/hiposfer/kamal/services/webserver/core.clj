@@ -2,6 +2,7 @@
   (:require [com.stuartsierra.component :as component]
             [hiposfer.kamal.services.webserver.handlers :as handler]
             [ring.adapter.jetty :as jetty]
+            [ring.util.response :as rut]
             [ring.middleware.keyword-params :refer [wrap-keyword-params]]
             [ring.middleware.nested-params :refer [wrap-nested-params]]
             [ring.middleware.params :refer [wrap-params]]
@@ -30,9 +31,13 @@
     (let [response (handler request)]
       (if (string? (response :body))
         response
-        (case (:mime (:accept request))
-          "application/json" (update response :body #(walk/postwalk tool/jsonista %))
-          "application/edn" (update response :body pr-str))))))
+          (case (:mime (:accept request))
+            "application/json"
+            (update response :body #(walk/postwalk tool/jsonista %))
+
+            "application/edn"
+            (-> (update response :body pr-str)
+                (rut/content-type "application/edn; charset=utf-8")))))))
 
 (defn wrap-exceptions
   [handler]
