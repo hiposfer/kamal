@@ -117,7 +117,7 @@
       (-> (validate-params request ::resource/params)
           (select-network)
           (get-resource)))
-    (api/GET "/area/:area" request
+    (api/GET "/area/:area/gtfs" request
       (-> (tool/coerce-request request {:q    edn/read-string
                                         :args edn/read-string})
           (validate-params ::resource/query)
