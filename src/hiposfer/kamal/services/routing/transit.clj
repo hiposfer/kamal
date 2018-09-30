@@ -125,15 +125,15 @@
 
         ;; the user is trying to leave a vehicle. Apply penalty but route
         ;; normally
-        [false true] ; [stop node]
+        [false true] ;; [stop node]
         (let [location (:node/location dst)]
           (+ penalty (long (walk-time (:stop/lon src)
                                       (:stop/lat src)
                                       (np/lon location)
                                       (np/lat location)))))
 
-        ;; riding on public transport - [stop stop]
-        [false false]
+        ;; riding on public transport
+        [false false] ;; [stop stop]
         (if (trip-step? value)
           ;; the user is already in a trip. Just find the trip going to dst
           (let [?trip (:stop_time/trip (:start value))
@@ -148,8 +148,8 @@
               (->TripStep st1 st2 (- (:stop_time/arrival_time st2) now))))))))
   (successors [this entity]
     (let [id (:db/id entity)
-          predecesors (eduction (fastq/index-lookup network id)
-                                (data/index-range network :node/successors id nil))]
+          predecesors (map #(data/entity network (:e %))
+                            (data/datoms network :avet :node/successors id))]
 
       (if (node? entity)
         (concat predecesors (:node/successors entity))

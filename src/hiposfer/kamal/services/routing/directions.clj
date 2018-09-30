@@ -209,23 +209,24 @@
         start      (Duration/between (LocalTime/MIDNIGHT)
                                      (. departure (toLocalTime)))
         src        (first (fastq/nearest-nodes network (first coordinates)))
-        dst        (first (fastq/nearest-nodes network (last coordinates)))
-        router     (transit/->StopTimesRouter network stop-times)
-       ; both start and dst should be found since we checked that before
-        traversal  (alg/dijkstra router
-                                 #{[src (. start (getSeconds))]}
-                                 transit/by-cost)
-        rtrail     (alg/shortest-path dst traversal)]
-    (when (some? rtrail)
-      (merge
-        {:directions/uuid      (data/squuid)
-         :directions/waypoints
-         [{:waypoint/name     (some :way/name (:node/ways src))
-           :waypoint/location (->coordinates (location src))}
-          {:waypoint/name     (some :way/name (:node/ways dst))
-           :waypoint/location (->coordinates (location dst))}]}
-        (route network rtrail (-> departure (.truncatedTo ChronoUnit/DAYS)
-                                            (.toEpochSecond)))))))
+        dst        (first (fastq/nearest-nodes network (last coordinates)))]
+    (when (and (some? src) (some? dst))
+      (let [router     (transit/->StopTimesRouter network stop-times)
+            ; both start and dst should be found since we checked that before
+            traversal  (alg/dijkstra router
+                                     #{[src (. start (getSeconds))]}
+                                     transit/by-cost)
+            rtrail     (alg/shortest-path dst traversal)]
+        (when (some? rtrail)
+          (merge
+            {:directions/uuid      (data/squuid)
+             :directions/waypoints
+             [{:waypoint/name     (some :way/name (:node/ways src))
+               :waypoint/location (->coordinates (location src))}
+              {:waypoint/name     (some :way/name (:node/ways dst))
+               :waypoint/location (->coordinates (location dst))}]}
+            (route network rtrail (-> departure (.truncatedTo ChronoUnit/DAYS)
+                                                (.toEpochSecond)))))))))
 
 ;(time
 ;  (direction @(first @(:networks (:router hiposfer.kamal.dev/system)))

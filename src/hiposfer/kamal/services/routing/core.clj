@@ -28,8 +28,7 @@
                :node/ways       {:db.type        :db.type/ref
                                  :db.cardinality :db.cardinality/many}
                :node/successors {:db.type        :db.type/ref
-                                 :db.cardinality :db.cardinality/many
-                                 :db/index       true}
+                                 :db.cardinality :db.cardinality/many}
                :way/id          {:db.unique :db.unique/identity}}
               ;; General Transfer Feed Specification - entities
               ;; identities
@@ -42,10 +41,7 @@
                   [(f :keyword) {:db/type :db.type/ref}]))
               ;; custom extensions
               {:stop/successors {:db.type        :db.type/ref
-                                 :db.cardinality :db.cardinality/many}
-               ;; to allow index-range usage
-               :stop_time/trip {:db/index true}
-               :stop_time/stop {:db/index true}}))
+                                 :db.cardinality :db.cardinality/many}}))
 
 (defn network
   "builds a datascript in-memory db and conj's it into the passed agent"
