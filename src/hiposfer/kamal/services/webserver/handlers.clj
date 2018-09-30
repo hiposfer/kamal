@@ -45,9 +45,9 @@
                              (reduced (deref conn))))
                          nil
                          networks)]
-    (when (nil? network)
-      (code/bad-request! {:msg "unknown area" :data (:area params)}))
-    (assoc-in request [:params :network] network)))
+    (if (some? network)
+      (assoc-in request [:params :network] network)
+      (code/bad-request! {:msg "unknown area" :data (:area params)}))))
 
 (defn validate-params
   "checks that the passed request conforms to spec and coerce its params
