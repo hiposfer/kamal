@@ -30,8 +30,9 @@
 (defn nearest-nodes
   "returns the nearest node/location to point"
   [network point]
-  (map #(data/entity network (:e %))
-        (data/index-range network :node/location point nil)))
+  (eduction (map :e)
+            (map #(data/entity network %))
+            (data/index-range network :node/location point nil)))
 
 (defn continue-trip
   "returns the :stop_time entity to reach ?dst-id via ?trip
@@ -84,7 +85,7 @@
 
 ;; src - 74592
 ;; dst - 74593
-;; now = 37049
+;; now - 37049
 
 (defn- working?
   [^LocalDate date service]

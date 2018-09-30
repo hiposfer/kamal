@@ -188,3 +188,5 @@
           result   (dir/direction graph request)]
       (is (s/valid? ::dataspecs/directions result)
           (str (expound/expound-str ::dataspecs/directions result))))))
+
+;(clojure.test/run-tests)
