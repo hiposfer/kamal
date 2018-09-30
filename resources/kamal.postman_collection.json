@@ -1,10 +1,38 @@
 {
 	"info": {
-		"_postman_id": "95416280-bad1-4d4c-a4ba-bcb2d7cda037",
+		"_postman_id": "44058117-015c-4605-93d8-08dae35cad6a",
 		"name": "kamal",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
+		{
+			"name": "kamal info",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "http://localhost:3000/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						""
+					]
+				}
+			},
+			"response": []
+		},
 		{
 			"name": "fetch kamal areas",
 			"request": {
@@ -48,14 +76,14 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "localhost:3000/area/frankfurt-am-main/directions?departure=2018-08-31T17%3A06%3A37.897Z&coordinates=[[8.644231, 50.087102],[8.637313, 50.119479 ]]",
+					"raw": "localhost:3000/area/frankfurt/directions?departure=2018-08-31T17%3A06%3A37.897Z&coordinates=[[8.644231, 50.087102],[8.637313, 50.119479 ]]",
 					"host": [
 						"localhost"
 					],
 					"port": "3000",
 					"path": [
 						"area",
-						"frankfurt-am-main",
+						"frankfurt",
 						"directions"
 					],
 					"query": [
@@ -87,14 +115,14 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "localhost:3000/area/frankfurt-am-main/stop/763067498",
+					"raw": "localhost:3000/area/frankfurt/stop/763067498",
 					"host": [
 						"localhost"
 					],
 					"port": "3000",
 					"path": [
 						"area",
-						"frankfurt-am-main",
+						"frankfurt",
 						"stop",
 						"763067498"
 					]
@@ -109,7 +137,8 @@
 				"header": [
 					{
 						"key": "Accept",
-						"value": "application/edn"
+						"value": "application/json",
+						"disabled": true
 					}
 				],
 				"body": {
@@ -117,19 +146,20 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "localhost:3000/area/frankfurt-am-main?q=[:find ?stop ?attr :where [?stop ?attr 763067498]]",
+					"raw": "localhost:3000/area/frankfurt/gtfs?q=[:find ?name :where [?stop :stop/id 763067498] [?stop :stop/name ?name]]",
 					"host": [
 						"localhost"
 					],
 					"port": "3000",
 					"path": [
 						"area",
-						"frankfurt-am-main"
+						"frankfurt",
+						"gtfs"
 					],
 					"query": [
 						{
 							"key": "q",
-							"value": "[:find ?stop ?attr :where [?stop ?attr 763067498]]"
+							"value": "[:find ?name :where [?stop :stop/id 763067498] [?stop :stop/name ?name]]"
 						}
 					]
 				}

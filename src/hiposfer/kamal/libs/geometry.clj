@@ -88,30 +88,14 @@
     (rem (+ (Math/toDegrees (Math/atan2 y x)) 360)
          360)));
 
-;(defn bbox
-;  "takes a sequence of GeoCoordinates and returns a mutable BoundingBox
-;  for them"
-;  [coordinates]
-;  (let [even?   (= 0 (rem (count coordinates) 2))
-;        [c1 c2] (take 2 coordinates)
-;        init    (if even?
-;                  (BoundingBox. (np/lat c1) (np/lat c2) (np/lon c1) (np/lon c2))
-;                  (BoundingBox. (np/lat c1) (np/lat c1) (np/lon c1) (np/lon c1)))
-;        amount  (if even? 2 1)]
-;    (transduce (comp (drop amount)
-;                     (partition-all 2)
-;                     (map (fn [[p1 p2]] (BoundingBox. (np/lat p1) (np/lat p2)
-;                                                      (np/lon p1) (np/lon p2)))))
-;               (completing #(.expandToInclude ^BoundingBox init %2))
-;               init
-;               coordinates)
-;    init))
-;
-;(defn contains?
-;  "checks if point is contained in bbox"
-;  [^BoundingBox bbox point]
-;  (.contains bbox (WGS84Point. (np/lat point) (np/lon point))))
-
+(defn contains?
+  "checks if point is contained in bbox"
+  [bbox point]
+  (let [[min-lon min-lat max-lon max-lat] bbox]
+    (and (>= (np/lat point) min-lat)
+         (>= (np/lon point) min-lon)
+         (<= (np/lat point) max-lat)
+         (<= (np/lon point) max-lon))))
 
 ;(contains? (:bbox @(:saarland (:networks (:router hiposfer.kamal.dev/system))))
 ;           [7.0288485 49.1064844])

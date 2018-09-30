@@ -2,6 +2,7 @@
   (:require [com.stuartsierra.component :as component]
             [hiposfer.kamal.services.webserver.handlers :as handler]
             [ring.adapter.jetty :as jetty]
+            [ring.util.response :as rut]
             [ring.middleware.keyword-params :refer [wrap-keyword-params]]
             [ring.middleware.nested-params :refer [wrap-nested-params]]
             [ring.middleware.params :refer [wrap-params]]
@@ -30,9 +31,13 @@
     (let [response (handler request)]
       (if (string? (response :body))
         response
-        (case (:mime (:accept request))
-          "application/json" (update response :body #(walk/postwalk tool/jsonista %))
-          "application/edn" (update response :body pr-str))))))
+          (case (:mime (:accept request))
+            "application/json"
+            (update response :body #(walk/postwalk tool/jsonista %))
+
+            "application/edn"
+            (-> (update response :body pr-str)
+                (rut/content-type "application/edn; charset=utf-8")))))))
 
 (defn wrap-exceptions
   [handler]
@@ -56,16 +61,20 @@
   component/Lifecycle
   (start [this]
     (if (:server this) this
-      (let [handler (-> (handler/create)
-                        (inject-networks (:networks router))
-                        (shape-response)
-                        (wrap-exceptions)
-                        (accept/wrap-accept {:mime ["application/json" "application/edn"]})
-                        (json/wrap-json-response) ;; note efficient but works
-                        (json/wrap-json-params)
-                        (wrap-keyword-params)
-                        (wrap-nested-params)
-                        (wrap-params))
+      ;; this is not the standard way of composing middleware but it feels more
+      ;; natural to me ...
+      ;; request top -> bottom
+      ;; response bottom -> up
+      (let [handler (wrap-params
+                      (wrap-nested-params
+                        (wrap-keyword-params
+                          (json/wrap-json-params
+                            (json/wrap-json-response
+                              (accept/wrap-accept
+                                (wrap-exceptions
+                                  (shape-response
+                                    (inject-networks handler/server (:networks router))))
+                                {:mime ["application/json" "application/edn"]}))))))
             server  (jetty/run-jetty handler {:join? (:JOIN_THREAD config)
                                               :port  (:PORT config)})]
         (println "-- Starting App server")
