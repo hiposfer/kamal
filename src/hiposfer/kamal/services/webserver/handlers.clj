@@ -28,7 +28,7 @@
   "returns a sequence of coordinates matched to the provided ones"
   [request]
   (let [params  (:params request)
-        network (:network params)
+        network (deref (:network params))
         coords (match-coordinates network params)]
     (if (= (count (:coordinates params)) (count coords)) request
       (code/precondition-failed!
@@ -42,26 +42,31 @@
         params   (:params request)
         network  (reduce (fn [_ conn]
                            (when (some? (data/entity @conn [:area/id (:area params)]))
-                             (reduced (deref conn))))
+                             (reduced conn)))
                          nil
                          networks)]
     (if (some? network)
       (assoc-in request [:params :network] network)
       (code/bad-request! {:msg "unknown area" :data (:area params)}))))
 
-(defn validate-params
-  "checks that the passed request conforms to spec and coerce its params
-  if so. Returns a possibly modified request.
+(defn validate
+  "Throws an exception if request doesnt conform to spec, returns the
+   request otherwise.
+
+  Accepts an optional keyword k to specify which part of the request to
+  validate. Defaults to :params
 
   We do it like this instead of creating a middleware for readability. We
   need access to the path parameters which are only added after the route
   has been matched.
 
   See: https://groups.google.com/forum/?hl=en#!topic/compojure/o5l9m7nbGlE"
-  [request spec]
-  (let [errors      (tool/assert (:params request) spec)]
-    (if (not (some? errors)) request
-      (code/bad-request! errors))))
+  ([request spec]
+   (validate request :params spec))
+  ([request k spec]
+   (let [errors (tool/assert (get request k) spec)]
+     (if (not (some? errors)) request
+       (code/bad-request! errors)))))
 
 (defn- get-area
   [request]
@@ -89,7 +94,7 @@
 
 (defn- get-resource
   [request]
-  (let [network (:network (:params request))
+  (let [network (deref (:network (:params request)))
         k       (keyword (:name (:params request)) "id")
         v       (gtfs/coerce (:id (:params request)))]
     (code/ok (gtfs/resource (data/entity network [k v])))))
@@ -102,6 +107,11 @@
         args    (:args (:params request))]
     (code/ok (apply data/q q (cons network args)))))
 
+(defn- update-area
+  [request]
+  (let [conn (deref (:network (:params request)))]
+    (code/ok (:body request))))
+
 ;; ring handlers are matched in order
 (def server "all API handlers"
   (api/routes
@@ -110,27 +120,24 @@
     (api/GET "/area" request (get-area request))
     (api/GET "/area/:area/directions" request
       (-> (update request :params tool/coerce directions-coercer)
-          (validate-params ::dirspecs/params)
+          (validate ::dirspecs/params)
           (select-network)
           (validate-coordinates)
           (get-directions)))
     (api/GET "/area/:area/:name/:id" request
-      (-> (validate-params request ::resource/params)
+      (-> (validate request ::resource/params)
           (select-network)
           (get-resource)))
     (api/GET "/area/:area/gtfs" request
       (-> (update request :params tool/coerce {:q    edn/read-string
                                                :args edn/read-string})
-          (validate-params ::resource/query)
+          (validate ::resource/query)
           (select-network)
           (query-area)))
     (api/PUT "/area/:area/gtfs" request
-      (-> #_(update request :params tool/coerce {:q    edn/read-string
-                                                 :args edn/read-string})
-          #_(validate-params ::resource/query)
-          #_(select-network)
-          #_(query-area)
-          (code/ok (:body request))))
+      (-> (select-network request)
+          (validate :body ::resource/transaction)
+          (update-area)))
     ;; TODO: implement some persistency for user suggestions
     ;; (api/PUT "/area/:area/suggestions" request
     ;;  (put-suggestions (preprocess request ::dirspecs/params directions-coercer)))

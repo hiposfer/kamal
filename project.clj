@@ -9,7 +9,7 @@
                  [org.clojure/test.check "0.9.0"] ;; generators
                  [compojure "1.6.1"]
                  [ring/ring-json "0.4.0"]
-                 [ring/ring-jetty-adapter "1.6.3"]
+                 [ring/ring-jetty-adapter "1.7.0"]
                  [metosin/ring-http-response "0.9.0"] ;; human names for http codes
                  [ring-middleware-accept "2.0.3"] ;; http accept header
                  [hiposfer/geojson.specs "0.2.0"]
