@@ -30,15 +30,15 @@
   (fn shape-response*
     [request]
     (let [response (handler request)]
-      (if (string? (response :body))
+      (if (not (coll? (response :body)))
         response
-          (case (:mime (:accept request))
-            "application/json"
-            (update response :body #(walk/postwalk tool/jsonista %))
+        (case (:mime (:accept request))
+          "application/json"
+          (update response :body #(walk/postwalk tool/jsonista %))
 
-            "application/edn"
-            (-> (update response :body pr-str)
-                (rut/content-type "application/edn; charset=utf-8")))))))
+          "application/edn"
+          (-> (update response :body pr-str)
+              (rut/content-type "application/edn; charset=utf-8")))))))
 
 (defn wrap-exceptions
   [handler]

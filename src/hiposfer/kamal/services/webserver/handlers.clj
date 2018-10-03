@@ -1,5 +1,6 @@
 (ns hiposfer.kamal.services.webserver.handlers
   (:require [ring.util.http-response :as code]
+            [ring.util.io :as rio]
             [compojure.core :as api]
             [compojure.route :as route]
             [hiposfer.kamal.specs.directions :as dirspecs]
@@ -10,8 +11,11 @@
             [datascript.core :as data]
             [clojure.edn :as edn]
             [hiposfer.kamal.libs.tool :as tool]
-            [hiposfer.kamal.parsers.gtfs :as gtfs])
-  (:import (java.time ZonedDateTime)))
+            [hiposfer.kamal.parsers.gtfs :as gtfs]
+            [clojure.java.io :as io]
+            [ring.util.response :as response])
+  (:import (java.time ZonedDateTime)
+           (java.util.zip GZIPOutputStream)))
 
 (def max-distance 1000) ;; meters
 
@@ -109,8 +113,17 @@
 
 (defn- update-area
   [request]
-  (let [conn (deref (:network (:params request)))]
-    (code/ok (:body request))))
+  (let [conn (:network (:params request))]
+    (data/transact! conn (:body request))
+    (-> (rio/piped-input-stream
+          (fn [ostream]
+            (with-open [w (io/writer (GZIPOutputStream. ostream))]
+              (binding [*out* w]
+                (pr (deref conn))))))
+        (code/ok)
+        (response/content-type "application/gzip")
+        (assoc-in [:headers "Content-Disposition"]
+                  "attachment; filename=\"foo.gzip\""))))
 
 ;; ring handlers are matched in order
 (def server "all API handlers"
@@ -155,6 +168,6 @@
 ;              :departure (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")
 ;              :steps true}))
 
-;(data/q '[:find ?id .
-;          :where [_ :trip/id ?id]]
-;         @(first @(:networks (:router hiposfer.kamal.dev/system))))
+#_(data/q '[:find (pull ?agency [*])
+            :where [?agency :agency/id ?id]]
+           @(first @(:networks (:router hiposfer.kamal.dev/system))))
