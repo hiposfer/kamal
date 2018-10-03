@@ -7,6 +7,7 @@
             [ring.middleware.nested-params :refer [wrap-nested-params]]
             [ring.middleware.params :refer [wrap-params]]
             [ring.middleware.json :as json]
+            [hiposfer.kamal.services.webserver.edn :as edn]
             [ring.util.http-response :as code]
             [ring.middleware.accept :as accept]
             [hiposfer.kamal.libs.tool :as tool]
@@ -68,13 +69,14 @@
       (let [handler (wrap-params
                       (wrap-nested-params
                         (wrap-keyword-params
-                          (json/wrap-json-params
-                            (json/wrap-json-response
-                              (accept/wrap-accept
-                                (wrap-exceptions
-                                  (shape-response
-                                    (inject-networks handler/server (:networks router))))
-                                {:mime ["application/json" "application/edn"]}))))))
+                          (edn/wrap-body
+                            (json/wrap-json-body
+                              (json/wrap-json-response
+                                (accept/wrap-accept
+                                  (wrap-exceptions
+                                    (shape-response
+                                      (inject-networks handler/server (:networks router))))
+                                  {:mime ["application/json" "application/edn"]})))))))
             server  (jetty/run-jetty handler {:join? (:JOIN_THREAD config)
                                               :port  (:PORT config)})]
         (println "-- Starting App server")

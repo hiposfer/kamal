@@ -109,7 +109,7 @@
       (code/ok {:version (System/getProperty "kamal.version")}))
     (api/GET "/area" request (get-area request))
     (api/GET "/area/:area/directions" request
-      (-> (tool/coerce-request request directions-coercer)
+      (-> (update request :params tool/coerce directions-coercer)
           (validate-params ::dirspecs/params)
           (select-network)
           (validate-coordinates)
@@ -119,11 +119,18 @@
           (select-network)
           (get-resource)))
     (api/GET "/area/:area/gtfs" request
-      (-> (tool/coerce-request request {:q    edn/read-string
-                                        :args edn/read-string})
+      (-> (update request :params tool/coerce {:q    edn/read-string
+                                               :args edn/read-string})
           (validate-params ::resource/query)
           (select-network)
           (query-area)))
+    (api/PUT "/area/:area/gtfs" request
+      (-> #_(update request :params tool/coerce {:q    edn/read-string
+                                                 :args edn/read-string})
+          #_(validate-params ::resource/query)
+          #_(select-network)
+          #_(query-area)
+          (code/ok (:body request))))
     ;; TODO: implement some persistency for user suggestions
     ;; (api/PUT "/area/:area/suggestions" request
     ;;  (put-suggestions (preprocess request ::dirspecs/params directions-coercer)))
