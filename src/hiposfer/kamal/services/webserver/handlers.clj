@@ -100,7 +100,7 @@
   [request]
   (let [network (deref (:network (:params request)))
         k       (keyword (:name (:params request)) "id")
-        v       (gtfs/coerce (:id (:params request)))]
+        v       (gtfs/decode (:id (:params request)))]
     (code/ok (gtfs/resource (data/entity network [k v])))))
 
 (defn- query-area

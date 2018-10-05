@@ -66,7 +66,7 @@
     (ZoneId/of text)
     (catch Exception _ text))) ;; failure, not a timezone, return text
 
-(defn coerce
+(defn decode
   [text]
   (cond ;; date before number due to the overlapping regex :(
     (re-matches re-date text)     (local-date text)
@@ -108,11 +108,11 @@
         fields  (into {} (map (juxt :keyword identity) head))]
     (for [row (rest content)]
       (into {}
-        (for [[k v] (map vector (map :keyword head) row)
-              :when (not-empty v)]
-          (if (ref? (get fields k))
-            [k [(keyword (name k) "id") (coerce v)]]
-            [k (coerce v)]))))))
+            (for [[k v] (map vector (map :keyword head) row)
+                  :when (not-empty v)]
+              (if (ref? (get fields k))
+                [k [(keyword (name k) "id") (decode v)]]
+                [k (decode v)]))))))
 
 ;(with-open [f (io/reader "resources/frankfurt.gtfs/trips.txt")]
 ;  (into [] (take 10 (parse (csv/read-csv f) "trips.txt"))))
@@ -207,8 +207,9 @@
    ;feed_info.txt
 
 (defn- feed-attributes
-  [fields]
-  (for [field fields]
+  [feed]
+  (for [field reference/fields
+        :when (= (:filename feed) (:filename field))]
     (if (ref? field)
       [(:keyword field) (reference-keyword field)]
       [(:keyword field)])))
@@ -232,8 +233,7 @@
   [network]
   (for [feed (:feeds reference/gtfs-spec)
         :let [filename   (:filename feed)
-              fields     (filter #(= filename (:filename %)) reference/fields)
-              attributes (feed-attributes fields)]
+              attributes (feed-attributes feed)]
         :when (not-empty (feed-entities network feed))]
     [filename
      (cons (map :field-name (:fields feed));; header
