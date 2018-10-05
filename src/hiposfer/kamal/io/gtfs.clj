@@ -157,6 +157,9 @@
   ;                                        files-content)
   ;                                (rest stack))))))))
 
+;(with-open [z (ZipInputStream. (io/input-stream "resources/frankfurt.gtfs.zip"))]
+;  (time (vec (drop 100 (transaction! z)))))
+
 ;; just for convenience
 (def idents (into #{} (comp (filter :unique) (map :keyword)) reference/fields))
 (def attributes (into #{} (map :keyword reference/fields)))
@@ -179,29 +182,47 @@
 
         (contains? attributes k) [k v]))))
 
-;(with-open [z (ZipInputStream. (io/input-stream "resources/frankfurt.gtfs.zip"))]
-;  (time (vec (drop 100 (transaction! z)))))
+(defn- reference-keyword
+  "returns the attribute id for a reference field.
+
+   For example: [trips.txt service_id] -> :service/id"
+  [field]
+  (reduce (fn [_ entry] (when (= (:field-name field) (:field-name entry))
+                          (reduced (:keyword entry))))
+          nil
+          (filter :unique reference/fields)))
+
+(defn- feed-entities
+  [network feed]
+  (let [filename (:filename feed)
+        field-id (first (filter :unique (:fields feed)))
+        id       (reference/get-mapping filename (:field-name field-id))]
+    (eduction (map :e)
+              (map #(data/entity network %))
+              (data/datoms network :avet (:keyword id)))))
 
 (defn- dump
+  "returns a sequence of [filename content] for each feed of the gtfs spec
+  present in network"
   [network]
   (for [feed (:feeds reference/gtfs-spec)
-        :when (some :unique (:fields feed))]
-    (let [filename  (:filename feed)
-          header     (map :field-name (:fields feed))
-          field-id   (first (filter :unique (:fields feed)))
-          id         (reference/get-mapping filename (:field-name field-id))
-          attributes (eduction (map :field-name)
-                               (map #(reference/get-mapping filename %))
-                               (map :keyword)
-                               (:fields feed))]
-      [filename
-       (cons header
-         (for [d (data/datoms network :avet (:keyword id))
-               :let [entity (data/entity network (:e d))]]
-           (for [attr attributes]
-             (or (get entity attr) ""))))])))
+        :when (some :unique (:fields feed))
+        :let [filename (:filename feed)
+              header   (map :field-name (:fields feed))
+              fields   (eduction (map :field-name)
+                                 (map #(reference/get-mapping filename %))
+                                 (:fields feed))]
+        :when (not-empty (feed-entities network feed))]
+    [filename
+     (cons header
+       (for [entity (feed-entities network feed)]
+         (for [field fields]
+           (if (ref? field)
+             (get-in entity [(:keyword field) (reference-keyword field)])
+             (or (get entity (:keyword field) ""))))))]))
 
 (defn dump!
+  "writes the complete GTFS information from network into outstream as a Zip file"
   [network outstream]
   (let [zipstream (ZipOutputStream. outstream)]
     (with-open [writer (io/writer zipstream)]
@@ -212,8 +233,9 @@
         (csv/write-csv writer content)
         (.flush writer)))))
 
-(dump! @(first @(:networks (:router hiposfer.kamal.dev/system)))
-       (io/output-stream "resources/test/foo.zip"))
+#_(time (dump! @(first @(:networks (:router hiposfer.kamal.dev/system)))
+               (io/output-stream "resources/test/foo.zip")))
 
-;(reference/get-mapping "agency.txt" (:field-name (first (filter :unique reference/fields))))
-;(ref? (reference/get-mapping "routes.txt" "agency_id"))
+#_(reference/get-mapping "agency.txt" (:field-name (first (filter :unique reference/fields))))
+#_(reference-keyword (reference/get-mapping "trips.txt" "service_id"))
+#_(reference/get-mapping "trips.txt" "service_id")
