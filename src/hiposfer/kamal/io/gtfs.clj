@@ -221,8 +221,8 @@
         id       (reference/get-mapping filename (:field-name field-id))]
     (cond
       (some? id)
-      (eduction (map :e) (map #(data/entity network %))
-                (data/datoms network :avet (:keyword id)))
+      (for [d (data/datoms network :avet (:keyword id))]
+        (data/entity network (:e d)))
 
       (some? (feed-hidrator (:filename feed)))
       (apply (feed-hidrator (:filename feed)) [network]))))
@@ -232,10 +232,9 @@
   present in network"
   [network]
   (for [feed (:feeds reference/gtfs-spec)
-        :let [filename   (:filename feed)
-              attributes (feed-attributes feed)]
+        :let [attributes (feed-attributes feed)]
         :when (not-empty (feed-entities network feed))]
-    [filename
+    [(:filename feed)
      (cons (map :field-name (:fields feed));; header
        (for [entity (feed-entities network feed)]
          (for [attribute attributes]
