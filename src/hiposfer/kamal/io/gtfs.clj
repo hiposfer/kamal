@@ -19,8 +19,9 @@
             [clojure.java.io :as io]
             [clojure.data.csv :as csv]
             [clojure.edn :as edn]
-            [datascript.impl.entity :as dimp])
-  (:import (java.util.zip ZipInputStream ZipEntry)
+            [datascript.impl.entity :as dimp]
+            [datascript.core :as data])
+  (:import (java.util.zip ZipInputStream ZipEntry ZipOutputStream)
            (java.time Duration LocalDate ZoneId)
            (java.time.format DateTimeFormatter)
            (java.util List)))
@@ -180,3 +181,40 @@
 
 ;(with-open [z (ZipInputStream. (io/input-stream "resources/frankfurt.gtfs.zip"))]
 ;  (time (vec (drop 100 (transaction! z)))))
+
+(defn- dump
+  [network]
+  (for [feed (:feeds reference/gtfs-spec)
+        :when (some :unique (:fields feed))]
+    (let [filename  (:filename feed)
+          header     (map :field-name (:fields feed))
+          field-id   (first (filter :unique (:fields feed)))
+          id         (reference/get-mapping filename (:field-name field-id))
+          attributes (eduction (map :field-name)
+                               (map #(reference/get-mapping filename %))
+                               (map :keyword)
+                               (:fields feed))]
+      [filename
+       (cons header
+         (for [d (data/datoms network :avet (:keyword id))
+               :let [entity (data/entity network (:e d))]]
+           (for [attr attributes
+                 :when (some? (attr entity))]
+             (get entity attr))))])))
+
+(defn dump!
+  [network outstream]
+  (let [zipstream (ZipOutputStream. outstream)]
+    (with-open [writer (io/writer zipstream)]
+      (doseq [[filename content] (dump network)
+              :let [zip-entry (ZipEntry. ^String filename)]]
+        (println "writing" filename)
+        (.putNextEntry zipstream zip-entry)
+        (csv/write-csv writer content)
+        (.flush writer)))))
+
+#_(dump! @(first @(:networks (:router hiposfer.kamal.dev/system)))
+         (io/output-stream "resources/test/foo.zip"))
+
+;(reference/get-mapping "agency.txt" (:field-name (first (filter :unique reference/fields))))
+;(ref? (reference/get-mapping "routes.txt" "agency_id"))
