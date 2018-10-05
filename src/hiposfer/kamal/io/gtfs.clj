@@ -267,7 +267,7 @@
     (with-open [writer (io/writer zipstream)]
       (doseq [[filename content] (dump network)
               :let [zip-entry (ZipEntry. ^String filename)]]
-        (println "writing" filename)
+        #_(println "writing" filename)
         (.putNextEntry zipstream zip-entry)
         (csv/write-csv writer content)
         (.flush writer)))))
