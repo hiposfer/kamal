@@ -128,7 +128,7 @@
   WARNING: The order of the sequence is not guarantee to be consistent
   for a Datascript transaction"
   [^ZipInputStream zipstream]
-  (for [entry  ^ZipEntry (repeatedly #(. zipstream (getNextEntry)))
+  (for [^ZipEntry entry (repeatedly #(. zipstream (getNextEntry)))
         :while (some? entry)
         :when  (contains? (set read-order) (. entry (getName)))]
     (let [filename (. entry (getName))
@@ -198,9 +198,8 @@
        (cons header
          (for [d (data/datoms network :avet (:keyword id))
                :let [entity (data/entity network (:e d))]]
-           (for [attr attributes
-                 :when (some? (attr entity))]
-             (get entity attr))))])))
+           (for [attr attributes]
+             (or (get entity attr) ""))))])))
 
 (defn dump!
   [network outstream]
@@ -213,8 +212,8 @@
         (csv/write-csv writer content)
         (.flush writer)))))
 
-#_(dump! @(first @(:networks (:router hiposfer.kamal.dev/system)))
-         (io/output-stream "resources/test/foo.zip"))
+(dump! @(first @(:networks (:router hiposfer.kamal.dev/system)))
+       (io/output-stream "resources/test/foo.zip"))
 
 ;(reference/get-mapping "agency.txt" (:field-name (first (filter :unique reference/fields))))
 ;(ref? (reference/get-mapping "routes.txt" "agency_id"))
