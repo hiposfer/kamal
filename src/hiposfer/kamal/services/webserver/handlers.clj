@@ -115,15 +115,11 @@
   [request]
   (let [conn (:network (:params request))
         db   (:db-after (data/with @conn (:body request)))]
-    (-> (rio/piped-input-stream
-          (fn [ostream]
-            (with-open [w (io/writer (GZIPOutputStream. ostream))]
-              (binding [*out* w]
-                (pr db)))))
+    (-> (rio/piped-input-stream #(gtfs/dump! db %))
         (code/ok)
-        (response/content-type "application/gzip")
+        (response/content-type "application/zip")
         (assoc-in [:headers "Content-Disposition"]
-                  "attachment; filename=\"foo.gzip\""))))
+                  "attachment; filename=\"gtfs.zip\""))))
 
 ;; ring handlers are matched in order
 (def server "all API handlers"

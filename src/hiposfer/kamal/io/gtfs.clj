@@ -159,6 +159,8 @@
 
 ;(with-open [z (ZipInputStream. (io/input-stream "resources/frankfurt.gtfs.zip"))]
 ;  (time (vec (drop 100 (transaction! z)))))
+;; ............................................................................
+
 
 ;; just for convenience
 (def uniques (into #{} (comp (filter :unique) (map :keyword)) reference/fields))
@@ -181,6 +183,22 @@
         [k (map #(select-keys % [(some (set (keys %)) uniques)]) v)]
 
         (contains? keywords k) [k v]))))
+;; ............................................................................
+
+(defn encode
+  [k v]
+  (case k
+    (:stop_time/arrival_time :stop_time/departure_time)
+    (let [duration (Duration/ofSeconds v)]
+      (format "%d:%02d:%02d"
+              (.toHours duration)
+              (mod (.toMinutes duration) 60)
+              (mod (.getSeconds duration) 60)))
+
+    (:service/start_date :service/end_date)
+    (. ^LocalDate v (format date-format))
+    ;; default - no op
+    v))
 
 (defn- reference-keyword
   "returns the attribute id for a reference field.
@@ -206,7 +224,7 @@
    ;transfers.txt
    ;feed_info.txt
 
-(defn- feed-attributes
+(defn- key-paths
   [feed]
   (for [field reference/fields
         :when (= (:filename feed) (:filename field))]
@@ -232,13 +250,15 @@
   present in network"
   [network]
   (for [feed (:feeds reference/gtfs-spec)
-        :let [attributes (feed-attributes feed)]
+        :let [paths (key-paths feed)]
         :when (not-empty (feed-entities network feed))]
     [(:filename feed)
      (cons (map :field-name (:fields feed));; header
        (for [entity (feed-entities network feed)]
-         (for [attribute attributes]
-           (get-in entity attribute))))]))
+         (for [path paths]
+           (if (= 1 (count path))
+             (encode (first path) (or (get-in entity path) ""))
+             (get-in entity path)))))]))
 
 (defn dump!
   "writes the complete GTFS information from network into outstream as a Zip file"
@@ -257,4 +277,7 @@
 
 #_(reference/get-mapping "agency.txt" (:field-name (first (filter :unique reference/fields))))
 #_(reference-keyword (reference/get-mapping "trips.txt" "service_id"))
-#_(reference/get-mapping "trips.txt" "service_id")
+#_(reference/get-mapping "calendar.txt" "start_date")
+
+;(seq (Locale/getAvailableLocales))
+;(seq (Locale/getISOLanguages))
