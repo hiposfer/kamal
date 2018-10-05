@@ -192,29 +192,46 @@
           nil
           (filter :unique reference/fields)))
 
+(def feed-hidrator
+  {"stop_times.txt"
+   (fn [network]
+     (for [trip (data/datoms network :aevt :trip/id)
+           :let [std     (data/datoms network :avet :stop_time/trip (:e trip))
+                 entries (map #(data/entity network (:e %)) std)]
+           stop_time (sort-by :stop_time/stop_sequence entries)]
+       stop_time))})
+   ;calendar_dates.txt
+   ;frequencies.txt
+   ;fare_rules.txt
+   ;transfers.txt
+   ;feed_info.txt
+
 (defn- feed-entities
   [network feed]
   (let [filename (:filename feed)
         field-id (first (filter :unique (:fields feed)))
         id       (reference/get-mapping filename (:field-name field-id))]
-    (eduction (map :e)
-              (map #(data/entity network %))
-              (data/datoms network :avet (:keyword id)))))
+    (cond
+      (some? id)
+      (eduction (map :e) (map #(data/entity network %))
+                (data/datoms network :avet (:keyword id)))
+
+      (some? (feed-hidrator (:filename feed)))
+      (apply (feed-hidrator (:filename feed)) [network]))))
 
 (defn- dump
   "returns a sequence of [filename content] for each feed of the gtfs spec
   present in network"
   [network]
   (for [feed (:feeds reference/gtfs-spec)
-        :when (some :unique (:fields feed))
+        ;:when (some :unique (:fields feed))
         :let [filename (:filename feed)
-              header   (map :field-name (:fields feed))
               fields   (eduction (map :field-name)
                                  (map #(reference/get-mapping filename %))
                                  (:fields feed))]
         :when (not-empty (feed-entities network feed))]
     [filename
-     (cons header
+     (cons (map :field-name (:fields feed));; header
        (for [entity (feed-entities network feed)]
          (for [field fields]
            (if (ref? field)
