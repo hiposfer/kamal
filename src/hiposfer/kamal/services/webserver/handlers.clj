@@ -113,13 +113,13 @@
 
 (defn- update-area
   [request]
-  (let [conn (:network (:params request))]
-    (data/transact! conn (:body request))
+  (let [conn (:network (:params request))
+        db   (:db-after (data/with @conn (:body request)))]
     (-> (rio/piped-input-stream
           (fn [ostream]
             (with-open [w (io/writer (GZIPOutputStream. ostream))]
               (binding [*out* w]
-                (pr (deref conn))))))
+                (pr db)))))
         (code/ok)
         (response/content-type "application/gzip")
         (assoc-in [:headers "Content-Disposition"]
@@ -147,7 +147,7 @@
           (validate ::resource/query)
           (select-network)
           (query-area)))
-    (api/PUT "/area/:area/gtfs" request
+    (api/POST "/area/:area/gtfs" request
       (-> (select-network request)
           (validate :body ::resource/transaction)
           (update-area)))
