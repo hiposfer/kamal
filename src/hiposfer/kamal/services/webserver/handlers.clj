@@ -11,7 +11,7 @@
             [datascript.core :as data]
             [clojure.edn :as edn]
             [hiposfer.kamal.libs.tool :as tool]
-            [hiposfer.kamal.parsers.gtfs :as gtfs]
+            [hiposfer.kamal.io.gtfs :as gtfs]
             [clojure.java.io :as io]
             [ring.util.response :as response])
   (:import (java.time ZonedDateTime)

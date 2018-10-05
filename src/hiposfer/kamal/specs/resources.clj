@@ -1,7 +1,7 @@
 (ns hiposfer.kamal.specs.resources
   (:require [clojure.spec.alpha :as s]
             [hiposfer.kamal.services.routing.core :as routing]
-            [hiposfer.kamal.parsers.gtfs :as gtfs]))
+            [hiposfer.kamal.io.gtfs :as gtfs]))
 
 (defn- no-pull-inside?
   [query]

@@ -4,8 +4,8 @@
             [datascript.core :as data]
             [com.stuartsierra.component :as component]
             [hiposfer.kamal.network.algorithms.core :as alg]
-            [hiposfer.kamal.parsers.edn :as edn]
-            [hiposfer.kamal.parsers.gtfs :as gtfs]
+            [hiposfer.kamal.io.edn :as edn]
+            [hiposfer.kamal.io.gtfs :as gtfs]
             [hiposfer.gtfs.edn :as gtfs.edn]))
 
 ;; NOTE: we use :db/index true to replace the lack of :VAET index in datascript

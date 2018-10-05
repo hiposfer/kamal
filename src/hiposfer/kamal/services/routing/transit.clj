@@ -4,7 +4,7 @@
   (:refer-clojure :exclude [name])
   (:require [hiposfer.kamal.network.algorithms.protocols :as np]
             [hiposfer.kamal.libs.fastq :as fastq]
-            [hiposfer.kamal.parsers.osm :as osm]
+            [hiposfer.kamal.io.osm :as osm]
             [hiposfer.kamal.libs.geometry :as geometry]
             [clojure.set :as set]
             [hiposfer.kamal.libs.tool :as tool]

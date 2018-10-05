@@ -9,8 +9,8 @@
             [clojure.string :as str]
             [datascript.core :as data]
             [hiposfer.kamal.libs.fastq :as fastq]
-            [hiposfer.kamal.parsers.gtfs :as gtfs]
-            [hiposfer.kamal.parsers.osm :as osm]
+            [hiposfer.kamal.io.gtfs :as gtfs]
+            [hiposfer.kamal.io.osm :as osm]
             [expound.alpha :as expound]
             [hiposfer.geojson.specs :as geojson]
             [hiposfer.kamal.network.algorithms.protocols :as np])

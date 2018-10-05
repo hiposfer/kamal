@@ -1,4 +1,4 @@
-(ns hiposfer.kamal.parsers.osm
+(ns hiposfer.kamal.io.osm
   (:require [clojure.data.xml :as xml]
             [hiposfer.kamal.network.core :as network]))
 

@@ -1,4 +1,4 @@
-(ns hiposfer.kamal.parsers.gtfs
+(ns hiposfer.kamal.io.gtfs
   "namespace for parsing a GTFS feed into a Datascript transaction.
 
   The algorithms coerces GTFS csv files into entities that reference
@@ -16,7 +16,6 @@
   allows us to create relationships between entities without actually having
   them, i.e. thread them simply as data"
   (:require [hiposfer.gtfs.edn :as reference]
-            [hiposfer.kamal.network.core :as network]
             [clojure.java.io :as io]
             [clojure.data.csv :as csv]
             [clojure.edn :as edn]
@@ -181,5 +180,3 @@
 
 ;(with-open [z (ZipInputStream. (io/input-stream "resources/frankfurt.gtfs.zip"))]
 ;  (time (vec (drop 100 (transaction! z)))))
-
-;(filter :unique reference/fields)
