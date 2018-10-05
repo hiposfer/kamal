@@ -33,7 +33,7 @@
               ;; General Transfer Feed Specification - entities
               ;; identities
               (into {}
-                (for [id gtfs/idents]
+                (for [id gtfs/uniques]
                   [id {:db.unique :db.unique/identity}]))
               ;; references
               (into {}

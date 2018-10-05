@@ -31,5 +31,5 @@
 (s/def ::query (s/keys :req-un [::area ::q]
                        :opt-un [::args]))
 
-(s/def ::gtfs-entry (s/map-of gtfs/attributes some?))
+(s/def ::gtfs-entry (s/map-of gtfs/keywords some?))
 (s/def ::transaction (s/coll-of ::gtfs-entry :kind vector?))

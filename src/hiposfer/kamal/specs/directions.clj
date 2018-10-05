@@ -11,7 +11,7 @@
 (s/def ::bearing     (s/and number? #(<= 0 % 360)))
 
 (def stop-time-keys (set (filter #(str/starts-with? (namespace %) "stop_time")
-                                  gtfs/attributes)))
+                                 gtfs/keywords)))
 
 (s/def ::stop_time (s/map-of stop-time-keys any?))
 

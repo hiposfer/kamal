@@ -1,20 +1,20 @@
 (ns hiposfer.kamal.io.gtfs
-  "namespace for parsing a GTFS feed into a Datascript transaction.
+  "namespace for handling GTFS to Datascript convertion and vice versa.
 
   The algorithms coerces GTFS csv files into entities that reference
   each other through IDs. The IDs are taken directly from GTFS.
 
   A small dynamic renaming is performed to make it more compatible
   with Datascript design. The renaming is based on the GTFS naming
-  convention, for example: stop_lon, stop_url, trip_id, trip_headsign, etc.
+  convention, for example: stop_lon, stop_url, trip_id, trip_headsign.
 
   We transform those strings into: :stop/lon, :stop/url, :trip/id,
-  :trip/headsign.
+  :trip/headsign, respectively.
 
   This is important to be able to create relationships between entities through
   transactions, for example {:trip/id 1, :trip/route [:route/id 1]}. This
-  allows us to create relationships between entities without actually having
-  them, i.e. thread them simply as data"
+  allows us to create relationships between entities without using java references
+  ... just data"
   (:require [hiposfer.gtfs.edn :as reference]
             [clojure.java.io :as io]
             [clojure.data.csv :as csv]
@@ -161,8 +161,8 @@
 ;  (time (vec (drop 100 (transaction! z)))))
 
 ;; just for convenience
-(def idents (into #{} (comp (filter :unique) (map :keyword)) reference/fields))
-(def attributes (into #{} (map :keyword reference/fields)))
+(def uniques (into #{} (comp (filter :unique) (map :keyword)) reference/fields))
+(def keywords (into #{} (map :keyword reference/fields)))
 
 (defn resource
   "takes a datascript entity and checks if any of its values are entities, if so
@@ -171,16 +171,16 @@
   (into {} (remove nil?)
     (for [[k v] entity]
       (cond
-        (not (contains? attributes k))
+        (not (contains? keywords k))
         nil
 
         (dimp/entity? v)
-        [k (select-keys v [(some (set (keys v)) idents)])]
+        [k (select-keys v [(some (set (keys v)) uniques)])]
 
         (set? v)
-        [k (map #(select-keys % [(some (set (keys %)) idents)]) v)]
+        [k (map #(select-keys % [(some (set (keys %)) uniques)]) v)]
 
-        (contains? attributes k) [k v]))))
+        (contains? keywords k) [k v]))))
 
 (defn- reference-keyword
   "returns the attribute id for a reference field.
@@ -206,6 +206,13 @@
    ;transfers.txt
    ;feed_info.txt
 
+(defn- feed-attributes
+  [fields]
+  (for [field fields]
+    (if (ref? field)
+      [(:keyword field) (reference-keyword field)]
+      [(:keyword field)])))
+
 (defn- feed-entities
   [network feed]
   (let [filename (:filename feed)
@@ -224,19 +231,15 @@
   present in network"
   [network]
   (for [feed (:feeds reference/gtfs-spec)
-        ;:when (some :unique (:fields feed))
-        :let [filename (:filename feed)
-              fields   (eduction (map :field-name)
-                                 (map #(reference/get-mapping filename %))
-                                 (:fields feed))]
+        :let [filename   (:filename feed)
+              fields     (filter #(= filename (:filename %)) reference/fields)
+              attributes (feed-attributes fields)]
         :when (not-empty (feed-entities network feed))]
     [filename
      (cons (map :field-name (:fields feed));; header
        (for [entity (feed-entities network feed)]
-         (for [field fields]
-           (if (ref? field)
-             (get-in entity [(:keyword field) (reference-keyword field)])
-             (or (get entity (:keyword field) ""))))))]))
+         (for [attribute attributes]
+           (get-in entity attribute))))]))
 
 (defn dump!
   "writes the complete GTFS information from network into outstream as a Zip file"
