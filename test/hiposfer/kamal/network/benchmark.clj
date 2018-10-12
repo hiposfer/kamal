@@ -10,7 +10,8 @@
             [hiposfer.kamal.network.tests :as kt]
             [hiposfer.kamal.network.road :as road]
             [datascript.core :as data]
-            [hiposfer.kamal.services.routing.transit :as transit])
+            [hiposfer.kamal.services.routing.transit :as transit]
+            [hiposfer.kamal.network.generators :as fake-area])
   (:import (java.time ZonedDateTime Duration LocalTime)))
 
 ;; NOTE: we put a letter in the test names, because apparently the benchmarks
@@ -21,14 +22,12 @@
 ;; meant to go from one place to the other, thus Dijkstra almost always fails to
 ;; finds a path (really fast)
 (test/deftest ^:benchmark A-dijkstra-random-graph
-  (let [dt      (gen/generate (ng/graph 1000))
-        network (data/create-conn router/schema)
-        _       (data/transact! network dt)
-        src     (rand-nth (alg/nodes @network))
-        dst     (rand-nth (alg/nodes @network))
-        router  (kt/->PedestrianRouter @network)]
+  (let [network (fake-area/graph 1000)
+        src     (rand-nth (alg/nodes network))
+        dst     (rand-nth (alg/nodes network))
+        router  (kt/->PedestrianRouter network)]
     (newline) (newline)
-    (println "DIJKSTRA forward with:" (count (alg/nodes @network)) "nodes")
+    (println "DIJKSTRA forward with:" (count (alg/nodes network)) "nodes")
     (c/quick-bench
       (let [coll (alg/dijkstra router #{src})]
         (alg/shortest-path dst coll))
