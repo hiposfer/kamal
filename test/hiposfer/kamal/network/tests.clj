@@ -52,7 +52,8 @@
   (relax [this dst trail]
     (let [src-id (:node/id (key (first trail)))
           dst-id (:node/id dst)]
-      (get-in lengths [src-id dst-id])))
+      (+ (val (first trail))
+         (get-in lengths [src-id dst-id]))))
   (successors [this node]
     (:node/successors node)))
 
@@ -87,7 +88,10 @@
 (defrecord PedestrianRouter [graph]
   np/Router
   (relax [this dst trail]
-    (transit/duration graph dst trail))
+    (+ (val (first trail))
+       (transit/walk-time (:node/location (key (first trail)))
+                          (or (:node/location dst)
+                              [(:stop/lon dst) (:stop/lat dst)]))))
   (successors [this node]
     (fastq/node-successors graph node)))
 

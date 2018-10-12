@@ -43,10 +43,9 @@
         trail  (path settled entity)]
     (doseq [node (np/successors router entity)
             :when (not (. settled (containsKey node)))
-            :let [v (np/relax router node trail)]
-            :when (some? v)]
+            :let [weight (np/relax router node trail)]
+            :when (some? weight)]
       (let [prev    (key (. entry (getValue)))
-            weight  (np/sum v (. entry (getKey)))
             trace2  (trace node prev)
             old-entry ^Heap$Entry (. unsettled (get node))]
         (if (nil? old-entry) ;; new entry

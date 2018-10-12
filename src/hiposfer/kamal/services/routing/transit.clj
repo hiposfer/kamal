@@ -21,21 +21,13 @@
    6 "Gondola"; Suspended cable car. Typically used for aerial cable cars where the car is suspended from the cable.
    7 "Funicular"}); Any rail system designed for steep inclines.})
 
-(defn- walk-time
+(defn walk-time
   ([p1 p2]
    (/ (geometry/earth-distance p1 p2)
       osm/walking-speed))
   ([lon1 lat1 lon2 lat2]
    (/ (geometry/earth-distance lon1 lat1 lon2 lat2)
       osm/walking-speed)))
-
-(defn duration
-  "A very simple value computation function for arcs in a network.
-  Returns the time it takes to go from src to dst based on walking speeds"
-  [network next-entity trail] ;; 1 is a simple value used for test whenever no other value would be suitable
-  (walk-time (:node/location (key (first trail)))
-             (or (:node/location next-entity)
-                 [(:stop/lon next-entity) (:stop/lat next-entity)])))
 
 (defn by-cost
   "comparator to avoid CastClassException due to Java's Long limited comparison"
@@ -100,8 +92,7 @@
 ;; Both the source and destination :stop_time are kept to avoid future lookups
 (defrecord TripStep [start end ^Long value]
   np/Valuable
-  (cost [_] value)
-  (sum [this that] (assoc this :value (+ value (np/cost that)))))
+  (cost [_] value))
 
 (defn trip-step? [o] (instance? TripStep o))
 
@@ -113,24 +104,25 @@
       (case [(node? src) (node? dst)]
         ;; The user just walking so we route based on walking duration
         [true true] ;; [node node]
-        (long (walk-time (:node/location src) (:node/location dst)))
+        (Math/round ^Double (+ now (walk-time (:node/location src)
+                                              (:node/location dst))))
 
         ;; The user is walking to a stop
         [true false] ;; [node stop]
         (let [location (:node/location src)]
-          (long (walk-time (np/lon location)
-                           (np/lat location)
-                           (:stop/lon dst)
-                           (:stop/lat dst))))
+          (Math/round ^Double (+ now (walk-time (np/lon location)
+                                                (np/lat location)
+                                                (:stop/lon dst)
+                                                (:stop/lat dst)))))
 
         ;; the user is trying to leave a vehicle. Apply penalty but route
         ;; normally
         [false true] ;; [stop node]
         (let [location (:node/location dst)]
-          (+ penalty (long (walk-time (:stop/lon src)
-                                      (:stop/lat src)
-                                      (np/lon location)
-                                      (np/lat location)))))
+          (Math/round ^Double (+ now penalty (walk-time (:stop/lon src)
+                                                        (:stop/lat src)
+                                                        (np/lon location)
+                                                        (np/lat location)))))
 
         ;; riding on public transport
         [false false] ;; [stop stop]
@@ -139,15 +131,14 @@
           (let [?trip (:stop_time/trip (:start value))
                 st    (fastq/continue-trip network dst ?trip)]
             (when (some? st)
-              (->TripStep (:end value) st
-                          (- (:stop_time/arrival_time st) now))))
+              (->TripStep (:end value) st (:stop_time/arrival_time st))))
 
           ;; the user is trying to get on a vehicle - find the next trip
           (let [[st1 st2] (fastq/find-trip network day-stops src dst now)]
             (when (some? st2) ;; nil if no trip was found
-              (->TripStep st1 st2 (- (:stop_time/arrival_time st2) now))))))))
+              (->TripStep st1 st2 (:stop_time/arrival_time st2))))))))
   (successors [this entity]
-    (let [id (:db/id entity)
+    (let [id          (:db/id entity)
           predecesors (map #(data/entity network (:e %))
                             (data/datoms network :avet :node/successors id))]
       (if (node? entity)
