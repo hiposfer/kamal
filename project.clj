@@ -6,7 +6,6 @@
   :min-lein-version "2.0.0"
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [org.clojure/data.xml "0.0.8"] ; parse xml lazily
-                 [org.clojure/test.check "0.9.0"] ;; generators
                  [compojure "1.6.1"]
                  [ring/ring-json "0.4.0"]
                  [ring/ring-jetty-adapter "1.7.0"]
@@ -23,6 +22,7 @@
   ;; ["trampoline" "run" "-m" "hiposfer.kamal.preprocessor"]}
   :profiles {:dev {:dependencies [[criterium "0.4.4"]  ;; benchmark
                                   [expound "0.7.1"]
+                                  [org.clojure/test.check "0.9.0"] ;; generators
                                   [org.clojure/tools.namespace "0.2.11"]]
                    :plugins [[jonase/eastwood "0.2.9"]]
                    :eastwood {:config-files ["resources/eastwood.clj"]}}

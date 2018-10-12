@@ -98,8 +98,9 @@
 
 (defrecord StopTimesRouter [network day-stops]
   np/Router
-  (relax [this dst trail]
-    (let [[src value] (first trail)
+  (relax [this arc trail]
+    (let [dst         (np/dst this arc)
+          [src value] (first trail)
           now         (np/cost value)]
       (case [(node? src) (node? dst)]
         ;; The user just walking so we route based on walking duration

@@ -9,6 +9,7 @@
             [hiposfer.kamal.services.routing.core :as router]
             [clojure.spec.alpha :as s]
             [hiposfer.kamal.libs.fastq :as fastq]
+            [hiposfer.kamal.network.generators :as fake-area]
             [hiposfer.kamal.specs.directions :as dataspecs]
             [hiposfer.kamal.services.routing.transit :as transit]
             [hiposfer.kamal.services.routing.directions :as dir]
@@ -100,8 +101,8 @@
 ; path(src,dst) = path(src, dst)
 (defspec deterministic
   100; tries
-  (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
-    (let [graph   @(router/pedestrian-graph {:SIZE i})
+  (prop/for-all [size (gen/large-integer* {:min 10 :max 20})]
+    (let [graph    (fake-area/graph size)
           src      (rand-nth (alg/nodes graph))
           dst      (rand-nth (alg/nodes graph))
           router   (->PedestrianRouter graph)
@@ -118,8 +119,8 @@
 ; https://en.wikipedia.org/wiki/Monotonic_function
 (defspec monotonic
   100; tries
-  (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
-     (let [graph   @(router/pedestrian-graph {:SIZE i})
+  (prop/for-all [size (gen/large-integer* {:min 10 :max 20})]
+     (let [graph    (fake-area/graph size)
            src      (rand-nth (alg/nodes graph))
            dst      (rand-nth (alg/nodes graph))
            router   (->PedestrianRouter graph)
@@ -136,8 +137,8 @@
 ; Ddf(P,Q) = 0 if P = Q
 (defspec symmetry
   100; tries
-  (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
-    (let [graph   @(router/pedestrian-graph {:SIZE i})
+  (prop/for-all [size (gen/large-integer* {:min 10 :max 20})]
+    (let [graph    (fake-area/graph size)
           src      (rand-nth (alg/nodes graph))
           router   (->PedestrianRouter graph)
           coll     (alg/dijkstra router #{src})
@@ -152,8 +153,8 @@
 ; as big as the original network
 (defspec components
   100; tries
-  (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
-    (let [graph  @(router/pedestrian-graph {:SIZE i})
+  (prop/for-all [size (gen/large-integer* {:min 10 :max 20})]
+    (let [graph   (fake-area/graph size)
           router  (->PedestrianRouter graph)
           r1      (alg/looners graph router)
           graph2  (data/db-with graph (for [i r1 ] [:db.fn/retractEntity (:db/id i)]))
@@ -170,8 +171,8 @@
 ; this use to throw an exception so we leave it here for testing purposes :)
 (defspec routable-components
   100; tries
-  (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
-    (let [graph   @(router/pedestrian-graph {:SIZE i})
+  (prop/for-all [size (gen/large-integer* {:min 10 :max 20})]
+    (let [graph   (fake-area/graph size)
           router  (->PedestrianRouter graph)
           r1      (alg/looners graph router)
           graph2  (data/db-with graph (for [i r1 ] [:db.fn/retractEntity (:db/id i)]))
@@ -185,8 +186,8 @@
 ; generative tests for the direction endpoint
 (defspec generative-directions
   100; tries
-  (prop/for-all [i (gen/large-integer* {:min 10 :max 20})]
-    (let [graph   @(router/pedestrian-graph {:SIZE i})
+  (prop/for-all [size (gen/large-integer* {:min 10 :max 20})]
+    (let [graph    (fake-area/graph size)
           request  (gen/generate (s/gen ::dataspecs/params))
           result   (dir/direction graph request)]
       (is (s/valid? ::dataspecs/directions result)
