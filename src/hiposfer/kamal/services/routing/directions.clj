@@ -230,7 +230,14 @@
 #_(time
     (direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
                {:coordinates [[8.645333, 50.087314]
-                              [8.635897, 50.104172]]
+                              ;[8.680412, 50.116680]] ;; innenstadt
+                              [8.699619, 50.097842]] ;; sachsenhausen
+                              ;[8.635897, 50.104172]] ;; galluswarte
                 :departure (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")
                 :steps true}))
 
+#_(let [network @(first @(:networks (:router hiposfer.kamal.dev/system)))]
+    (for [d (data/datoms network :avet :node/id)
+          :let [node (data/entity network (:e d))]]
+          ;:when (empty? (fastq/node-edges network node))]
+      (fastq/node-edges network node)))

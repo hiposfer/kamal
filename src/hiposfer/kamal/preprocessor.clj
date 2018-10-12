@@ -70,9 +70,9 @@
                     (ZipInputStream.))]
     (as-> (data/empty-db routing/schema) $
           (time (data/db-with $ (fetch-osm! area)))
-          (time (data/db-with $ (gtfs/transaction! z)))
-          (time (data/db-with $ (fastq/link-stops $)))
-          (time (data/db-with $ (fastq/cache-stop-successors $)))
+          ;(time (data/db-with $ (gtfs/transaction! z)))
+          ;(time (data/db-with $ (fastq/link-stops $)))
+          ;(time (data/db-with $ (fastq/cache-stop-successors $)))
           (time (data/db-with $ (area-transaction $ area)))))) ;; add the area as transaction
 
 (defn -main
