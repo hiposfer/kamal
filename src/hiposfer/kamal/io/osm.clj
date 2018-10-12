@@ -100,21 +100,6 @@
                      (= % (last (:way/nodes way))))
                  (:way/nodes way))))))
 
-(defn- roads
-  "group all ways with the same name into a single entity to avoid redundancy
-
-  HACK: since we are not interested in the attributes of the ways, this reduces
-  the amount of data in Datascript significantly"
-  [ways]
-  (let [groups (group-by :way/name ways)]
-    (for [[_ group] groups]
-      ;; the minus is to make "explicit" that this is not part of OSM
-      (merge
-        {:way/id (- (:way/id (first group)))
-         :way/nodes (mapcat :way/nodes group)}
-        (when-let [wn (some :way/name group)]
-          {:way/name wn})))))
-
 (defn- entries
   "returns a [id node], {id way} or nil otherwise"
   [xml-entry]
@@ -131,7 +116,6 @@
   (let [nodes&ways    (keep entries (:content (xml/parse raw-data)))
         ;; separate ways from nodes
         ways          (trim-ways (filter :way/id nodes&ways))
-        roads         (roads ways)
         ;; post-processing nodes
         ids           (into #{} (mapcat :way/nodes) ways)
         nodes         (filter #(contains? ids (:node/id %)) nodes&ways)
@@ -139,15 +123,11 @@
                             [from to] (map vector (:way/nodes way)
                                                   (rest (:way/nodes way)))]
                         {:node/id    from
-                         :node/edges #{[:node/id to]}})]
+                         :node/edges #{{:edge/dst [:node/id to]
+                                        :edge/way [:way/id (:way/id way)]}}})]
     (concat nodes
-            (map #(dissoc % :way/nodes) roads)
-            neighbours
-            (for [way roads
-                  n (:way/nodes way)]
-              {:node/id n
-               :node/ways [:way/id (:way/id way)]}))))
-
+            (map #(dissoc % :way/nodes) ways)
+            neighbours)))
 
 ;; https://www.wikiwand.com/en/Preferred_walking_speed
 (def walking-speed  1.4);; m/s
