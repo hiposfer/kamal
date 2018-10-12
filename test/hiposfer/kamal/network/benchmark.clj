@@ -67,8 +67,7 @@
         dst        (first (fastq/nearest-nodes network [8.635897, 50.104172]))
         router     (transit/->StopTimesRouter network stop-times)
         coll       (alg/dijkstra router
-                                 #{[src (. start (getSeconds))]}
-                                 transit/by-cost)]
+                                 #{[src (. start (getSeconds))]})]
     (newline) (newline)
     (println "Transit routing with:" (count (alg/nodes network)) "nodes")
     (c/quick-bench (alg/shortest-path dst coll)

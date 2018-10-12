@@ -12,9 +12,10 @@
       - entities to start searching from
       - [entity init] pair where init is value to start settling nodes
    - comparator: a standard java.util.comparator implementation to compare the
-      values returned by the router. Defaults to Clojure's compare function"
+      values returned by the router. Defaults to nil, which means that Valuable
+      implementation MUST be comparable i.e. implement java.util.Comparable"
   ([router start-from]
-   (dijkstra router start-from compare))
+   (dijkstra router start-from nil))
   ([router start-from comparator]
    (djk/->Dijkstra router start-from comparator)))
 

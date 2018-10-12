@@ -214,16 +214,15 @@
       (let [router     (transit/->StopTimesRouter network stop-times)
             ; both start and dst should be found since we checked that before
             traversal  (alg/dijkstra router
-                                     #{[src (. start (getSeconds))]}
-                                     transit/by-cost)
+                                     #{[src (. start (getSeconds))]})
             rtrail     (alg/shortest-path dst traversal)]
         (when (some? rtrail)
           (merge
             {:directions/uuid      (data/squuid)
              :directions/waypoints
-             [{:waypoint/name     (some :way/name (:node/ways src))
+             [{:waypoint/name     (:way/name (:way (val (last rtrail))))
                :waypoint/location (->coordinates (location src))}
-              {:waypoint/name     (some :way/name (:node/ways dst))
+              {:waypoint/name     (:way/name (:way (val (first rtrail))))
                :waypoint/location (->coordinates (location dst))}]}
             (route network rtrail (-> departure (.truncatedTo ChronoUnit/DAYS)
                                                 (.toEpochSecond)))))))))

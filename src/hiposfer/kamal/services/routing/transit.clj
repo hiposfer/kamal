@@ -5,10 +5,11 @@
   (:require [hiposfer.kamal.network.algorithms.protocols :as np]
             [hiposfer.kamal.libs.fastq :as fastq]
             [hiposfer.kamal.io.osm :as osm]
-            [hiposfer.kamal.libs.geometry :as geometry]
-            [clojure.set :as set]
-            [hiposfer.kamal.libs.tool :as tool]
-            [datascript.core :as data]))
+            [hiposfer.kamal.libs.geometry :as geometry]))
+
+(defn node? [e] (boolean (:node/id e)))
+(defn way? [e] (boolean (:way/id e)))
+(defn stop? [e] (boolean (:stop/id e)))
 
 ;; https://developers.google.com/transit/gtfs/reference/#routestxt
 (def route-types
@@ -23,76 +24,29 @@
 
 (defn walk-time
   ([p1 p2]
-   (/ (geometry/earth-distance p1 p2)
-      osm/walking-speed))
+   (Math/round ^Double (/ (geometry/earth-distance p1 p2)
+                          osm/walking-speed)))
   ([lon1 lat1 lon2 lat2]
-   (/ (geometry/earth-distance lon1 lat1 lon2 lat2)
-      osm/walking-speed)))
-
-(defn by-cost
-  "comparator to avoid CastClassException due to Java's Long limited comparison"
-  [a b]
-  (.compareTo ^Long (np/cost a)
-              ^Long (np/cost b)))
+   (Math/round ^Double (/ (geometry/earth-distance lon1 lat1 lon2 lat2)
+                          osm/walking-speed))))
 
 (def penalty 30) ;; seconds
 
-(defn node? [e] (boolean (:node/id e)))
-(defn way? [e] (boolean (:way/id e)))
-(defn stop? [e] (boolean (:stop/id e)))
+(defrecord WalkStep [way ^Long value]
+  np/Valuable
+  (cost [_] value)
+  Comparable
+  (compareTo [_ o] (Long/compare value (np/cost o))))
 
-(defn name
-  "returns a name that represents this entity in the network.
-   returns nil if the entity has no name"
-  [e]
-  (cond
-    (way? e) (:way/name e)
-    (stop? e) (:stop/name e)))
-
-(defn- common-road
-  "attempt to find the way that connect the passed arguments. Performs
-  a best guess otherwise"
-  [e1 e2]
-  (let [s1 (:node/ways e1)
-        s2 (:node/ways e2)
-        ss (set/intersection (set s1) (set s2))]
-    (tool/some :way/name ss)))
-
-(defn context
-  "Returns an entity holding the 'context' of the trace. For pedestrian routing
-  that is the road name. For transit routing it is the stop name"
-  ([piece] ;; a piece already represents a context ;)
-   (let [e (key (first piece))]
-     (cond
-       (stop? e) e ;; node otherwise
-       ;; TODO: can this be improved?
-       (> 1 (count piece)) (common-road (key (first piece))
-                                        (key (second piece)))
-       ;;  guessing here
-       :else (tool/some :way/name (:node/ways (key (first piece)))))))
-  ([trace vprev]
-   (let [previous (key (deref vprev))
-         current  (key trace)]
-     (vreset! vprev trace)
-     (cond
-       ;; walking normally -> return the way
-       (and (node? previous) (node? current))
-       (common-road previous current)
-       ;; getting into a trip -> return the way of the road
-       (and (node? previous) (stop? current))
-       (tool/some :way/name (:node/ways previous));;  guessing here
-       ;; on a trip -> return the stop
-       (and (stop? previous) (stop? current))
-       current
-       ;; leaving a trip -> return the last stop
-       (and (stop? previous) (node? current))
-       previous))))
+(defn walk-step? [o] (instance? WalkStep o))
 
 ;; a TripStep represents the transition between two stops in a GTFS feed
 ;; Both the source and destination :stop_time are kept to avoid future lookups
 (defrecord TripStep [start end ^Long value]
   np/Valuable
-  (cost [_] value))
+  (cost [_] value)
+  Comparable
+  (compareTo [_ o] (Long/compare value (np/cost o))))
 
 (defn trip-step? [o] (instance? TripStep o))
 
@@ -105,25 +59,26 @@
       (case [(node? src) (node? dst)]
         ;; The user just walking so we route based on walking duration
         [true true] ;; [node node]
-        (Math/round ^Double (+ now (walk-time (:node/location src)
-                                              (:node/location dst))))
+        (->WalkStep (:arc/way arc)
+                    (+ now (walk-time (:node/location src)
+                                      (:node/location dst))))
 
         ;; The user is walking to a stop
         [true false] ;; [node stop]
         (let [location (:node/location src)]
-          (Math/round ^Double (+ now (walk-time (np/lon location)
-                                                (np/lat location)
-                                                (:stop/lon dst)
-                                                (:stop/lat dst)))))
+          (->WalkStep (:arc/way arc) (+ now (walk-time (np/lon location)
+                                                       (np/lat location)
+                                                       (:stop/lon dst)
+                                                       (:stop/lat dst)))))
 
         ;; the user is trying to leave a vehicle. Apply penalty but route
         ;; normally
         [false true] ;; [stop node]
         (let [location (:node/location dst)]
-          (Math/round ^Double (+ now penalty (walk-time (:stop/lon src)
-                                                        (:stop/lat src)
-                                                        (np/lon location)
-                                                        (np/lat location)))))
+          (->WalkStep (:arc/way arc) (+ now penalty (walk-time (:stop/lon src)
+                                                               (:stop/lat src)
+                                                               (np/lon location)
+                                                               (np/lat location)))))
 
         ;; riding on public transport
         [false false] ;; [stop stop]
@@ -147,3 +102,39 @@
         (concat predecesors (:stop/arcs node-or-stop)))))
 
   (dst  [this arc] (:arc/dst arc)))
+
+(defn name
+  "returns a name that represents this entity in the network.
+   returns nil if the entity has no name"
+  [e]
+  (cond
+    (way? e) (:way/name e)
+    (stop? e) (:stop/name e)))
+
+(defn context
+  "Returns an entity holding the 'context' of the trace. For pedestrian routing
+  that is the way. For transit routing it is the stop"
+  ([piece] ;; a piece already represents a context ;)
+   (let [step (val (first piece))]
+     (if (walk-step? step) ;; trip-step otherwise
+       (:way step)
+       (key (first piece)))))
+  ([trace vprev]
+   (let [previous @vprev]
+     (vreset! vprev trace)
+     (cond
+       ;; walking normally -> return the way
+       (and (node? (key previous)) (node? (key trace)))
+       (:way (val previous))
+
+       ;; getting into a trip -> return the way of the road
+       (and (node? (key previous)) (stop? (key trace)))
+       (:way (key previous))
+
+       ;; on a trip -> return the stop
+       (and (stop? (key previous)) (stop? (key trace)))
+       (key previous)
+
+       ;; leaving a trip -> return the last stop
+       (and (stop? (key previous)) (node? (key trace)))
+       (key previous)))))

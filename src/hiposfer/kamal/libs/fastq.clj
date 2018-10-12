@@ -126,7 +126,7 @@
         (throw (ex-info "stop didnt match to any known node in the OSM data"
                         (into {} stop)))
         {:node/id   (:node/id node)
-         :node/arcs #{{:edge/dst [:stop/id (:stop/id stop)]}}}))))
+         :node/arcs #{{:arc/dst [:stop/id (:stop/id stop)]}}}))))
 
 (defn cache-stop-successors
   "computes the next-stops for each stop and returns a transaction
