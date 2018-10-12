@@ -23,7 +23,7 @@
                          :node/id       {:db.unique :db.unique/identity}
                          :node/location {:db/index true}
                          ;; bidirecitonal edges
-                         :node/edges    {:db.type        :db.type/ref
+                         :node/arcs     {:db.type        :db.type/ref
                                          :db.cardinality :db.cardinality/many}
                          :arc/way       {:db.type        :db.type/ref
                                          :db.cardinality :db.cardinality/one}

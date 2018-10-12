@@ -141,9 +141,9 @@
 
   (arcs [this node-or-stop]
     (let [id          (:db/id node-or-stop)
-          predecesors (fastq/references network :node/edges id)]
+          predecesors (fastq/references network :node/arcs id)]
       (if (node? node-or-stop)
-        (concat predecesors (:node/edges node-or-stop))
+        (concat predecesors (:node/arcs node-or-stop))
         (concat predecesors (:stop/arcs node-or-stop)))))
 
   (dst  [this arc] (:arc/dst arc)))

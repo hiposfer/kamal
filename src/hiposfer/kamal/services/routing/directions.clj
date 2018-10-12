@@ -228,9 +228,10 @@
             (route network rtrail (-> departure (.truncatedTo ChronoUnit/DAYS)
                                                 (.toEpochSecond)))))))))
 
-;(time
-;  (direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
-;             {:coordinates [[8.645333, 50.087314]
-;                            [8.635897, 50.104172]]
-;              :departure (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")
-;              :steps true}))
+#_(time
+    (direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
+               {:coordinates [[8.645333, 50.087314]
+                              [8.635897, 50.104172]]
+                :departure (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")
+                :steps true}))
+

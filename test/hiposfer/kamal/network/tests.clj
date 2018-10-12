@@ -24,22 +24,22 @@
               {:node/id 4}
               {:node/id 5}
               {:node/id 6}
-              {:node/id    1
-               :node/edges #{{:arc/dst [:node/id 2] :arc/length 7}
-                             {:arc/dst [:node/id 3] :arc/length 9}
-                             {:arc/dst [:node/id 6] :arc/length 14}}}
-              {:node/id    2
-               :node/edges #{{:arc/dst [:node/id 3] :arc/length 10}
-                             {:arc/dst [:node/id 4] :arc/length 15}}}
-              {:node/id    3
-               :node/edges #{{:arc/dst [:node/id 4] :arc/length 11}
-                             {:arc/dst [:node/id 6] :arc/length 2}}}
-              {:node/id    4
-               :node/edges #{{:arc/dst [:node/id 5] :arc/length 6}}}
-              {:node/id    5
-               :node/edges #{{:arc/dst [:node/id 6] :arc/length 9}}}
-              {:node/id    6
-               :node/edges #{}}])
+              {:node/id   1
+               :node/arcs #{{:arc/dst [:node/id 2] :arc/length 7}
+                            {:arc/dst [:node/id 3] :arc/length 9}
+                            {:arc/dst [:node/id 6] :arc/length 14}}}
+              {:node/id   2
+               :node/arcs #{{:arc/dst [:node/id 3] :arc/length 10}
+                            {:arc/dst [:node/id 4] :arc/length 15}}}
+              {:node/id   3
+               :node/arcs #{{:arc/dst [:node/id 4] :arc/length 11}
+                            {:arc/dst [:node/id 6] :arc/length 2}}}
+              {:node/id   4
+               :node/arcs #{{:arc/dst [:node/id 5] :arc/length 6}}}
+              {:node/id   5
+               :node/arcs #{{:arc/dst [:node/id 6] :arc/length 9}}}
+              {:node/id   6
+               :node/arcs #{}}])
 
 ;Distances from 1: ((1 0) (2 7) (3 9) (4 20) (5 26) (6 11))
 ;Shortest path: (1 3 4 5)
@@ -50,7 +50,7 @@
     (+ (val (first trail))
        (:arc/length arc)))
 
-  (arcs [this node] (:node/edges node))
+  (arcs [this node] (:node/arcs node))
 
   (dst [this arc] (:arc/dst arc)))
 

@@ -30,8 +30,8 @@
   takes around 0.25 milliseconds"
   [network entity]
   (let [target-id (:db/id entity)]
-    (concat (:node/edges entity)
-            (references network :node/edges target-id))))
+    (concat (:node/arcs entity)
+            (references network :node/arcs target-id))))
 
 (defn nearest-nodes
   "returns the nearest node/location to point"
@@ -125,8 +125,8 @@
       (if (not (some? node))
         (throw (ex-info "stop didnt match to any known node in the OSM data"
                         (into {} stop)))
-        {:node/id    (:node/id node)
-         :node/edges #{{:edge/dst [:stop/id (:stop/id stop)]}}}))))
+        {:node/id   (:node/id node)
+         :node/arcs #{{:edge/dst [:stop/id (:stop/id stop)]}}}))))
 
 (defn cache-stop-successors
   "computes the next-stops for each stop and returns a transaction

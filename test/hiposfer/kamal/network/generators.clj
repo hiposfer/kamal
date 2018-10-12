@@ -30,9 +30,9 @@
                         dst (node-id)
                         way (way-id)]
                     (if (not= src dst)
-                      {:node/id src
-                       :node/edges #{{:arc/dst [:node/id dst]
-                                      :arc/way [:way/id way]}}}
+                      {:node/id   src
+                       :node/arcs #{{:arc/dst [:node/id dst]
+                                     :arc/way [:way/id way]}}}
                       (recur)))]
     ;; create 3 times as many edges as node IDs
     (repeatedly (* 3 (count node-ids)) arcer)))

@@ -122,9 +122,9 @@
         neighbours    (for [way ways
                             [from to] (map vector (:way/nodes way)
                                                   (rest (:way/nodes way)))]
-                        {:node/id    from
-                         :node/edges #{{:edge/dst [:node/id to]
-                                        :edge/way [:way/id (:way/id way)]}}})]
+                        {:node/id   from
+                         :node/arcs #{{:arc/dst [:node/id to]
+                                       :arc/way [:way/id (:way/id way)]}}})]
     (concat nodes
             (map #(dissoc % :way/nodes) ways)
             neighbours)))
