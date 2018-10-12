@@ -1,13 +1,7 @@
 (ns hiposfer.kamal.specs.resources
   (:require [clojure.spec.alpha :as s]
             [hiposfer.kamal.services.routing.core :as routing]
-            [hiposfer.kamal.parsers.gtfs :as gtfs]
-            [clojure.set :as set]))
-
-(defn- gtfs-attributes?
-  [query]
-  (let [ks (set (filter qualified-keyword? (tree-seq coll? seq query)))]
-    (empty? (set/difference ks gtfs/attributes))))
+            [hiposfer.kamal.io.gtfs :as gtfs]))
 
 (defn- no-pull-inside?
   [query]
@@ -31,8 +25,11 @@
 (s/def ::area ::id)
 (s/def ::params (s/keys :req-un [::area ::name ::id]))
 
-(s/def ::q (s/and coll? not-empty gtfs-attributes? no-pull-inside?))
+(s/def ::q (s/and coll? not-empty no-pull-inside?))
 
 (s/def ::args (s/and coll? not-empty))
 (s/def ::query (s/keys :req-un [::area ::q]
                        :opt-un [::args]))
+
+(s/def ::gtfs-entry (s/map-of gtfs/keywords some?))
+(s/def ::transaction (s/coll-of ::gtfs-entry :kind vector?))

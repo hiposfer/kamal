@@ -3,7 +3,7 @@
             [hiposfer.geojson.specs :as geojson]
             [clojure.spec.gen.alpha :as gen]
             [hiposfer.kamal.services.routing.directions :as dir]
-            [hiposfer.kamal.parsers.gtfs :as gtfs]
+            [hiposfer.kamal.io.gtfs :as gtfs]
             [clojure.string :as str])
   (:import (java.time ZoneOffset ZonedDateTime Instant)))
 
@@ -11,7 +11,7 @@
 (s/def ::bearing     (s/and number? #(<= 0 % 360)))
 
 (def stop-time-keys (set (filter #(str/starts-with? (namespace %) "stop_time")
-                                  gtfs/attributes)))
+                                 gtfs/keywords)))
 
 (s/def ::stop_time (s/map-of stop-time-keys any?))
 

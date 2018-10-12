@@ -1,5 +1,6 @@
 (ns hiposfer.kamal.services.webserver.handlers
   (:require [ring.util.http-response :as code]
+            [ring.util.io :as rio]
             [compojure.core :as api]
             [compojure.route :as route]
             [hiposfer.kamal.specs.directions :as dirspecs]
@@ -10,8 +11,11 @@
             [datascript.core :as data]
             [clojure.edn :as edn]
             [hiposfer.kamal.libs.tool :as tool]
-            [hiposfer.kamal.parsers.gtfs :as gtfs])
-  (:import (java.time ZonedDateTime)))
+            [hiposfer.kamal.io.gtfs :as gtfs]
+            [clojure.java.io :as io]
+            [ring.util.response :as response])
+  (:import (java.time ZonedDateTime)
+           (java.util.zip GZIPOutputStream)))
 
 (def max-distance 1000) ;; meters
 
@@ -28,7 +32,7 @@
   "returns a sequence of coordinates matched to the provided ones"
   [request]
   (let [params  (:params request)
-        network (:network params)
+        network (deref (:network params))
         coords (match-coordinates network params)]
     (if (= (count (:coordinates params)) (count coords)) request
       (code/precondition-failed!
@@ -42,26 +46,31 @@
         params   (:params request)
         network  (reduce (fn [_ conn]
                            (when (some? (data/entity @conn [:area/id (:area params)]))
-                             (reduced (deref conn))))
+                             (reduced conn)))
                          nil
                          networks)]
     (if (some? network)
       (assoc-in request [:params :network] network)
       (code/bad-request! {:msg "unknown area" :data (:area params)}))))
 
-(defn validate-params
-  "checks that the passed request conforms to spec and coerce its params
-  if so. Returns a possibly modified request.
+(defn validate
+  "Throws an exception if request doesnt conform to spec, returns the
+   request otherwise.
+
+  Accepts an optional keyword k to specify which part of the request to
+  validate. Defaults to :params
 
   We do it like this instead of creating a middleware for readability. We
   need access to the path parameters which are only added after the route
   has been matched.
 
   See: https://groups.google.com/forum/?hl=en#!topic/compojure/o5l9m7nbGlE"
-  [request spec]
-  (let [errors      (tool/assert (:params request) spec)]
-    (if (not (some? errors)) request
-      (code/bad-request! errors))))
+  ([request spec]
+   (validate request :params spec))
+  ([request k spec]
+   (let [errors (tool/assert (get request k) spec)]
+     (if (not (some? errors)) request
+       (code/bad-request! errors)))))
 
 (defn- get-area
   [request]
@@ -89,18 +98,28 @@
 
 (defn- get-resource
   [request]
-  (let [network (:network (:params request))
+  (let [network (deref (:network (:params request)))
         k       (keyword (:name (:params request)) "id")
-        v       (gtfs/coerce (:id (:params request)))]
+        v       (gtfs/decode (:id (:params request)))]
     (code/ok (gtfs/resource (data/entity network [k v])))))
 
 (defn- query-area
   [request]
   (let [network (data/filter (:network (:params request))
-                             (fn [_ datom] (contains? gtfs/attributes (:a datom))))
+                             (fn [_ datom] (contains? gtfs/keywords (:a datom))))
         q       (:q (:params request))
         args    (:args (:params request))]
     (code/ok (apply data/q q (cons network args)))))
+
+(defn- update-area
+  [request]
+  (let [conn (:network (:params request))
+        db   (:db-after (data/with @conn (:body request)))]
+    (-> (rio/piped-input-stream #(gtfs/dump! db %))
+        (code/ok)
+        (response/content-type "application/zip")
+        (assoc-in [:headers "Content-Disposition"]
+                  "attachment; filename=\"gtfs.zip\""))))
 
 ;; ring handlers are matched in order
 (def server "all API handlers"
@@ -109,21 +128,25 @@
       (code/ok {:version (System/getProperty "kamal.version")}))
     (api/GET "/area" request (get-area request))
     (api/GET "/area/:area/directions" request
-      (-> (tool/coerce-request request directions-coercer)
-          (validate-params ::dirspecs/params)
+      (-> (update request :params tool/coerce directions-coercer)
+          (validate ::dirspecs/params)
           (select-network)
           (validate-coordinates)
           (get-directions)))
     (api/GET "/area/:area/:name/:id" request
-      (-> (validate-params request ::resource/params)
+      (-> (validate request ::resource/params)
           (select-network)
           (get-resource)))
     (api/GET "/area/:area/gtfs" request
-      (-> (tool/coerce-request request {:q    edn/read-string
-                                        :args edn/read-string})
-          (validate-params ::resource/query)
+      (-> (update request :params tool/coerce {:q    edn/read-string
+                                               :args edn/read-string})
+          (validate ::resource/query)
           (select-network)
           (query-area)))
+    (api/POST "/area/:area/gtfs" request
+      (-> (select-network request)
+          (validate :body ::resource/transaction)
+          (update-area)))
     ;; TODO: implement some persistency for user suggestions
     ;; (api/PUT "/area/:area/suggestions" request
     ;;  (put-suggestions (preprocess request ::dirspecs/params directions-coercer)))
@@ -141,6 +164,6 @@
 ;              :departure (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")
 ;              :steps true}))
 
-;(data/q '[:find ?id .
-;          :where [_ :trip/id ?id]]
-;         @(first @(:networks (:router hiposfer.kamal.dev/system))))
+#_(data/q '[:find (pull ?agency [*])
+            :where [?agency :agency/id ?id]]
+           @(first @(:networks (:router hiposfer.kamal.dev/system))))

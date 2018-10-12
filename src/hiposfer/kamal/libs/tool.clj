@@ -66,13 +66,6 @@
              m
              coercers))
 
-(defn coerce-request
-  "takes a map and a mapping of keyword to a 1 argument function. Recursively
-   transforms m by updating its value through the passed functions. Non existent
-   values are ignored"
-  [request coercers]
-  (update request :params coerce coercers))
-
 (defn- stringify?
   "only stringifies java object which are not primities (java.lang...)"
   [^Object value]

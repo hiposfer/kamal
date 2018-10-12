@@ -1,4 +1,4 @@
-(ns hiposfer.kamal.parsers.edn
+(ns hiposfer.kamal.io.edn
   (:require [clojure.java.io :as io]
             [clojure.edn :as edn]
             [datascript.core :as data]

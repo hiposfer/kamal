@@ -1,27 +1,27 @@
-(ns hiposfer.kamal.parsers.gtfs
-  "namespace for parsing a GTFS feed into a Datascript transaction.
+(ns hiposfer.kamal.io.gtfs
+  "namespace for handling GTFS to Datascript convertion and vice versa.
 
   The algorithms coerces GTFS csv files into entities that reference
   each other through IDs. The IDs are taken directly from GTFS.
 
   A small dynamic renaming is performed to make it more compatible
   with Datascript design. The renaming is based on the GTFS naming
-  convention, for example: stop_lon, stop_url, trip_id, trip_headsign, etc.
+  convention, for example: stop_lon, stop_url, trip_id, trip_headsign.
 
   We transform those strings into: :stop/lon, :stop/url, :trip/id,
-  :trip/headsign.
+  :trip/headsign, respectively.
 
   This is important to be able to create relationships between entities through
   transactions, for example {:trip/id 1, :trip/route [:route/id 1]}. This
-  allows us to create relationships between entities without actually having
-  them, i.e. thread them simply as data"
+  allows us to create relationships between entities without using java references
+  ... just data"
   (:require [hiposfer.gtfs.edn :as reference]
-            [hiposfer.kamal.network.core :as network]
             [clojure.java.io :as io]
             [clojure.data.csv :as csv]
             [clojure.edn :as edn]
-            [datascript.impl.entity :as dimp])
-  (:import (java.util.zip ZipInputStream ZipEntry)
+            [datascript.impl.entity :as dimp]
+            [datascript.core :as data])
+  (:import (java.util.zip ZipInputStream ZipEntry ZipOutputStream)
            (java.time Duration LocalDate ZoneId)
            (java.time.format DateTimeFormatter)
            (java.util List)))
@@ -66,7 +66,7 @@
     (ZoneId/of text)
     (catch Exception _ text))) ;; failure, not a timezone, return text
 
-(defn coerce
+(defn decode
   [text]
   (cond ;; date before number due to the overlapping regex :(
     (re-matches re-date text)     (local-date text)
@@ -111,8 +111,8 @@
         (for [[k v] (map vector (map :keyword head) row)
               :when (not-empty v)]
           (if (ref? (get fields k))
-            [k [(keyword (name k) "id") (coerce v)]]
-            [k (coerce v)]))))))
+            [k [(keyword (name k) "id") (decode v)]]
+            [k (decode v)]))))))
 
 ;(with-open [f (io/reader "resources/frankfurt.gtfs/trips.txt")]
 ;  (into [] (take 10 (parse (csv/read-csv f) "trips.txt"))))
@@ -128,7 +128,7 @@
   WARNING: The order of the sequence is not guarantee to be consistent
   for a Datascript transaction"
   [^ZipInputStream zipstream]
-  (for [entry  ^ZipEntry (repeatedly #(. zipstream (getNextEntry)))
+  (for [^ZipEntry entry (repeatedly #(. zipstream (getNextEntry)))
         :while (some? entry)
         :when  (contains? (set read-order) (. entry (getName)))]
     (let [filename (. entry (getName))
@@ -157,9 +157,14 @@
   ;                                        files-content)
   ;                                (rest stack))))))))
 
+;(with-open [z (ZipInputStream. (io/input-stream "resources/frankfurt.gtfs.zip"))]
+;  (time (vec (drop 100 (transaction! z)))))
+;; ............................................................................
+
+
 ;; just for convenience
-(def idents (into #{} (comp (filter :unique) (map :keyword)) reference/fields))
-(def attributes (into #{} (map :keyword reference/fields)))
+(def uniques (into #{} (comp (filter :unique) (map :keyword)) reference/fields))
+(def keywords (into #{} (map :keyword reference/fields)))
 
 (defn resource
   "takes a datascript entity and checks if any of its values are entities, if so
@@ -168,18 +173,111 @@
   (into {} (remove nil?)
     (for [[k v] entity]
       (cond
-        (not (contains? attributes k))
+        (not (contains? keywords k))
         nil
 
         (dimp/entity? v)
-        [k (select-keys v [(some (set (keys v)) idents)])]
+        [k (select-keys v [(some (set (keys v)) uniques)])]
 
         (set? v)
-        [k (map #(select-keys % [(some (set (keys %)) idents)]) v)]
+        [k (map #(select-keys % [(some (set (keys %)) uniques)]) v)]
 
-        (contains? attributes k) [k v]))))
+        (contains? keywords k) [k v]))))
+;; ............................................................................
 
-;(with-open [z (ZipInputStream. (io/input-stream "resources/frankfurt.gtfs.zip"))]
-;  (time (vec (drop 100 (transaction! z)))))
+(defn encode
+  [k v]
+  (case k
+    (:stop_time/arrival_time :stop_time/departure_time)
+    (let [duration (Duration/ofSeconds v)]
+      (format "%d:%02d:%02d"
+              (.toHours duration)
+              (mod (.toMinutes duration) 60)
+              (mod (.getSeconds duration) 60)))
 
-;(filter :unique reference/fields)
+    (:service/start_date :service/end_date)
+    (. ^LocalDate v (format date-format))
+    ;; default - no op
+    v))
+
+(defn- reference-keyword
+  "returns the attribute id for a reference field.
+
+   For example: [trips.txt service_id] -> :service/id"
+  [field]
+  (reduce (fn [_ entry] (when (= (:field-name field) (:field-name entry))
+                          (reduced (:keyword entry))))
+          nil
+          (filter :unique reference/fields)))
+
+(def feed-hidrator
+  {"stop_times.txt"
+   (fn [network]
+     (for [trip (data/datoms network :aevt :trip/id)
+           :let [std     (data/datoms network :avet :stop_time/trip (:e trip))
+                 entries (map #(data/entity network (:e %)) std)]
+           stop_time (sort-by :stop_time/stop_sequence entries)]
+       stop_time))})
+   ;calendar_dates.txt
+   ;frequencies.txt
+   ;fare_rules.txt
+   ;transfers.txt
+   ;feed_info.txt
+
+(defn- key-paths
+  [feed]
+  (for [field reference/fields
+        :when (= (:filename feed) (:filename field))]
+    (if (ref? field)
+      [(:keyword field) (reference-keyword field)]
+      [(:keyword field)])))
+
+(defn- feed-entities
+  [network feed]
+  (let [filename (:filename feed)
+        field-id (first (filter :unique (:fields feed)))
+        id       (reference/get-mapping filename (:field-name field-id))]
+    (cond
+      (some? id)
+      (for [d (data/datoms network :avet (:keyword id))]
+        (data/entity network (:e d)))
+
+      (some? (feed-hidrator (:filename feed)))
+      (apply (feed-hidrator (:filename feed)) [network]))))
+
+(defn- dump
+  "returns a sequence of [filename content] for each feed of the gtfs spec
+  present in network"
+  [network]
+  (for [feed (:feeds reference/gtfs-spec)
+        :let [paths (key-paths feed)]
+        :when (not-empty (feed-entities network feed))]
+    [(:filename feed)
+     (cons (map :field-name (:fields feed));; header
+       (for [entity (feed-entities network feed)]
+         (for [path paths]
+           (if (= 1 (count path))
+             (encode (first path) (or (get-in entity path) ""))
+             (get-in entity path)))))]))
+
+(defn dump!
+  "writes the complete GTFS information from network into outstream as a Zip file"
+  [network outstream]
+  (let [zipstream (ZipOutputStream. outstream)]
+    (with-open [writer (io/writer zipstream)]
+      (doseq [[filename content] (dump network)
+              :let [zip-entry (ZipEntry. ^String filename)]]
+        #_(println "writing" filename)
+        (.putNextEntry zipstream zip-entry)
+        (csv/write-csv writer content)
+        (.flush writer)))))
+
+#_(time (dump! @(first @(:networks (:router hiposfer.kamal.dev/system)))
+               (io/output-stream "resources/test/foo.zip")))
+
+#_(reference/get-mapping "agency.txt" (:field-name (first (filter :unique reference/fields))))
+#_(reference-keyword (reference/get-mapping "trips.txt" "service_id"))
+#_(reference/get-mapping "calendar.txt" "start_date")
+
+;(seq (Locale/getAvailableLocales))
+;(seq (Locale/getISOLanguages))
