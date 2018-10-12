@@ -8,6 +8,13 @@
             [clojure.string :as str])
   (:import (java.time LocalDate)))
 
+(defn references
+  "returns all entities that reference/point to target-id through
+  attribute"
+  [network attribute target-id]
+  (eduction (map #(data/entity network (:e %)))
+            (data/datoms network :avet attribute target-id)))
+
 (defn node-edges
   "takes a network and an entity and returns the successors of that entity.
    Only valid for OSM nodes. Assumes bidirectional links i.e. nodes with
@@ -22,16 +29,14 @@
   The previous query takes around 50 milliseconds to finish. This function
   takes around 0.25 milliseconds"
   [network entity]
-  (let [id (:db/id entity)]
+  (let [target-id (:db/id entity)]
     (concat (:node/edges entity)
-            (map #(data/entity network (:e %))
-                  (data/datoms network :avet :node/edges id)))))
+            (references network :node/edges target-id))))
 
 (defn nearest-nodes
   "returns the nearest node/location to point"
   [network point]
-  (eduction (map :e)
-            (map #(data/entity network %))
+  (eduction (map #(data/entity network (:e %)))
             (data/index-range network :node/location point nil)))
 
 (defn continue-trip
@@ -53,8 +58,7 @@
   (let [?dst-id  (:db/id dst)
         ?trip-id (:db/id trip)]
     (tool/some #(= ?dst-id (:db/id (:stop_time/stop %)))
-                (map #(data/entity network (:e %))
-                      (data/datoms network :avet :stop_time/trip ?trip-id)))))
+                (references network :stop_time/trip ?trip-id))))
 
 (defn find-trip
   "Returns a [src dst] :stop_time pair for the next trip between ?src-id
@@ -96,20 +100,19 @@
 (defn day-stop-times
   "returns a set of stop_times entity ids that are available for date"
   [network ^LocalDate date]
-  (let [services (into #{} (comp (take-while #(= (:a %) :service/id))
-                                 (map #(data/entity network (:e %)))
+  (let [services (into #{} (comp (map #(data/entity network (:e %)))
                                  (filter #(. date (isBefore (:service/end_date %))))
                                  (filter #(. date (isAfter (:service/start_date %))))
                                  (filter #(working? date %))
                                  (map :db/id))
-                       (data/seek-datoms network :avet :service/id))
-        trips    (into #{} (comp (take-while #(= (:a %) :trip/service))
-                                 (filter #(contains? services (:v %)))
+                           (data/datoms network :avet :service/id))
+        trips    (into #{} (comp (filter #(contains? services (:v %)))
                                  (map :e))
-                       (data/seek-datoms network :avet :trip/service))]
+                           (data/datoms network :avet :trip/service))]
     (into #{} (comp (filter #(contains? trips (:v %)))
                     (map :e))
               (data/datoms network :avet :stop_time/trip))))
+
 
 ;; This might not be the best approach but it gets the job done for the time being
 (defn link-stops
@@ -123,19 +126,21 @@
         (throw (ex-info "stop didnt match to any known node in the OSM data"
                         (into {} stop)))
         {:node/id    (:node/id node)
-         :node/edges #{[:stop/id (:stop/id stop)]}}))))
+         :node/edges #{{:edge/dst [:stop/id (:stop/id stop)]}}}))))
 
 (defn cache-stop-successors
   "computes the next-stops for each stop and returns a transaction
   that will cache those results inside the :stop entities"
   [network]
   (let [pairs (for [trip (data/datoms network :aevt :trip/id)
-                    :let [entries (map #(data/entity network (:e %))
-                                        (data/datoms network :avet :stop_time/trip (:e trip)))
-                          stop_times (sort-by :stop_time/stop_sequence entries)]
+                    :let [refs (references network :stop_time/trip (:e trip))
+                          stop_times (sort-by :stop_time/stop_sequence refs)]
                     [from to] (map vector stop_times (rest stop_times))]
                 [(:stop/id (:stop_time/stop from))
-                 (:stop/id (:stop_time/stop to))])]
-    (for [[from-id to-id] (distinct pairs)]
-      {:stop/id   from-id
-       :stop/arcs #{[:stop/id to-id]}})))
+                 (:stop/id (:stop_time/stop to))
+                 (:route/id (:trip/route (:stop_time/trip from)))])]
+    ;; from/to might be connected through several routes
+    (for [[from to route] (distinct pairs)]
+      {:stop/id   from
+       :stop/arcs #{{:arc/dst   [:stop/id to]
+                     :arc/route [:route/id route]}}})))

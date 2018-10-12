@@ -140,9 +140,8 @@
               (->TripStep st1 st2 (:stop_time/arrival_time st2))))))))
 
   (arcs [this node-or-stop]
-    (let [id (:db/id node-or-stop)
-          predecesors (map #(data/entity network (:e %))
-                            (data/datoms network :avet :node/edges id))]
+    (let [id          (:db/id node-or-stop)
+          predecesors (fastq/references network :node/edges id)]
       (if (node? node-or-stop)
         (concat predecesors (:node/edges node-or-stop))
         (concat predecesors (:stop/arcs node-or-stop)))))
