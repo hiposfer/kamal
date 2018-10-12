@@ -108,11 +108,11 @@
         fields  (into {} (map (juxt :keyword identity) head))]
     (for [row (rest content)]
       (into {}
-            (for [[k v] (map vector (map :keyword head) row)
-                  :when (not-empty v)]
-              (if (ref? (get fields k))
-                [k [(keyword (name k) "id") (decode v)]]
-                [k (decode v)]))))))
+        (for [[k v] (map vector (map :keyword head) row)
+              :when (not-empty v)]
+          (if (ref? (get fields k))
+            [k [(keyword (name k) "id") (decode v)]]
+            [k (decode v)]))))))
 
 ;(with-open [f (io/reader "resources/frankfurt.gtfs/trips.txt")]
 ;  (into [] (take 10 (parse (csv/read-csv f) "trips.txt"))))
