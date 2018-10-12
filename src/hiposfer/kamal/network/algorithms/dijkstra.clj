@@ -43,7 +43,7 @@
         trail  (path settled entity)]
     (doseq [node (np/successors router entity)
             :when (not (. settled (containsKey node)))
-            :let [v (np/weight router node trail)]
+            :let [v (np/relax router node trail)]
             :when (some? v)]
       (let [prev    (key (. entry (getValue)))
             weight  (np/sum v (. entry (getKey)))

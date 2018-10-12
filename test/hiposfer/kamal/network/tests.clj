@@ -49,7 +49,7 @@
 
 (defrecord RosettaRouter [graph]
   np/Router
-  (weight [this dst trail]
+  (relax [this dst trail]
     (let [src-id (:node/id (key (first trail)))
           dst-id (:node/id dst)]
       (get-in lengths [src-id dst-id])))
@@ -86,7 +86,7 @@
 
 (defrecord PedestrianRouter [graph]
   np/Router
-  (weight [this dst trail]
+  (relax [this dst trail]
     (transit/duration graph dst trail))
   (successors [this node]
     (fastq/node-successors graph node)))

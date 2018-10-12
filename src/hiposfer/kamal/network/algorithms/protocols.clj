@@ -12,7 +12,7 @@
 
 (defprotocol Router
   "An instance used to direct the movement of Dijkstra's traversal algorithm"
-  (weight [this node trail]
-    "returns a Valuable implementation to order node in the Dijkstra heap")
+  (relax [this node trail]
+    "attempts to relax node following trail path. Returns a Valuable implementation")
   (successors [this node]
     "returns a sequence of node that can be reached from node"))

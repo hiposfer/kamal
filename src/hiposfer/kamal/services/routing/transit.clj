@@ -107,7 +107,7 @@
 
 (defrecord StopTimesRouter [network day-stops]
   np/Router
-  (weight [this dst trail]
+  (relax [this dst trail]
     (let [[src value] (first trail)
           now         (np/cost value)]
       (case [(node? src) (node? dst)]
@@ -150,7 +150,6 @@
     (let [id (:db/id entity)
           predecesors (map #(data/entity network (:e %))
                             (data/datoms network :avet :node/successors id))]
-
       (if (node? entity)
         (concat predecesors (:node/successors entity))
         (concat predecesors (:stop/successors entity))))))
