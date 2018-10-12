@@ -138,8 +138,8 @@
         neighbours    (for [way ways
                             [from to] (map vector (:way/nodes way)
                                                   (rest (:way/nodes way)))]
-                        {:node/id         from
-                         :node/successors #{[:node/id to]}})]
+                        {:node/id    from
+                         :node/edges #{[:node/id to]}})]
     (concat nodes
             (map #(dissoc % :way/nodes) roads)
             neighbours

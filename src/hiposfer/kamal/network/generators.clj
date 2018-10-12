@@ -15,7 +15,7 @@
         arcer    #(let [src (pick)
                         dst (pick)]
                     (if (not= src dst)
-                      {:node/id src :node/successors #{[:node/id dst]}}
+                      {:node/id src :node/edges #{[:node/id dst]}}
                       (recur)))
         ;; create 3 times as many edges as node IDs
         edges     (distinct (repeatedly (* 3 (count ids)) arcer))

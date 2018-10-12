@@ -23,39 +23,35 @@
               {:node/id 4}
               {:node/id 5}
               {:node/id 6}
-              {:node/id 1
-               :node/successors #{[:node/id 2] [:node/id 3] [:node/id 6]}}
-              {:node/id 2
-               :node/successors #{[:node/id 3] [:node/id 4]}}
-              {:node/id 3
-               :node/successors #{[:node/id 4] [:node/id 6]}}
-              {:node/id 4
-               :node/successors #{[:node/id 5]}}
-              {:node/id 5
-               :node/successors #{[:node/id 6]}}
-              {:node/id 6
-               :node/successors #{}}])
-
-;; HACK: It shouldnt be like this but I am not going to modify the schema just
-;; to make it pretty
-(def lengths {1 {2 7, 3 9, 6 14}
-              2 {3 10, 4 15}
-              3 {4 11, 6 2}
-              4 {5 6}
-              5 {6 9}})
+              {:node/id    1
+               :node/edges #{{:arc/dst [:node/id 2] :arc/length 7}
+                             {:arc/dst [:node/id 3] :arc/length 9}
+                             {:arc/dst [:node/id 6] :arc/length 14}}}
+              {:node/id    2
+               :node/edges #{{:arc/dst [:node/id 3] :arc/length 10}
+                             {:arc/dst [:node/id 4] :arc/length 15}}}
+              {:node/id    3
+               :node/edges #{{:arc/dst [:node/id 4] :arc/length 11}
+                             {:arc/dst [:node/id 6] :arc/length 2}}}
+              {:node/id    4
+               :node/edges #{{:arc/dst [:node/id 5] :arc/length 6}}}
+              {:node/id    5
+               :node/edges #{{:arc/dst [:node/id 6] :arc/length 9}}}
+              {:node/id    6
+               :node/edges #{}}])
 
 ;Distances from 1: ((1 0) (2 7) (3 9) (4 20) (5 26) (6 11))
 ;Shortest path: (1 3 4 5)
 
 (defrecord RosettaRouter [graph]
   np/Router
-  (relax [this dst trail]
-    (let [src-id (:node/id (key (first trail)))
-          dst-id (:node/id dst)]
-      (+ (val (first trail))
-         (get-in lengths [src-id dst-id]))))
-  (successors [this node]
-    (:node/successors node)))
+  (relax [this arc trail]
+    (+ (val (first trail))
+       (:arc/length arc)))
+
+  (arcs [this node] (:node/edges node))
+
+  (dst [this arc] (:arc/dst arc)))
 
 (deftest shortest-path
   (let [network   (data/create-conn router/schema)
@@ -87,13 +83,16 @@
 
 (defrecord PedestrianRouter [graph]
   np/Router
-  (relax [this dst trail]
-    (+ (val (first trail))
-       (transit/walk-time (:node/location (key (first trail)))
-                          (or (:node/location dst)
-                              [(:stop/lon dst) (:stop/lat dst)]))))
-  (successors [this node]
-    (fastq/node-successors graph node)))
+  (relax [this arc trail]
+    (let [[src value] (first trail)
+          dst         (np/dst this arc)]
+      (+ value (transit/walk-time (:node/location src)
+                                  (or (:node/location dst)
+                                      [(:stop/lon dst) (:stop/lat dst)])))))
+
+  (arcs [this node] (fastq/node-edges graph node))
+
+  (dst [this arc] (:arc/dst arc)))
 
 ; -------------------------------------------------------------------
 ; The Dijkstra algorithm is deterministic, therefore for the same src/dst

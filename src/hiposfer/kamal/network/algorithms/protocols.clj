@@ -10,7 +10,9 @@
 
 (defprotocol Router
   "An instance used to direct the movement of Dijkstra's traversal algorithm"
-  (relax [this node trail]
+  (relax [this arc trail]
     "attempts to relax node following trail path. Returns a Valuable implementation")
-  (successors [this node]
-    "returns a sequence of node that can be reached from node"))
+  (arcs [this node]
+    "returns a sequence of arcs that link node with its neighbours")
+  (dst [this arc]
+    "returns a node based on an arc"))

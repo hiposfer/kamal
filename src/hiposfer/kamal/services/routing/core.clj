@@ -21,27 +21,33 @@
 ;; Thanks datascript
 
 (def schema (merge-with into
-              {:area/id         {:db.unique :db.unique/identity}
-               ;; Open Street Map - entities
-               :node/id         {:db.unique :db.unique/identity}
-               :node/location   {:db/index true}
-               :node/ways       {:db.type        :db.type/ref
-                                 :db.cardinality :db.cardinality/many}
-               :node/successors {:db.type        :db.type/ref
-                                 :db.cardinality :db.cardinality/many}
-               :way/id          {:db.unique :db.unique/identity}}
-              ;; General Transfer Feed Specification - entities
-              ;; identities
-              (into {}
-                (for [id gtfs/uniques]
-                  [id {:db.unique :db.unique/identity}]))
-              ;; references
-              (into {}
-                (for [f gtfs.edn/fields :when (gtfs/ref? f)]
-                  [(f :keyword) {:db/type :db.type/ref}]))
-              ;; custom extensions
-              {:stop/successors {:db.type        :db.type/ref
-                                 :db.cardinality :db.cardinality/many}}))
+                        {:area/id       {:db.unique :db.unique/identity}
+                         ;; Open Street Map - entities
+                         :node/id       {:db.unique :db.unique/identity}
+                         :node/location {:db/index true}
+                         ;; bidirecitonal edges
+                         :node/edges    {:db.type        :db.type/ref
+                                         :db.cardinality :db.cardinality/many}
+                         :arc/way       {:db.type        :db.type/ref
+                                         :db.cardinality :db.cardinality/one}
+                         :arc/route     {:db.type        :db.type/ref
+                                         :db.cardinality :db.cardinality/one}
+                         :arc/dst       {:db.type        :db.type/ref
+                                         :db.cardinality :db.cardinality/one}
+                         :way/id        {:db.unique :db.unique/identity}}
+                        ;; General Transfer Feed Specification - entities
+                        ;; identities
+                        (into {}
+                          (for [id gtfs/uniques]
+                            [id {:db.unique :db.unique/identity}]))
+                        ;; references
+                        (into {}
+                          (for [f gtfs.edn/fields :when (gtfs/ref? f)]
+                            [(f :keyword) {:db/type :db.type/ref}]))
+                        ;; custom extensions
+                        ;; unidirectional arcs
+                        {:stop/arcs {:db.type        :db.type/ref
+                                     :db.cardinality :db.cardinality/many}}))
 
 (defn network
   "builds a datascript in-memory db and conj's it into the passed agent"

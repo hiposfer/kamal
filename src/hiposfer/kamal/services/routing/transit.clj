@@ -137,10 +137,13 @@
           (let [[st1 st2] (fastq/find-trip network day-stops src dst now)]
             (when (some? st2) ;; nil if no trip was found
               (->TripStep st1 st2 (:stop_time/arrival_time st2))))))))
-  (successors [this entity]
-    (let [id          (:db/id entity)
+
+  (arcs [this node-or-stop]
+    (let [id (:db/id node-or-stop)
           predecesors (map #(data/entity network (:e %))
-                            (data/datoms network :avet :node/successors id))]
-      (if (node? entity)
-        (concat predecesors (:node/successors entity))
-        (concat predecesors (:stop/successors entity))))))
+                            (data/datoms network :avet :node/edges id))]
+      (if (node? node-or-stop)
+        (concat predecesors (:node/edges node-or-stop))
+        (concat predecesors (:stop/arcs node-or-stop)))))
+
+  (dst  [this arc] (:arc/dst arc)))

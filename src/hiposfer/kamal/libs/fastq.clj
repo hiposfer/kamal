@@ -8,7 +8,7 @@
             [clojure.string :as str])
   (:import (java.time LocalDate)))
 
-(defn node-successors
+(defn node-edges
   "takes a network and an entity and returns the successors of that entity.
    Only valid for OSM nodes. Assumes bidirectional links i.e. nodes with
    back-references to entity are also returned
@@ -23,9 +23,9 @@
   takes around 0.25 milliseconds"
   [network entity]
   (let [id (:db/id entity)]
-    (concat (:node/successors entity)
+    (concat (:node/edges entity)
             (map #(data/entity network (:e %))
-                  (data/datoms network :avet :node/successors id)))))
+                  (data/datoms network :avet :node/edges id)))))
 
 (defn nearest-nodes
   "returns the nearest node/location to point"
@@ -122,8 +122,8 @@
       (if (not (some? node))
         (throw (ex-info "stop didnt match to any known node in the OSM data"
                         (into {} stop)))
-        {:node/id (:node/id node)
-         :node/successors #{[:stop/id (:stop/id stop)]}}))))
+        {:node/id    (:node/id node)
+         :node/edges #{[:stop/id (:stop/id stop)]}}))))
 
 (defn cache-stop-successors
   "computes the next-stops for each stop and returns a transaction
@@ -137,5 +137,5 @@
                 [(:stop/id (:stop_time/stop from))
                  (:stop/id (:stop_time/stop to))])]
     (for [[from-id to-id] (distinct pairs)]
-      {:stop/id from-id
-       :stop/successors #{[:stop/id to-id]}})))
+      {:stop/id   from-id
+       :stop/arcs #{[:stop/id to-id]}})))
