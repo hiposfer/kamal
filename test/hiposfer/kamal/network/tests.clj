@@ -51,8 +51,13 @@
                :edge/dst [:node/id 6]
                :arc/length 9}])
 
+;; --- directed arcs
 ;Distances from 1: ((1 0) (2 7) (3 9) (4 20) (5 26) (6 11))
 ;Shortest path: (1 3 4 5)
+
+;; --- bidirectional arcs
+;Distances from 1: ((1 0) (2 7) (3 9) (4 20) (5 20) (6 11))
+;Shortest path: (1 3 6 5)
 
 (defrecord RosettaRouter [graph]
   np/Router
@@ -70,7 +75,7 @@
         traversal (alg/shortest-path dst performer)]
     (is (not (empty? traversal))
         "shortest path not found")
-    (is (= '(5 4 3 1) (map (comp :node/id key) traversal))
+    (is (= '(5 6 3 1) (map (comp :node/id key) traversal))
         "shortest path doesnt traverse expected nodes")))
 
 (deftest all-paths
@@ -84,7 +89,7 @@
                            performer)]
     (is (not (nil? traversal))
         "shortest path not found")
-    (is (= {1 0, 2 7, 3 9, 4 20, 5 26, 6 11}
+    (is (= {1 0, 2 7, 3 9, 4 20, 5 20, 6 11}
            traversal)
         "shortest path doesnt traverse expected nodes")))
 
