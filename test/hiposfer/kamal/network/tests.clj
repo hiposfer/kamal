@@ -55,7 +55,7 @@
 ;Distances from 1: ((1 0) (2 7) (3 9) (4 20) (5 26) (6 11))
 ;Shortest path: (1 3 4 5)
 
-;; --- bidirectional arcs
+;; --- bidirectional arcs ... see kotlin solution
 ;Distances from 1: ((1 0) (2 7) (3 9) (4 20) (5 20) (6 11))
 ;Shortest path: (1 3 6 5)
 
@@ -98,9 +98,9 @@
   (relax [this arc trail]
     (let [[src value] (first trail)
           dst         (np/dst arc)]
-      (+ value (transit/walk-time (:node/location src)
-                                  (or (:node/location dst)
-                                      [(:stop/lon dst) (:stop/lat dst)]))))))
+      (when (transit/node? (np/dst arc))
+        (+ value (transit/walk-time (:node/location src)
+                                    (:node/location dst)))))))
 
 ; -------------------------------------------------------------------
 ; The Dijkstra algorithm is deterministic, therefore for the same src/dst
