@@ -41,8 +41,8 @@
         _      (. settled (put entity entry))
         _      (. unsettled (remove entity))
         trail  (path settled entity)]
-    (doseq [arc (np/arcs router entity)
-            :let [node (np/dst router arc)]
+    (doseq [arc (np/successors entity)
+            :let [node (np/dst arc)]
             :when (not (. settled (containsKey node)))
             :let [weight (np/relax router arc trail)]
             :when (some? weight)]

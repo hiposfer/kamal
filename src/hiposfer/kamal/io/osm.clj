@@ -122,9 +122,9 @@
         arcs          (for [way ways
                             [from to] (map vector (:way/nodes way)
                                                   (rest (:way/nodes way)))]
-                        {:arc/src [:node/id from]
-                         :arc/dst [:node/id to]
-                         :arc/way [:way/id (:way/id way)]})]
+                        {:edge/src [:node/id from]
+                         :edge/dst [:node/id to]
+                         :edge/way [:way/id (:way/id way)]})]
     (concat nodes
             (map #(dissoc % :way/nodes) ways)
             arcs)))

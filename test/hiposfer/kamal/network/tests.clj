@@ -8,7 +8,6 @@
             [datascript.core :as data]
             [hiposfer.kamal.services.routing.core :as router]
             [clojure.spec.alpha :as s]
-            [hiposfer.kamal.libs.fastq :as fastq]
             [hiposfer.kamal.network.generators :as fake-area]
             [hiposfer.kamal.specs.directions :as dataspecs]
             [hiposfer.kamal.services.routing.transit :as transit]
@@ -24,22 +23,33 @@
               {:node/id 4}
               {:node/id 5}
               {:node/id 6}
-              {:node/id   1
-               :node/arcs #{{:arc/dst [:node/id 2] :arc/length 7}
-                            {:arc/dst [:node/id 3] :arc/length 9}
-                            {:arc/dst [:node/id 6] :arc/length 14}}}
-              {:node/id   2
-               :node/arcs #{{:arc/dst [:node/id 3] :arc/length 10}
-                            {:arc/dst [:node/id 4] :arc/length 15}}}
-              {:node/id   3
-               :node/arcs #{{:arc/dst [:node/id 4] :arc/length 11}
-                            {:arc/dst [:node/id 6] :arc/length 2}}}
-              {:node/id   4
-               :node/arcs #{{:arc/dst [:node/id 5] :arc/length 6}}}
-              {:node/id   5
-               :node/arcs #{{:arc/dst [:node/id 6] :arc/length 9}}}
-              {:node/id   6
-               :node/arcs #{}}])
+              {:edge/src [:node/id 1]
+               :edge/dst [:node/id 2]
+               :arc/length 7}
+              {:edge/src [:node/id 1]
+               :edge/dst [:node/id 3]
+               :arc/length 9}
+              {:edge/src [:node/id 1]
+               :edge/dst [:node/id 6]
+               :arc/length 14}
+              {:edge/src [:node/id 2]
+               :edge/dst [:node/id 3]
+               :arc/length 10}
+              {:edge/src [:node/id 2]
+               :edge/dst [:node/id 4]
+               :arc/length 15}
+              {:edge/src [:node/id 3]
+               :edge/dst [:node/id 4]
+               :arc/length 11}
+              {:edge/src [:node/id 3]
+               :edge/dst [:node/id 6]
+               :arc/length 2}
+              {:edge/src [:node/id 4]
+               :edge/dst [:node/id 5]
+               :arc/length 6}
+              {:edge/src [:node/id 5]
+               :edge/dst [:node/id 6]
+               :arc/length 9}])
 
 ;Distances from 1: ((1 0) (2 7) (3 9) (4 20) (5 26) (6 11))
 ;Shortest path: (1 3 4 5)
@@ -48,11 +58,7 @@
   np/Router
   (relax [this arc trail]
     (+ (val (first trail))
-       (:arc/length arc)))
-
-  (arcs [this node] (:node/arcs node))
-
-  (dst [this arc] (:arc/dst arc)))
+       (:arc/length arc))))
 
 (deftest shortest-path
   (let [network   (data/create-conn router/schema)
@@ -86,14 +92,10 @@
   np/Router
   (relax [this arc trail]
     (let [[src value] (first trail)
-          dst         (np/dst this arc)]
+          dst         (np/dst arc)]
       (+ value (transit/walk-time (:node/location src)
                                   (or (:node/location dst)
-                                      [(:stop/lon dst) (:stop/lat dst)])))))
-
-  (arcs [this node] (fastq/node-edges graph node))
-
-  (dst [this arc] (:arc/dst arc)))
+                                      [(:stop/lon dst) (:stop/lat dst)]))))))
 
 ; -------------------------------------------------------------------
 ; The Dijkstra algorithm is deterministic, therefore for the same src/dst

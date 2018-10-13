@@ -17,8 +17,7 @@
             [hiposfer.kamal.libs.geometry :as geometry]
             [hiposfer.kamal.libs.fastq :as fastq]
             [datascript.core :as data]
-            [hiposfer.kamal.io.gtfs :as gtfs]
-            [clojure.pprint :as pprint])
+            [hiposfer.kamal.io.gtfs :as gtfs])
   (:import (java.time Duration LocalTime ZonedDateTime)
            (java.time.temporal ChronoUnit)))
 
@@ -109,15 +108,15 @@
       (= piece next-piece) "arrive"
 
       ;; change conditions, e.g. change of mode from walking to transit
-      (and (not (transit/stop-entity? last-context)) (transit/stop-entity? context))
+      (and (not (transit/stop? last-context)) (transit/stop? context))
       "notification"
 
       ;; already on a transit trip, continue
-      (and (transit/stop-entity? context) (transit/stop-entity? next-context))
+      (and (transit/stop? context) (transit/stop? next-context))
       "continue"
 
       ;; change of conditions -> exit vehicle
-      (and (transit/stop-entity? context) (not (transit/stop-entity? next-context)))
+      (and (transit/stop? context) (not (transit/stop? next-context)))
       "exit vehicle"
 
       :else                "turn")))
@@ -146,7 +145,7 @@
   (let [context (transit/context piece)
         line    (linestring (map key (concat piece [(first next-piece)])))
         man     (maneuver network prev-piece piece next-piece)
-        mode    (if (transit/stop-entity? context) "transit" "walking")
+        mode    (if (transit/stop? context) "transit" "walking")
         departs (np/cost (val (first piece)))
         arrives (np/cost (val (first next-piece)))]
     (merge man
@@ -232,51 +231,7 @@
     (direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
                {:coordinates [[8.645333, 50.087314]
                               ;[8.680412, 50.116680]] ;; innenstadt
-                              [8.699619, 50.097842]] ;; sachsenhausen
-                              ;[8.635897, 50.104172]] ;; galluswarte
+                              ;[8.699619, 50.097842]] ;; sachsenhausen
+                              [8.635897, 50.104172]] ;; galluswarte
                 :departure (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")
                 :steps true}))
-
-#_(let [network @(first @(:networks (:router hiposfer.kamal.dev/system)))]
-    (for [d (data/datoms network :avet :node/id)
-          :let [node (data/entity network (:e d))]
-          :when (empty? (fastq/node-edges network node))]
-      (fastq/node-edges network node)))
-
-#_(set! *print-length* 50)
-#_(set! *print-length* false)
-
-#_(let [network @(first @(:networks (:router hiposfer.kamal.dev/system)))
-        params {:coordinates [[8.645333, 50.087314]
-                              ;[8.680412, 50.116680]] ;; innenstadt
-                              [8.699619, 50.097842]] ;; sachsenhausen
-                ;[8.635897, 50.104172]] ;; galluswarte
-                :departure (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")
-                :steps true}
-        {:keys [coordinates ^ZonedDateTime departure]} params
-        stop-times (fastq/day-stop-times network (. departure (toLocalDate)))
-        start      (Duration/between (LocalTime/MIDNIGHT)
-                                     (. departure (toLocalTime)))
-        src        (first (fastq/nearest-nodes network (first coordinates)))
-        dst        (first (fastq/nearest-nodes network (last coordinates)))]
-    (when (and (some? src) (some? dst))
-      (let [router     (transit/->StopTimesRouter network stop-times)
-            ; both start and dst should be found since we checked that before
-            traversal  (alg/dijkstra router
-                                     #{[src (. start (getSeconds))]})]
-        (spit "resources/foo.json"
-          {:type "MultiPoint"
-           :coordinates
-           (take 1000
-             (drop 7000
-               (for [trail traversal
-                     :let [node (key (first trail))]
-                     :while (not= node dst)]
-                 (->coordinates (:node/location node)))))}))))
-
-(let [network @(first @(:networks (:router hiposfer.kamal.dev/system)))
-      node     (data/entity network (:e (second (data/datoms network :avet :node/id))))]
-  (pprint/pprint (data/touch node))
-  (map data/touch (fastq/node-edges network node))
-  #_(pprint/pprint (map data/touch (:node/arcs node)))
-  #_(pprint/pprint (map data/touch (fastq/references network :arc/dst (:db/id node)))))

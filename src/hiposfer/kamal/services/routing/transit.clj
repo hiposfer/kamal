@@ -5,82 +5,50 @@
   (:require [hiposfer.kamal.network.algorithms.protocols :as np]
             [hiposfer.kamal.libs.fastq :as fastq]
             [hiposfer.kamal.io.osm :as osm]
-            [hiposfer.kamal.libs.geometry :as geometry]))
+            [hiposfer.kamal.libs.geometry :as geometry])
+  (:import (datascript.impl.entity Entity)
+           (clojure.lang IPersistentMap)))
 
-(defn node-entity? [e] (boolean (:node/id e)))
-(defn way-entity? [e] (boolean (:way/id e)))
-(defn stop-entity? [e] (boolean (:stop/id e)))
+(defn node? [e] (boolean (:node/id e)))
+(defn way? [e] (boolean (:way/id e)))
+(defn stop? [e] (boolean (:stop/id e)))
 
-(declare pedestrian-arc transit-arc node-neighbours)
+(extend-protocol np/Arc
+  Entity
+  (src [this] (or (:edge/src this) (:arc/src this)))
+  (dst [this] (or (:edge/dst this) (:arc/dst this))))
 
-(defrecord PedestrianEdge [src dst]
-  np/Arc
-  (src [_] src)
-  (dst [_] dst)
-  np/Bidirectional
-  (mirror [this] (assoc this :src dst :dst src :mirror (not (:mirror this))))
-  (mirror? [this] (some? (:mirror this))))
+(extend-protocol np/Bidirectional
+  Entity
+  (mirror [this] (merge (into {} this)
+                        {:edge/src (:edge/dst this)
+                         :edge/dst (:edge/src this)
+                         :mirror   (not (:mirror this))}))
+  (mirror? [this] false))
 
-(defrecord TransitRouteArc [src dst]
-  np/Arc
-  (src [_] src)
-  (dst [_] dst))
+(extend-protocol np/Arc
+  IPersistentMap
+  (src [this] (:edge/src this))
+  (dst [this] (:edge/dst this)))
 
-(defrecord StopWrapper [id location network]
-  np/GeoCoordinate
-  (lat [_] (np/lat location))
-  (lon [_] (np/lon location))
-  np/Node
-  (id [_] id)
+(extend-protocol np/Bidirectional
+  IPersistentMap
+  (mirror [this] (assoc this :edge/src (:edge/dst this)
+                             :edge/dst (:edge/src this)
+                             :mirror   (not (:mirror this))))
+  (mirror? [this] (boolean (:mirror this))))
+
+(extend-protocol np/Node
+  Entity
+  (id [this] (:db/id this))
   (successors [this]
-    ;; outgoing arcs
-    (concat (eduction (map #(transit-arc network %))
-                      (fastq/references network :arc/src id))
-    ;; incoming edges
-            (eduction (map #(pedestrian-arc network %))
-                      (map np/mirror)
-                      (fastq/references network :edge/dst id)))))
-
-(defrecord NodeWrapper [id location network]
-  np/GeoCoordinate
-  (lat [_] (np/lat location))
-  (lon [_] (np/lon location))
-  np/Node
-  (id [_] id)
-  (successors [this]
-    ;; outgoing edges
-    (concat (eduction (map #(pedestrian-arc network %))
-                      (fastq/references network :edge/src id))
-            ;; incoming edges - mirrored
-            (eduction (map #(pedestrian-arc network %))
-                      (map np/mirror)
-                      (fastq/references network :edge/dst id)))))
-
-(defn node? [e] (instance? NodeWrapper e))
-(defn stop? [e] (instance? StopWrapper e))
-
-(defn- pedestrian-arc
-  [network entity]
-  (let [src (:edge/src entity)
-        dst (:edge/dst entity)]
-    (->PedestrianEdge
-      (->NodeWrapper (:db/id src) (:node/location src) network)
-      (if (stop-entity? dst)
-        (->StopWrapper (:db/id dst) (:stop/location dst) network)
-        (->NodeWrapper (:db/id dst) (:node/location dst) network)))))
-
-(defn- transit-arc
-  [network entity]
-  (let [src (:arc/src entity)
-        dst (:arc/dst entity)]
-    (->TransitRouteArc
-      (->StopWrapper (:db/id src) (:stop/location src) network)
-      (if (stop-entity? dst)
-        (->StopWrapper (:db/id dst) (:stop/location dst) network)
-        (->NodeWrapper (:db/id dst) (:node/location dst) network)))))
+    (if (node? this)
+      (fastq/node-edges this)
+      (fastq/stop-successors this))))
 
 ;; ............................................................................
 ;; https://developers.google.com/transit/gtfs/reference/#routestxt
+;; TODO: use gtfs.edn for this
 (def route-types
   {0 "Tram"; Streetcar, Light rail. Any light rail or street level system within a metropolitan area.
    1 "Subway"; Metro. Any underground rail system within a metropolitan area.
@@ -130,26 +98,26 @@
       (case [(node? src) (node? dst)]
         ;; The user just walking so we route based on walking duration
         [true true] ;; [node node]
-        (->WalkStep (:arc/way arc)
+        (->WalkStep (:edge/way arc)
                     (+ now (walk-time (:node/location src)
                                       (:node/location dst))))
 
         ;; The user is walking to a stop
         [true false] ;; [node stop]
         (let [location (:node/location src)]
-          (->WalkStep (:arc/way arc) (+ now (walk-time (np/lon location)
-                                                       (np/lat location)
-                                                       (:stop/lon dst)
-                                                       (:stop/lat dst)))))
+          (->WalkStep (:edge/way arc) (+ now (walk-time (np/lon location)
+                                                        (np/lat location)
+                                                        (:stop/lon dst)
+                                                        (:stop/lat dst)))))
 
         ;; the user is trying to leave a vehicle. Apply penalty but route
         ;; normally
         [false true] ;; [stop node]
         (let [location (:node/location dst)]
-          (->WalkStep (:arc/way arc) (+ now penalty (walk-time (:stop/lon src)
-                                                               (:stop/lat src)
-                                                               (np/lon location)
-                                                               (np/lat location)))))
+          (->WalkStep (:edge/way arc) (+ now penalty (walk-time (:stop/lon src)
+                                                                (:stop/lat src)
+                                                                (np/lon location)
+                                                                (np/lat location)))))
 
         ;; riding on public transport
         [false false] ;; [stop stop]
@@ -163,24 +131,15 @@
           ;; the user is trying to get on a vehicle - find the next trip
           (let [[st1 st2] (fastq/find-trip network day-stops src dst now)]
             (when (some? st2) ;; nil if no trip was found
-              (->TripStep st1 st2 (:stop_time/arrival_time st2))))))))
-
-  (arcs [this node-or-stop]
-    (let [id          (:db/id node-or-stop)
-          predecesors (fastq/references network :node/arcs id)]
-      (if (node-entity? node-or-stop)
-        (concat predecesors (:node/arcs node-or-stop))
-        (concat predecesors (:stop/arcs node-or-stop)))))
-
-  (dst  [this pedestrian-arc] (:arc/dst pedestrian-arc)))
+              (->TripStep st1 st2 (:stop_time/arrival_time st2)))))))))
 
 (defn name
   "returns a name that represents this entity in the network.
    returns nil if the entity has no name"
   [e]
   (cond
-    (way-entity? e) (:way/name e)
-    (stop-entity? e) (:stop/name e)))
+    (way? e) (:way/name e)
+    (stop? e) (:stop/name e)))
 
 (defn context
   "Returns an entity holding the 'context' of the trace. For pedestrian routing
@@ -195,17 +154,17 @@
      (vreset! vprev trace)
      (cond
        ;; walking normally -> return the way
-       (and (node-entity? (key previous)) (node-entity? (key trace)))
+       (and (node? (key previous)) (node? (key trace)))
        (:way (val previous))
 
        ;; getting into a trip -> return the way of the road
-       (and (node-entity? (key previous)) (stop-entity? (key trace)))
+       (and (node? (key previous)) (stop? (key trace)))
        (:way (key previous))
 
        ;; on a trip -> return the stop
-       (and (stop-entity? (key previous)) (stop-entity? (key trace)))
+       (and (stop? (key previous)) (stop? (key trace)))
        (key previous)
 
        ;; leaving a trip -> return the last stop
-       (and (stop-entity? (key previous)) (node-entity? (key trace)))
+       (and (stop? (key previous)) (node? (key trace)))
        (key previous)))))

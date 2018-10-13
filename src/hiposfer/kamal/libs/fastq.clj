@@ -5,7 +5,8 @@
   By convention all queries here return Entities"
   (:require [datascript.core :as data]
             [hiposfer.kamal.libs.tool :as tool]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [hiposfer.kamal.network.algorithms.protocols :as np])
   (:import (java.time LocalDate)))
 
 (defn references
@@ -28,10 +29,19 @@
 
   The previous query takes around 50 milliseconds to finish. This function
   takes around 0.25 milliseconds"
-  [network entity]
-  (let [target-id (:db/id entity)]
-    (concat (references network :arc/src target-id)
-            (references network :arc/dst target-id))))
+  [entity]
+  (let [network   (data/entity-db entity)
+        target-id (:db/id entity)]
+    (concat (references network :edge/src target-id)
+            (eduction (map np/mirror)
+                      (references network :edge/dst target-id)))))
+
+(defn stop-successors
+  [entity]
+  (let [network (data/entity-db entity)]
+    (concat (references network :arc/src (:db/id entity))
+            (eduction (map np/mirror)
+                      (references network :edge/dst (:db/id entity))))))
 
 (defn nearest-nodes
   "returns the nearest node/location to point"
@@ -125,22 +135,18 @@
       (if (not (some? node))
         (throw (ex-info "stop didnt match to any known node in the OSM data"
                         (into {} stop)))
-        {:arc/src [:node/id (:node/id node)]
-         :arc/dst [:stop/id (:stop/id stop)]}))))
+        {:edge/src [:node/id (:node/id node)]
+         :edge/dst [:stop/id (:stop/id stop)]}))))
 
 (defn cache-stop-successors
   "computes the next-stops for each stop and returns a transaction
   that will cache those results inside the :stop entities"
   [network]
-  (let [pairs (for [trip (data/datoms network :aevt :trip/id)
-                    :let [refs (references network :stop_time/trip (:e trip))
-                          stop_times (sort-by :stop_time/stop_sequence refs)]
-                    [from to] (map vector stop_times (rest stop_times))]
-                [(:stop/id (:stop_time/stop from))
-                 (:stop/id (:stop_time/stop to))
-                 (:route/id (:trip/route (:stop_time/trip from)))])]
-    ;; from/to might be connected through several routes
-    (for [[from to route] (distinct pairs)]
-      {:arc/src   [:stop/id from]
-       :arc/dst   [:stop/id to]
-       :arc/route [:route/id route]})))
+  (distinct
+    (for [trip (data/datoms network :aevt :trip/id)
+          :let [refs (references network :stop_time/trip (:e trip))
+                stop_times (sort-by :stop_time/stop_sequence refs)]
+          [from to] (map vector stop_times (rest stop_times))]
+      {:arc/src [:stop/id (:stop/id (:stop_time/stop from))]
+       :arc/dst [:stop/id (:stop/id (:stop_time/stop to))]
+       :arc/route [:route/id (:route/id (:trip/route (:stop_time/trip from)))]})))
