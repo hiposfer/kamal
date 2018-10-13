@@ -5,7 +5,9 @@
   (:require [hiposfer.kamal.network.algorithms.protocols :as np]
             [hiposfer.kamal.libs.fastq :as fastq]
             [hiposfer.kamal.io.osm :as osm]
-            [hiposfer.kamal.libs.geometry :as geometry])
+            [hiposfer.kamal.libs.geometry :as geometry]
+            [datascript.core :as data]
+            [clojure.set :as set])
   (:import (datascript.impl.entity Entity)
            (clojure.lang IPersistentMap)))
 
@@ -89,14 +91,14 @@
 (defn trip-step? [o] (instance? TripStep o))
 
 ;; ............................................................................
-(defrecord StopTimesRouter [network day-stops]
+(defrecord TransitRouter [network trips]
   np/Router
   (relax [this arc trail]
     (let [dst         (np/dst arc)
           [src value] (first trail)
           now         (np/cost value)]
       (case [(node? src) (node? dst)]
-        ;; The user just walking so we route based on walking duration
+        ;; The user is just walking so we route based on walking duration
         [true true] ;; [node node]
         (->WalkStep (:edge/way arc)
                     (+ now (walk-time (:node/location src)
@@ -129,7 +131,10 @@
               (->TripStep (:end value) st (:stop_time/arrival_time st))))
 
           ;; the user is trying to get on a vehicle - find the next trip
-          (let [[st1 st2] (fastq/find-trip network day-stops src dst now)]
+          (let [route       (:db/id (:arc/route arc))
+                route-trips (map :e (data/datoms network :avet :trip/route route))
+                local-trips (set/intersection (set route-trips) trips)
+                [st1 st2]   (fastq/find-trip network local-trips src dst now)]
             (when (some? st2) ;; nil if no trip was found
               (->TripStep st1 st2 (:stop_time/arrival_time st2)))))))))
 

@@ -205,13 +205,14 @@
    (direction network :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
   [network params]
   (let [{:keys [coordinates ^ZonedDateTime departure]} params
-        stop-times (fastq/day-stop-times network (. departure (toLocalDate)))
+        ;stop-times (fastq/day-stop-times network (. departure (toLocalDate)))
+        trips      (fastq/day-trips network (. departure (toLocalDate)))
         start      (Duration/between (LocalTime/MIDNIGHT)
                                      (. departure (toLocalTime)))
         src        (first (fastq/nearest-nodes network (first coordinates)))
         dst        (first (fastq/nearest-nodes network (last coordinates)))]
     (when (and (some? src) (some? dst))
-      (let [router     (transit/->StopTimesRouter network stop-times)
+      (let [router     (transit/->TransitRouter network trips)
             ; both start and dst should be found since we checked that before
             traversal  (alg/dijkstra router
                                      #{[src (. start (getSeconds))]})
@@ -227,11 +228,10 @@
             (route network rtrail (-> departure (.truncatedTo ChronoUnit/DAYS)
                                                 (.toEpochSecond)))))))))
 
-#_(time
-    (direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
-               {:coordinates [[8.645333, 50.087314]
-                              ;[8.680412, 50.116680]] ;; innenstadt
-                              ;[8.699619, 50.097842]] ;; sachsenhausen
-                              [8.635897, 50.104172]] ;; galluswarte
-                :departure (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")
-                :steps true}))
+#_(dotimes [n 1000]
+    (time (direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
+                     {:coordinates [[8.645333, 50.087314]
+                                    ;[8.680412, 50.116680]] ;; innenstadt
+                                    ;[8.699619, 50.097842]] ;; sachsenhausen
+                                    [8.635897, 50.104172]] ;; galluswarte
+                      :departure (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")})))

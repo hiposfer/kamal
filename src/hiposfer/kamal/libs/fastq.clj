@@ -88,17 +88,43 @@
            [(hiposfer.kamal.libs.fastq/after? ?departure ?now)]]
 
   The previous query runs in 118 milliseconds. This function takes 4 milliseconds"
-  [network day-stops src dst now]
-  (let [stop_times (eduction (filter #(contains? day-stops (:e %)))
-                             (map #(data/entity network (:e %)))
+  ;[network day-stops src dst now]
+  [network trips src dst now]
+  (let [stop_times (eduction (map #(data/entity network (:e %)))
+                             (filter #(contains? trips (:db/id (:stop_time/trip %))))
                              (filter #(> (:stop_time/departure_time %) now))
                              (data/datoms network :avet :stop_time/stop (:db/id src)))]
-    (when (not-empty stop_times)
+    (when (seq stop_times)
       (let [trip (apply min-key :stop_time/departure_time stop_times)]
         [trip (continue-trip network dst (:stop_time/trip trip))]))))
 
-;; src - 74592
-;; dst - 74593
+#_(let [network @(first @(:networks (:router hiposfer.kamal.dev/system)))
+        src      (data/entity network [:stop/id 3392140086])
+        dst      (data/entity network [:stop/id 582939269])]
+    (time (find-trip network src dst 37049)))
+
+#_(let [network @(first @(:networks (:router hiposfer.kamal.dev/system)))
+        src      (data/entity network [:stop/id 3392140086])
+        dst      (data/entity network [:stop/id 582939269])
+        now      37049
+        route    (:arc/route (first (remove :mirror (stop-successors src))))]
+    (time (count (set (data/datoms network :avet :trip/route (:db/id route)))))
+    #_(for [trip trips
+            stop_time (map #(data/entity network (:e %))
+                            (data/datoms network :avet :stop_time/trip (:e trip)))
+            :when (> (:stop_time/departure_time stop_time) now)]
+        stop_time))
+
+#_(let [network @(first @(:networks (:router hiposfer.kamal.dev/system)))
+        src      (data/entity network [:stop/id 3392140086])
+        dst      (data/entity network [:stop/id 582939269])
+        now      37049
+        route    (:arc/route (first (remove :mirror (stop-successors src))))
+        trips    (data/datoms network :avet :trip/route (:db/id route))]
+    (count (data/datoms network :avet :stop_time/stop (:db/id src))))
+
+;; src - 3392140086
+;; dst - 582939269
 ;; now - 37049
 
 (defn- working?
@@ -107,22 +133,16 @@
         work (keyword "service" day)] ;; :service/monday
     (pos? (work service)))) ;; 1 or 0 according to gtfs spec
 
-(defn day-stop-times
+(defn day-trips
   "returns a set of stop_times entity ids that are available for date"
   [network ^LocalDate date]
-  (let [services (into #{} (comp (map #(data/entity network (:e %)))
-                                 (filter #(. date (isBefore (:service/end_date %))))
-                                 (filter #(. date (isAfter (:service/start_date %))))
-                                 (filter #(working? date %))
-                                 (map :db/id))
-                           (data/datoms network :avet :service/id))
-        trips    (into #{} (comp (filter #(contains? services (:v %)))
-                                 (map :e))
-                           (data/datoms network :avet :trip/service))]
-    (into #{} (comp (filter #(contains? trips (:v %)))
-                    (map :e))
-              (data/datoms network :avet :stop_time/trip))))
-
+  (set (for [service-datom (data/datoms network :avet :service/id)
+             :let [service (data/entity network (:e service-datom))]
+             :when (and (. date (isBefore (:service/end_date service)))
+                        (. date (isAfter (:service/start_date service)))
+                        (working? date service))
+             trip-datom (data/datoms network :avet :trip/service (:e service-datom))]
+         (:e trip-datom))))
 
 ;; This might not be the best approach but it gets the job done for the time being
 (defn link-stops

@@ -61,11 +61,11 @@
 (test/deftest ^:benchmark D-transit-road-network
   (let [network    (deref (deref road/network))
         departure  (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")
-        stop-times (fastq/day-stop-times network (. departure (toLocalDate)))
+        trips      (fastq/day-trips network (. departure (toLocalDate)))
         start      (Duration/between (LocalTime/MIDNIGHT) (. departure (toLocalTime)))
         src        (first (fastq/nearest-nodes network [8.645333, 50.087314]))
         dst        (first (fastq/nearest-nodes network [8.635897, 50.104172]))
-        router     (transit/->StopTimesRouter network stop-times)
+        router     (transit/->TransitRouter network trips)
         coll       (alg/dijkstra router
                                  #{[src (. start (getSeconds))]})]
     (newline) (newline)
