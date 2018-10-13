@@ -98,33 +98,8 @@
       (let [trip (apply min-key :stop_time/departure_time stop_times)]
         [trip (continue-trip network dst (:stop_time/trip trip))]))))
 
-#_(let [network @(first @(:networks (:router hiposfer.kamal.dev/system)))
-        src      (data/entity network [:stop/id 3392140086])
-        dst      (data/entity network [:stop/id 582939269])]
-    (time (find-trip network src dst 37049)))
-
-#_(let [network @(first @(:networks (:router hiposfer.kamal.dev/system)))
-        src      (data/entity network [:stop/id 3392140086])
-        dst      (data/entity network [:stop/id 582939269])
-        now      37049
-        route    (:arc/route (first (remove :mirror (stop-successors src))))]
-    (time (count (set (data/datoms network :avet :trip/route (:db/id route)))))
-    #_(for [trip trips
-            stop_time (map #(data/entity network (:e %))
-                            (data/datoms network :avet :stop_time/trip (:e trip)))
-            :when (> (:stop_time/departure_time stop_time) now)]
-        stop_time))
-
-#_(let [network @(first @(:networks (:router hiposfer.kamal.dev/system)))
-        src      (data/entity network [:stop/id 3392140086])
-        dst      (data/entity network [:stop/id 582939269])
-        now      37049
-        route    (:arc/route (first (remove :mirror (stop-successors src))))
-        trips    (data/datoms network :avet :trip/route (:db/id route))]
-    (count (data/datoms network :avet :stop_time/stop (:db/id src))))
-
-;; src - 3392140086
-;; dst - 582939269
+;; src - [:stop/id 3392140086]
+;; dst - [:stop/id 582939269]
 ;; now - 37049
 
 (defn- working?
@@ -158,6 +133,7 @@
         {:edge/src [:node/id (:node/id node)]
          :edge/dst [:stop/id (:stop/id stop)]}))))
 
+;; TODO: should we create an arc per trip instead of route?
 (defn cache-stop-successors
   "computes the next-stops for each stop and returns a transaction
   that will cache those results inside the :stop entities"
