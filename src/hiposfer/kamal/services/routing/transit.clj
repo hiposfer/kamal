@@ -7,10 +7,79 @@
             [hiposfer.kamal.io.osm :as osm]
             [hiposfer.kamal.libs.geometry :as geometry]))
 
-(defn node? [e] (boolean (:node/id e)))
-(defn way? [e] (boolean (:way/id e)))
-(defn stop? [e] (boolean (:stop/id e)))
+(defn node-entity? [e] (boolean (:node/id e)))
+(defn way-entity? [e] (boolean (:way/id e)))
+(defn stop-entity? [e] (boolean (:stop/id e)))
 
+(declare pedestrian-arc transit-arc node-neighbours)
+
+(defrecord PedestrianEdge [src dst]
+  np/Arc
+  (src [_] src)
+  (dst [_] dst)
+  np/Bidirectional
+  (mirror [this] (assoc this :src dst :dst src :mirror (not (:mirror this))))
+  (mirror? [this] (some? (:mirror this))))
+
+(defrecord TransitRouteArc [src dst]
+  np/Arc
+  (src [_] src)
+  (dst [_] dst))
+
+(defrecord StopWrapper [id location network]
+  np/GeoCoordinate
+  (lat [_] (np/lat location))
+  (lon [_] (np/lon location))
+  np/Node
+  (id [_] id)
+  (successors [this]
+    ;; outgoing arcs
+    (concat (eduction (map #(transit-arc network %))
+                      (fastq/references network :arc/src id))
+    ;; incoming edges
+            (eduction (map #(pedestrian-arc network %))
+                      (map np/mirror)
+                      (fastq/references network :edge/dst id)))))
+
+(defrecord NodeWrapper [id location network]
+  np/GeoCoordinate
+  (lat [_] (np/lat location))
+  (lon [_] (np/lon location))
+  np/Node
+  (id [_] id)
+  (successors [this]
+    ;; outgoing edges
+    (concat (eduction (map #(pedestrian-arc network %))
+                      (fastq/references network :edge/src id))
+            ;; incoming edges - mirrored
+            (eduction (map #(pedestrian-arc network %))
+                      (map np/mirror)
+                      (fastq/references network :edge/dst id)))))
+
+(defn node? [e] (instance? NodeWrapper e))
+(defn stop? [e] (instance? StopWrapper e))
+
+(defn- pedestrian-arc
+  [network entity]
+  (let [src (:edge/src entity)
+        dst (:edge/dst entity)]
+    (->PedestrianEdge
+      (->NodeWrapper (:db/id src) (:node/location src) network)
+      (if (stop-entity? dst)
+        (->StopWrapper (:db/id dst) (:stop/location dst) network)
+        (->NodeWrapper (:db/id dst) (:node/location dst) network)))))
+
+(defn- transit-arc
+  [network entity]
+  (let [src (:arc/src entity)
+        dst (:arc/dst entity)]
+    (->TransitRouteArc
+      (->StopWrapper (:db/id src) (:stop/location src) network)
+      (if (stop-entity? dst)
+        (->StopWrapper (:db/id dst) (:stop/location dst) network)
+        (->NodeWrapper (:db/id dst) (:node/location dst) network)))))
+
+;; ............................................................................
 ;; https://developers.google.com/transit/gtfs/reference/#routestxt
 (def route-types
   {0 "Tram"; Streetcar, Light rail. Any light rail or street level system within a metropolitan area.
@@ -32,6 +101,7 @@
 
 (def penalty 30) ;; seconds
 
+;; ............................................................................
 (defrecord WalkStep [way ^Long value]
   np/Valuable
   (cost [_] value)
@@ -50,10 +120,11 @@
 
 (defn trip-step? [o] (instance? TripStep o))
 
+;; ............................................................................
 (defrecord StopTimesRouter [network day-stops]
   np/Router
   (relax [this arc trail]
-    (let [dst         (np/dst this arc)
+    (let [dst         (np/dst arc)
           [src value] (first trail)
           now         (np/cost value)]
       (case [(node? src) (node? dst)]
@@ -97,19 +168,19 @@
   (arcs [this node-or-stop]
     (let [id          (:db/id node-or-stop)
           predecesors (fastq/references network :node/arcs id)]
-      (if (node? node-or-stop)
+      (if (node-entity? node-or-stop)
         (concat predecesors (:node/arcs node-or-stop))
         (concat predecesors (:stop/arcs node-or-stop)))))
 
-  (dst  [this arc] (:arc/dst arc)))
+  (dst  [this pedestrian-arc] (:arc/dst pedestrian-arc)))
 
 (defn name
   "returns a name that represents this entity in the network.
    returns nil if the entity has no name"
   [e]
   (cond
-    (way? e) (:way/name e)
-    (stop? e) (:stop/name e)))
+    (way-entity? e) (:way/name e)
+    (stop-entity? e) (:stop/name e)))
 
 (defn context
   "Returns an entity holding the 'context' of the trace. For pedestrian routing
@@ -124,17 +195,17 @@
      (vreset! vprev trace)
      (cond
        ;; walking normally -> return the way
-       (and (node? (key previous)) (node? (key trace)))
+       (and (node-entity? (key previous)) (node-entity? (key trace)))
        (:way (val previous))
 
        ;; getting into a trip -> return the way of the road
-       (and (node? (key previous)) (stop? (key trace)))
+       (and (node-entity? (key previous)) (stop-entity? (key trace)))
        (:way (key previous))
 
        ;; on a trip -> return the stop
-       (and (stop? (key previous)) (stop? (key trace)))
+       (and (stop-entity? (key previous)) (stop-entity? (key trace)))
        (key previous)
 
        ;; leaving a trip -> return the last stop
-       (and (stop? (key previous)) (node? (key trace)))
+       (and (stop-entity? (key previous)) (node-entity? (key trace)))
        (key previous)))))

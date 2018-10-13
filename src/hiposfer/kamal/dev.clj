@@ -19,7 +19,7 @@
   "a fake environment variables setting for development"
   {:USE_FAKE_NETWORK false
    :JOIN_THREAD false
-   :PORT 3000
+   :PORT 6000
    :FRANKFURT_AM_MAIN_AREA_EDN "resources/test/frankfurt.edn.gz"})
 
 (defonce system nil)

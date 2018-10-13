@@ -20,7 +20,6 @@
     (compare (GeoHash/withBitPrecision lat lon  64)
              (GeoHash/withBitPrecision (np/lat y) (np/lon y) 64))))
 
-
 ;; A vector of two numbers can be interpreted as a Point
 ;; according to the GeoJson standard
 (extend-type IPersistentVector
@@ -37,5 +36,4 @@
 ;; in a Graph. Useful for Dijkstra and similar algorithms
 (extend-type Number
   np/Valuable
-  (cost [this] this)
-  (sum  [this that] (+ this (np/cost that))))
+  (cost [this] this))

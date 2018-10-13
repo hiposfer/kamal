@@ -22,14 +22,19 @@
                          ;; Open Street Map - entities
                          :node/id       {:db.unique :db.unique/identity}
                          :node/location {:db/index true}
-                         ;; bidirecitonal edges
-                         :node/arcs     {:db.type        :db.type/ref
-                                         :db.cardinality :db.cardinality/many}
-                         :arc/way       {:db.type        :db.type/ref
-                                         :db.cardinality :db.cardinality/one}
-                         :arc/route     {:db.type        :db.type/ref
+                         ;; bidirectional links
+                         :edge/src       {:db.type        :db.type/ref
+                                          :db.cardinality :db.cardinality/one}
+                         :edge/dst       {:db.type        :db.type/ref
+                                          :db.cardinality :db.cardinality/one}
+                         :edge/way       {:db.type        :db.type/ref
+                                          :db.cardinality :db.cardinality/one}
+                         ;; unidirectional links
+                         :arc/src       {:db.type        :db.type/ref
                                          :db.cardinality :db.cardinality/one}
                          :arc/dst       {:db.type        :db.type/ref
+                                         :db.cardinality :db.cardinality/one}
+                         :arc/route     {:db.type        :db.type/ref
                                          :db.cardinality :db.cardinality/one}
                          :way/id        {:db.unique :db.unique/identity}}
                         ;; General Transfer Feed Specification - entities
@@ -40,11 +45,7 @@
                         ;; references
                         (into {}
                           (for [f gtfs.edn/fields :when (gtfs/ref? f)]
-                            [(f :keyword) {:db/type :db.type/ref}]))
-                        ;; custom extensions
-                        ;; unidirectional arcs
-                        {:stop/arcs {:db.type        :db.type/ref
-                                     :db.cardinality :db.cardinality/many}}))
+                            [(f :keyword) {:db/type :db.type/ref}]))))
 
 (defn network
   "builds a datascript in-memory db and conj's it into the passed agent"

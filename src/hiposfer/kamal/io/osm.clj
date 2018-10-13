@@ -119,15 +119,15 @@
         ;; post-processing nodes
         ids           (into #{} (mapcat :way/nodes) ways)
         nodes         (filter #(contains? ids (:node/id %)) nodes&ways)
-        neighbours    (for [way ways
+        arcs          (for [way ways
                             [from to] (map vector (:way/nodes way)
                                                   (rest (:way/nodes way)))]
-                        {:node/id   from
-                         :node/arcs #{{:arc/dst [:node/id to]
-                                       :arc/way [:way/id (:way/id way)]}}})]
+                        {:arc/src [:node/id from]
+                         :arc/dst [:node/id to]
+                         :arc/way [:way/id (:way/id way)]})]
     (concat nodes
             (map #(dissoc % :way/nodes) ways)
-            neighbours)))
+            arcs)))
 
 ;; https://www.wikiwand.com/en/Preferred_walking_speed
 (def walking-speed  1.4);; m/s

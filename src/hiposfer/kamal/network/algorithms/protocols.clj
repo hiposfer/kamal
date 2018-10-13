@@ -1,18 +1,30 @@
 (ns hiposfer.kamal.network.algorithms.protocols)
 
 ;; ------ special protocols for Dijkstra network traversal
-(defprotocol Valuable "A simple representation of a generic routing worth function result"
-  (cost [this]     "a number indicating how difficult it is to get to a specific node"))
+(defprotocol Valuable
+  "A simple representation of a generic routing worth function result"
+  (cost [this] "a number indicating how difficult it is to get to a specific node"))
 
 (defprotocol GeoCoordinate
   (lat [this] "latitude in decimal numbers")
   (lon [this] "longitude in decimal numbers"))
 
+(defprotocol Arc "a graph arc/edge representation"
+  (src [this] "the origin node of this link")
+  (dst [this] "the destination node of this link"))
+
+(defprotocol Bidirectional
+  (mirror [this] "swap the src and dst of this Link")
+  (mirror? [this] "returns true if this Link is a mirror of its original"))
+
+(defprotocol Node
+  (id           [this] "returns a unique identifier for this Context")
+  ;(predecessors [this] "returns the Links that point to this Context")
+  (successors   [this] "returns the Links that origin at this Context"))
+
 (defprotocol Router
   "An instance used to direct the movement of Dijkstra's traversal algorithm"
+  (seed  [this]
+    "returns a sequence of [Node Valuable] that will be ")
   (relax [this arc trail]
-    "attempts to relax node following trail path. Returns a Valuable implementation")
-  (arcs [this node]
-    "returns a sequence of arcs that link node with its neighbours")
-  (dst [this arc]
-    "returns a node based on an arc"))
+    "attempts to relax node following trail path. Returns a Valuable implementation"))
