@@ -18,34 +18,34 @@
 ;; Thanks datascript
 
 (def schema (merge-with into
-                        {:area/id       {:db.unique :db.unique/identity}
-                         ;; Open Street Map - entities
-                         :node/id       {:db.unique :db.unique/identity}
-                         :node/location {:db/index true}
-                         ;; bidirectional links
-                         :edge/src       {:db.type        :db.type/ref
-                                          :db.cardinality :db.cardinality/one}
-                         :edge/dst       {:db.type        :db.type/ref
-                                          :db.cardinality :db.cardinality/one}
-                         :edge/way       {:db.type        :db.type/ref
-                                          :db.cardinality :db.cardinality/one}
-                         ;; unidirectional links
-                         :arc/src       {:db.type        :db.type/ref
-                                         :db.cardinality :db.cardinality/one}
-                         :arc/dst       {:db.type        :db.type/ref
-                                         :db.cardinality :db.cardinality/one}
-                         :arc/route     {:db.type        :db.type/ref
-                                         :db.cardinality :db.cardinality/one}
-                         :way/id        {:db.unique :db.unique/identity}}
-                        ;; General Transfer Feed Specification - entities
-                        ;; identities
-                        (into {}
-                          (for [id gtfs/uniques]
-                            [id {:db.unique :db.unique/identity}]))
-                        ;; references
-                        (into {}
-                          (for [f gtfs.edn/fields :when (gtfs/ref? f)]
-                            [(f :keyword) {:db/type :db.type/ref}]))))
+              {:area/id       {:db.unique :db.unique/identity}
+               ;; Open Street Map - entities
+               :node/id       {:db.unique :db.unique/identity}
+               :node/location {:db/index true}
+               ;; bidirectional links
+               :edge/src       {:db.type        :db.type/ref
+                                :db.cardinality :db.cardinality/one}
+               :edge/dst       {:db.type        :db.type/ref
+                                :db.cardinality :db.cardinality/one}
+               :edge/way       {:db.type        :db.type/ref
+                                :db.cardinality :db.cardinality/one}
+               ;; unidirectional links
+               :arc/src       {:db.type        :db.type/ref
+                               :db.cardinality :db.cardinality/one}
+               :arc/dst       {:db.type        :db.type/ref
+                               :db.cardinality :db.cardinality/one}
+               :arc/route     {:db.type        :db.type/ref
+                               :db.cardinality :db.cardinality/one}
+               :way/id        {:db.unique :db.unique/identity}}
+              ;; General Transfer Feed Specification - entities
+              ;; identities
+              (into {}
+                (for [id gtfs/uniques]
+                  [id {:db.unique :db.unique/identity}]))
+              ;; references
+              (into {}
+                (for [f gtfs.edn/fields :when (gtfs/ref? f)]
+                  [(f :keyword) {:db/type :db.type/ref}]))))
 
 (defn network
   "builds a datascript in-memory db and conj's it into the passed agent"
