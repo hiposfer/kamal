@@ -160,15 +160,15 @@
      (cond
        ;; walking normally -> return the way
        (and (node? (key previous)) (node? (key trace)))
-       (:way (val previous))
+       (:way (val trace))
 
        ;; getting into a trip -> return the way of the road
        (and (node? (key previous)) (stop? (key trace)))
-       (:way (key previous))
+       (:way (val trace))
 
        ;; on a trip -> return the stop
        (and (stop? (key previous)) (stop? (key trace)))
-       (key previous)
+       (key trace)
 
        ;; leaving a trip -> return the last stop
        (and (stop? (key previous)) (node? (key trace)))
