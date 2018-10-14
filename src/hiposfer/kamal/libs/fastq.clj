@@ -19,16 +19,7 @@
 (defn node-edges
   "takes a network and an entity and returns the successors of that entity.
    Only valid for OSM nodes. Assumes bidirectional links i.e. nodes with
-   back-references to entity are also returned
-
-  replaces:
-  '[:find ?successors ?node
-    :in $ ?id
-    :where [?id :node/successors ?successors]
-           [?node :node/successors ?id]]
-
-  The previous query takes around 50 milliseconds to finish. This function
-  takes around 0.25 milliseconds"
+   back-references to entity are also returned"
   [entity]
   (let [network   (data/entity-db entity)
         target-id (:db/id entity)]

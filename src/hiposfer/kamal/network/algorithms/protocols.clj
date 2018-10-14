@@ -26,5 +26,6 @@
   "An instance used to direct the movement of Dijkstra's traversal algorithm"
   #_(seed  [this] ;TODO
       "returns a sequence of [Node Valuable] that will be ")
+  (node [this key])
   (relax [this arc trail]
     "attempts to relax node following trail path. Returns a Valuable implementation"))

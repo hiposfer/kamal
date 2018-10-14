@@ -23,7 +23,8 @@
   "returns the path taken to reach dst using the provided graph traversal"
   [dst graph-traversal]
   (let [dst? (comp #{dst} key first)
-        rf   (fn [_ value] (when (dst? value) (reduced value)))]
+        rf   (fn [_ value]
+               (when (dst? value) (reduced value)))]
     (reduce rf nil graph-traversal)))
 
 (defn nodes
