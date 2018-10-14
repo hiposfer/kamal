@@ -88,7 +88,6 @@
            [(hiposfer.kamal.libs.fastq/after? ?departure ?now)]]
 
   The previous query runs in 118 milliseconds. This function takes 4 milliseconds"
-  ;[network day-stops src dst now]
   [network trips src dst now]
   (let [stop_times (eduction (map #(data/entity network (:e %)))
                              (filter #(contains? trips (:db/id (:stop_time/trip %))))
@@ -133,7 +132,6 @@
         {:edge/src [:node/id (:node/id node)]
          :edge/dst [:stop/id (:stop/id stop)]}))))
 
-;; TODO: should we create an arc per trip instead of route?
 (defn cache-stop-successors
   "computes the next-stops for each stop and returns a transaction
   that will cache those results inside the :stop entities"
