@@ -21,7 +21,7 @@
 ;;      timestamp="2008-09-21T21:37:45Z"/>)
 (defn- point-entry
   "takes an OSM node and returns a [id Node-instance]"
-  [element] ; returns [id node] for later use in int-map
+  [element]
   {:node/id  (Long/parseLong (:id  (:attrs element)))
    :node/location (network/->Location (Double/parseDouble (:lon (:attrs element)))
                                       (Double/parseDouble (:lat (:attrs element))))})
@@ -66,8 +66,11 @@
          lncurrent (last (:way/nodes current))
          [point match] (some (fn [way]
                                (cond
-                                 (= fncurrent (last  (:way/nodes way))) [:start way]
-                                 (= lncurrent (first (:way/nodes way))) [:end way]))
+                                 (= fncurrent (last  (:way/nodes way)))
+                                 [:start way]
+
+                                 (= lncurrent (first (:way/nodes way)))
+                                 [:end way]))
                              ways)]
      (cond
        (empty? ways)

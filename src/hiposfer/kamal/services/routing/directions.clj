@@ -205,7 +205,6 @@
    (direction network :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
   [network params]
   (let [{:keys [coordinates ^ZonedDateTime departure]} params
-        ;stop-times (fastq/day-stop-times network (. departure (toLocalDate)))
         trips      (fastq/day-trips network (. departure (toLocalDate)))
         start      (Duration/between (LocalTime/MIDNIGHT)
                                      (. departure (toLocalTime)))

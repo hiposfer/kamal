@@ -19,12 +19,12 @@
 
 (defprotocol Node
   (id           [this] "returns a unique identifier for this Context")
-  ;(predecessors [this] "returns the Links that point to this Context")
+  ;(predecessors [this] "returns the Links that point to this Context") TODO
   (successors   [this] "returns the Links that origin at this Context"))
 
 (defprotocol Router
   "An instance used to direct the movement of Dijkstra's traversal algorithm"
-  (seed  [this]
-    "returns a sequence of [Node Valuable] that will be ")
+  ;(seed  [this] TODO
+  ;  "returns a sequence of [Node Valuable] that will be "
   (relax [this arc trail]
     "attempts to relax node following trail path. Returns a Valuable implementation"))
