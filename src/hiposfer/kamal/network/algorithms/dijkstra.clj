@@ -31,7 +31,7 @@
     (cons (trace from (.getKey entry))
           (lazy-seq (when prev-id (path settled prev-id))))))
 
-(defn- produce!
+(defn- relax!
   "returns a lazy sequence of traces by sequentially mutating the
    queue and always returning the path from the latest min priority
    node"
@@ -41,12 +41,12 @@
         _      (. settled (put entity entry))
         _      (. unsettled (remove entity))
         trail  (path settled entity)]
-    (doseq [node (np/successors router entity)
+    (doseq [arc (np/successors entity)
+            :let [node (np/dst arc)]
             :when (not (. settled (containsKey node)))
-            :let [v (np/weight router node trail)]
-            :when (some? v)]
+            :let [weight (np/relax router arc trail)]
+            :when (some? weight)]
       (let [prev    (key (. entry (getValue)))
-            weight  (np/sum v (. entry (getKey)))
             trace2  (trace node prev)
             old-entry ^Heap$Entry (. unsettled (get node))]
         (if (nil? old-entry) ;; new entry
@@ -90,7 +90,7 @@
           unsettled (new HashMap)]; {id {weight {id prev}}}
       (for [_ (range) ;; HACK: range is infinite so we use the queue to stop :)
             :while (not (. queue (isEmpty)))]
-        (produce! router queue settled unsettled))))
+        (relax! router queue settled unsettled))))
   ;; ------
   ;; this implementation uses mutable internal data structures but exposes only
   ;; immutable data structures.
@@ -102,11 +102,11 @@
           queue     (init! start-from settled comparator); [Heap.Entry]
           unsettled (new HashMap)]; {id Heap.Entry}
       (loop [ret init
-             trail (produce! router queue settled unsettled)]
+             trail (relax! router queue settled unsettled)]
         (let [rr (rf ret trail)]
           (if (reduced? rr) @rr
             (if (. queue (isEmpty)) rr
-              (recur rr (produce! router queue settled unsettled))))))))
+              (recur rr (relax! router queue settled unsettled))))))))
   ;; ------
   IReduce
   (reduce [this rf] (.reduce ^IReduceInit this rf (rf)))

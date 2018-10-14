@@ -8,11 +8,14 @@
   "Returns a lazy sequence of the elements of coll with duplicates attributes removed.
    Returns a stateful transducer when no collection is provided."
   ([attr coll]
-   (sequence (unique-by attr) coll))
-  ([attr]
-   (let [seen (volatile! (transient {}))
-         rf   (fn [v] (if (get @seen (attr v)) true
-                        (do (vswap! seen assoc! (attr v) true) false)))]
+   (eduction (unique-by attr) coll))
+  ([pred]
+   (let [seen (volatile! (transient #{}))
+         rf   (fn [v]
+                (if (contains? @seen (pred v))
+                  true
+                  (do (vswap! seen conj! (pred v))
+                      false)))]
      (remove rf))))
 
 (defn unique

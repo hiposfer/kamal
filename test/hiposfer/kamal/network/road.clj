@@ -13,7 +13,7 @@
 (defonce network (delay (time (router/network {:area/edn "resources/test/frankfurt.edn.gz"}))))
 
 (defspec ^:integration routing-directions
-  15; tries -> expensive test
+  30; tries -> expensive test
   (let [graph    (deref (deref network)) ;; delay atom
         nodes    (alg/nodes graph)
         gc       (count nodes)]
@@ -24,10 +24,15 @@
             args     {:coordinates [src dst] :departure depart :steps true}
             response (future (dir/direction graph args))
             result   (deref response 5000 ::timeout)]
-        (when (= result ::timeout)
-          (println "timeout"))
-        (is (or (= result ::timeout)
-                (s/valid? ::dataspecs/directions result))
-            (str (expound/expound-str ::dataspecs/directions result)))))))
+        (cond
+          (= result ::timeout)
+          (println "timeout")
+
+          (nil? result)
+          (println "no path found")
+
+          :else
+          (is (s/valid? ::dataspecs/directions result)
+              (str (expound/expound-str ::dataspecs/directions result))))))))
 
 ;(clojure.test/run-tests)
