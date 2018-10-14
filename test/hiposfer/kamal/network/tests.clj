@@ -1,18 +1,18 @@
 (ns hiposfer.kamal.network.tests
-  (:require [clojure.test.check.properties :as prop]
-            [clojure.test.check.clojure-test :refer [defspec]]
-            [clojure.test.check.generators :as gen]
+  (:require [clojure.spec.alpha :as s]
             [clojure.test :refer [is deftest]]
+            [clojure.test.check.generators :as gen]
+            [clojure.test.check.properties :as prop]
+            [clojure.test.check.clojure-test :refer [defspec]]
             [hiposfer.kamal.network.algorithms.core :as alg]
             [hiposfer.kamal.network.algorithms.protocols :as np]
-            [datascript.core :as data]
             [hiposfer.kamal.services.routing.core :as router]
-            [clojure.spec.alpha :as s]
             [hiposfer.kamal.network.generators :as fake-area]
             [hiposfer.kamal.specs.directions :as dataspecs]
             [hiposfer.kamal.services.routing.transit :as transit]
             [hiposfer.kamal.services.routing.directions :as dir]
-            [expound.alpha :as expound]))
+            [expound.alpha :as expound]
+            [datascript.core :as data]))
 
 ;; Example taken from
 ;; https://rosettacode.org/wiki/Dijkstra%27s_algorithm

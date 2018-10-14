@@ -1,18 +1,18 @@
 (ns hiposfer.kamal.network.benchmark
   (:require [criterium.core :as c]
             [clojure.test :as test]
-            [clojure.spec.gen.alpha :as gen]
-            [hiposfer.kamal.network.generators :as ng]
             [hiposfer.kamal.network.algorithms.core :as alg]
             [hiposfer.kamal.libs.geometry :as geometry]
-            [hiposfer.kamal.services.routing.core :as router]
             [hiposfer.kamal.libs.fastq :as fastq]
             [hiposfer.kamal.network.tests :as kt]
             [hiposfer.kamal.network.road :as road]
             [datascript.core :as data]
             [hiposfer.kamal.services.routing.transit :as transit]
-            [hiposfer.kamal.network.generators :as fake-area])
-  (:import (java.time ZonedDateTime Duration LocalTime)))
+            [hiposfer.kamal.network.generators :as fake-area]
+            [hiposfer.kamal.services.routing.graph :as graph]
+            [hiposfer.kamal.network.algorithms.protocols :as np])
+  (:import (java.time ZonedDateTime Duration LocalTime)
+           (hiposfer.kamal.services.routing.graph PedestrianNode)))
 
 ;; NOTE: we put a letter in the test names, because apparently the benchmarks
 ;; are ran in alphabetic order
@@ -45,6 +45,28 @@
     (println "accuracy: " (geometry/haversine src point) "meters")
     (c/quick-bench (:node/location (first (fastq/nearest-nodes network src)))
                    :os :runtime :verbose)))
+
+(defrecord IntMapRouter [graph]
+  np/Router
+  (node [this id]
+    (get graph id))
+  (relax [this arc trail]
+    (let [[src-id value] (first trail)
+          dst-id         (np/dst arc)
+          src            (get graph src-id)
+          dst            (get graph dst-id)]
+      (when (instance? PedestrianNode dst)
+        (+ value (transit/walk-time (:location src)
+                                    (:location dst)))))))
+
+#_(let [network (deref (deref road/network))
+        src     (first (fastq/nearest-nodes network [8.645333, 50.087314]))
+        dst     (first (fastq/nearest-nodes network [8.635897, 50.104172]))
+        mirror  (graph/create network)
+        router  (->IntMapRouter mirror)
+        coll    (alg/dijkstra router #{(:db/id src)})]
+    (c/quick-bench (alg/shortest-path (:db/id dst) coll)
+                   :os :runtime :verbose))
 
 ;;(type @kt/network) ;; force read
 (test/deftest ^:benchmark C-pedestrian-road-network
