@@ -63,10 +63,10 @@
 
 (defn walk-time
   ([p1 p2]
-   (Math/round ^Double (/ (geometry/earth-distance p1 p2)
+   (.longValue ^Double (/ (geometry/earth-distance p1 p2)
                           osm/walking-speed)))
   ([lon1 lat1 lon2 lat2]
-   (Math/round ^Double (/ (geometry/earth-distance lon1 lat1 lon2 lat2)
+   (.longValue ^Double (/ (geometry/earth-distance lon1 lat1 lon2 lat2)
                           osm/walking-speed))))
 
 (def penalty 30) ;; seconds
@@ -101,25 +101,27 @@
         ;; The user is just walking so we route based on walking duration
         [true true] ;; [node node]
         (->WalkStep (:edge/way arc)
-                    (+ now (walk-time (:node/location src)
-                                      (:node/location dst))))
+                    (Long/sum now (walk-time (:node/location src)
+                                             (:node/location dst))))
 
         ;; The user is walking to a stop
         [true false] ;; [node stop]
         (let [location (:node/location src)]
-          (->WalkStep (:edge/way arc) (+ now (walk-time (np/lon location)
-                                                        (np/lat location)
-                                                        (:stop/lon dst)
-                                                        (:stop/lat dst)))))
+          (->WalkStep (:edge/way arc) (Long/sum now (walk-time (np/lon location)
+                                                               (np/lat location)
+                                                               (:stop/lon dst)
+                                                               (:stop/lat dst)))))
 
         ;; the user is trying to leave a vehicle. Apply penalty but route
         ;; normally
         [false true] ;; [stop node]
         (let [location (:node/location dst)]
-          (->WalkStep (:edge/way arc) (+ now penalty (walk-time (:stop/lon src)
-                                                                (:stop/lat src)
-                                                                (np/lon location)
-                                                                (np/lat location)))))
+          (->WalkStep (:edge/way arc)
+                      (Long/sum (Long/sum now penalty)
+                                (walk-time (:stop/lon src)
+                                           (:stop/lat src)
+                                           (np/lon location)
+                                           (np/lat location)))))
 
         ;; riding on public transport
         [false false] ;; [stop stop]
