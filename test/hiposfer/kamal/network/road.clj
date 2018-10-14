@@ -25,7 +25,7 @@
             result   (dir/direction graph args)]
         (if (nil? result)
           (do (println "no path found")
-              (is "OK"))
+              (is (nil? result) "WTH?"))
           (is (s/valid? ::dataspecs/directions result)
               (str (expound/expound-str ::dataspecs/directions result))))))))
 
