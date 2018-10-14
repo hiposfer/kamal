@@ -17,6 +17,7 @@
                  [org.teneighty/java-heaps "1.0.0"] ;; for performance in dijkstra routing
                  [org.clojure/data.csv "0.1.4"] ;; for gtfs parsing
                  [datascript "0.16.6"]
+                 [org.clojure/data.int-map "0.2.4"] ;; fast int maps
                  [ch.hsr/geohash "1.3.0"]] ;; for nearest neighbour search
   ;; preprocessor - env vars are not passed along, so better run manually
   ;; ["trampoline" "run" "-m" "hiposfer.kamal.preprocessor"]}
