@@ -22,15 +22,10 @@
             dst      (dir/->coordinates (:node/location (nth nodes (* 2 i))))
             depart   (gen/generate (s/gen ::dataspecs/departure))
             args     {:coordinates [src dst] :departure depart :steps true}
-            response (future (dir/direction graph args))
-            result   (deref response 5000 ::timeout)]
-        (when (= result ::timeout)
-          (println "timeout"))
-
-        (when (nil? result)
-          (println "no path found"))
-
-        (when (coll? result)
+            result   (dir/direction graph args)]
+        (if (nil? result)
+          (do (println "no path found")
+              (is "OK"))
           (is (s/valid? ::dataspecs/directions result)
               (str (expound/expound-str ::dataspecs/directions result))))))))
 
