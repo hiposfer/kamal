@@ -46,10 +46,21 @@
     (c/quick-bench (:node/location (first (fastq/nearest-nodes network src)))
                    :os :runtime :verbose)))
 
+;;(type @kt/network) ;; force read
+(test/deftest ^:benchmark C-pedestrian-road-network
+  (let [network (deref (deref road/network))
+        src     (first (fastq/nearest-nodes network [8.645333, 50.087314]))
+        dst     (first (fastq/nearest-nodes network [8.635897, 50.104172]))
+        router  (kt/->PedestrianRouter network)
+        coll    (alg/dijkstra router #{src})]
+    (newline) (newline)
+    (println "Pedestrian routing with Datascript:" (count (alg/nodes network)) "nodes")
+    (c/quick-bench (alg/shortest-path dst coll)
+      :os :runtime :verbose)))
+
 (defrecord IntMapRouter [graph]
-  np/Router
-  (node [this id]
-    (get graph id))
+  np/Dijkstra
+  (node [this id] (get graph id))
   (relax [this arc trail]
     (let [[src-id value] (first trail)
           dst-id         (np/dst arc)
@@ -59,26 +70,16 @@
         (+ value (transit/walk-time (:location src)
                                     (:location dst)))))))
 
-#_(let [network (deref (deref road/network))
-        src     (first (fastq/nearest-nodes network [8.645333, 50.087314]))
-        dst     (first (fastq/nearest-nodes network [8.635897, 50.104172]))
-        mirror  (graph/create network)
-        router  (->IntMapRouter mirror)
-        coll    (alg/dijkstra router #{(:db/id src)})]
-    (c/quick-bench (alg/shortest-path (:db/id dst) coll)
-                   :os :runtime :verbose))
-
-;;(type @kt/network) ;; force read
-(test/deftest ^:benchmark C-pedestrian-road-network
+(test/deftest ^:benchmark C-2-pedestrian-road-network
   (let [network (deref (deref road/network))
         src     (first (fastq/nearest-nodes network [8.645333, 50.087314]))
         dst     (first (fastq/nearest-nodes network [8.635897, 50.104172]))
-        router  (kt/->PedestrianRouter network)
-        coll    (alg/dijkstra router #{src})]
+        router  (->IntMapRouter (graph/create network))
+        coll    (alg/dijkstra router #{(:db/id src)})]
     (newline) (newline)
-    (println "Pedestrian routing with:" (count (alg/nodes network)) "nodes")
-    (c/quick-bench (alg/shortest-path dst coll)
-      :os :runtime :verbose)))
+    (println "Pedestrian routing with IntMap:" (count (alg/nodes network)) "nodes")
+    (c/quick-bench (alg/shortest-path (:db/id dst) coll)
+                   :os :runtime :verbose)))
 
 (test/deftest ^:benchmark D-transit-road-network
   (let [network    (deref (deref road/network))

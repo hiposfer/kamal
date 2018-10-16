@@ -1,6 +1,4 @@
 (ns hiposfer.kamal.network.core
-  "An implementation of the Graph protocols oriented towards
-  Road Networks. See Graph namespace for more information"
   (:require [hiposfer.kamal.network.algorithms.protocols :as np])
   (:import (clojure.lang APersistentMap IPersistentVector)
            (ch.hsr.geohash GeoHash)))

@@ -214,9 +214,10 @@
       (let [router     (transit/->TransitRouter network trips)
             ; both start and dst should be found since we checked that before
             traversal  (alg/dijkstra router
-                                     #{[src (. start (getSeconds))]})
-            rtrail     (alg/shortest-path dst traversal)]
-        (when (some? rtrail)
+                                     #{[(:db/id src) (. start (getSeconds))]})
+            rtrail     (alg/shortest-path (:db/id dst) traversal)
+            rtrail     (for [[id value] rtrail] (first {(data/entity network id) value}))]
+        (when (not-empty rtrail)
           (merge
             {:directions/uuid      (data/squuid)
              :directions/waypoints

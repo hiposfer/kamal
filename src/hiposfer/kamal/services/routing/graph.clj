@@ -1,4 +1,6 @@
 (ns hiposfer.kamal.services.routing.graph
+  "functions to transform a Datascript representation to an Int-Map for
+   super-fast lookups and Dijkstra routing"
   (:require [datascript.core :as data]
             [clojure.data.int-map :as i]
             [hiposfer.kamal.libs.fastq :as fastq]
@@ -14,16 +16,17 @@
 
 ;; A bidirectional Arc. The bidirectionality is represented
 ;; through a mirror Arc, which is created as requested at runtime
-(defrecord PedestrianEdge [^long src ^long dst]
+(defrecord Edge [^long src ^long dst]
   np/Arc
   (src [_] src)
   (dst [_] dst)
   np/Bidirectional
   (mirror [this]
-    (map->PedestrianEdge (merge this {:src dst :dst src :mirror? (not (:mirror this))})))
-  (mirror? [this] (:mirror? this)))
+    (if (:mirror this)
+      (dissoc this :mirror)
+      (merge this {:src dst :dst src :mirror (not (:mirror this))})))
+  (mirror? [this] (:mirror this)))
 
-;; A directed arc with an associated way; as per Open Street Maps
 (defrecord Arc [^long src ^long dst]
   np/Arc
   (src [_] src)
@@ -32,6 +35,9 @@
 ;; A node of a graph with a corresponding position using the World Geodesic
 ;; System. This implementation only accepts edges (bidirectional)
 (defrecord PedestrianNode [^Long id location edges]
+  np/GeoCoordinate
+  (lat [_] (np/lat location))
+  (lon [_] (np/lon location))
   np/Node
   (successors [_]
     (for [edge edges]
@@ -39,6 +45,7 @@
         (np/mirror edge)
         edge))))
 
+;; a Stop as per GTFS spec links is a sequence of Arc/Edges
 (defrecord TransitStop [^Long id ^Double lat ^Double lon links]
   np/GeoCoordinate
   (lat [_] lat)
@@ -52,9 +59,9 @@
 
 (defn- edge
   [entity]
-  (map->PedestrianEdge {:src (:db/id (:edge/src entity))
-                        :dst (:db/id (:edge/dst entity))
-                        :way (:db/id (:edge/way entity))}))
+  (map->Edge {:src (:db/id (:edge/src entity))
+              :dst (:db/id (:edge/dst entity))
+              :way (:db/id (:edge/way entity))}))
 
 (defn- arc
   [entity]

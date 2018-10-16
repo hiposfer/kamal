@@ -7,47 +7,11 @@
             [hiposfer.kamal.io.osm :as osm]
             [hiposfer.kamal.libs.geometry :as geometry]
             [datascript.core :as data]
-            [clojure.set :as set])
-  (:import (datascript.impl.entity Entity)
-           (clojure.lang IPersistentMap)))
+            [clojure.set :as set]))
 
 (defn node? [e] (boolean (:node/id e)))
 (defn way? [e] (boolean (:way/id e)))
 (defn stop? [e] (boolean (:stop/id e)))
-
-(extend-protocol np/Arc
-  Entity
-  (src [this] (or (:edge/src this) (:arc/src this)))
-  (dst [this] (or (:edge/dst this) (:arc/dst this))))
-
-(extend-protocol np/Bidirectional
-  Entity
-  (mirror [this] (merge (into {} this)
-                        {:edge/src (:edge/dst this)
-                         :edge/dst (:edge/src this)
-                         :mirror   (not (:mirror this))}))
-  (mirror? [this] false))
-
-(extend-protocol np/Arc
-  IPersistentMap
-  (src [this] (:edge/src this))
-  (dst [this] (:edge/dst this)))
-
-(extend-protocol np/Bidirectional
-  IPersistentMap
-  (mirror [this] (assoc this :edge/src (:edge/dst this)
-                             :edge/dst (:edge/src this)
-                             :mirror   (not (:mirror this))))
-  (mirror? [this] (boolean (:mirror this))))
-
-(extend-protocol np/Node
-  Entity
-  (id [this] (:db/id this))
-  (successors [this]
-    (if (node? this)
-      (fastq/node-edges this)
-      (fastq/stop-successors this))))
-
 ;; ............................................................................
 ;; https://developers.google.com/transit/gtfs/reference/#routestxt
 ;; TODO: use gtfs.edn for this
@@ -92,11 +56,14 @@
 
 ;; ............................................................................
 (defrecord TransitRouter [network trips]
-  np/Router
+  np/Dijkstra
+  (node [this k] (data/entity network k))
   (relax [this arc trail]
-    (let [dst         (np/dst arc)
-          [src value] (first trail)
-          now         (np/cost value)]
+    (let [[src-id value] (first trail)
+          dst-id         (np/dst arc)
+          src            (data/entity network src-id)
+          dst            (data/entity network dst-id)
+          now            (np/cost value)]
       (case [(node? src) (node? dst)]
         ;; The user is just walking so we route based on walking duration
         [true true] ;; [node node]

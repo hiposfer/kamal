@@ -22,10 +22,12 @@
   #_(predecessors [this] "returns the Links that point to this Context") ;TODO
   (successors   [this] "returns the Links that origin at this Context"))
 
-(defprotocol Router
+;; NOTE: node is generally considered a Graph protocol but since I am not sure
+;; about the future extensibility of it I will leave it like that
+(defprotocol Dijkstra
   "An instance used to direct the movement of Dijkstra's traversal algorithm"
   #_(seed  [this] ;TODO
-      "returns a sequence of [Node Valuable] that will be ")
+           "returns a sequence of [Node Valuable] that will be ")
   (node [this key])
   (relax [this arc trail]
     "attempts to relax node following trail path. Returns a Valuable implementation"))
