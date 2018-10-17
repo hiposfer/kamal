@@ -69,7 +69,7 @@
   (successors [this]
     (let [db (data/entity-db this)]
       (map #(data/entity db (:e %))
-           (data/datoms db :avet :edge/src (:db/id this))))))
+            (data/datoms db :avet :edge/src (:db/id this))))))
 
 (defrecord RosettaRouter [network]
   np/Dijkstra
@@ -108,7 +108,7 @@
            traversal)
         "shortest path doesnt traverse expected nodes")))
 
-(defrecord PedestrianRouter [network]
+(defrecord PedestrianDatascriptRouter [network]
   np/Dijkstra
   (node [this k] (data/entity network k))
   (relax [this arc trail]
@@ -130,7 +130,7 @@
     (let [graph    (fake-area/graph size)
           src      (:db/id (rand-nth (alg/nodes graph)))
           dst      (:db/id (rand-nth (alg/nodes graph)))
-          router   (->PedestrianRouter graph)
+          router   (->PedestrianDatascriptRouter graph)
           coll     (alg/dijkstra router #{src})
           results  (for [_ (range 10)]
                      (alg/shortest-path dst coll))]
@@ -148,7 +148,7 @@
      (let [graph    (fake-area/graph size)
            src      (:db/id (rand-nth (alg/nodes graph)))
            dst      (:db/id (rand-nth (alg/nodes graph)))
-           router   (->PedestrianRouter graph)
+           router   (->PedestrianDatascriptRouter graph)
            coll     (alg/dijkstra router #{src})
            result   (alg/shortest-path dst coll)]
        (is (or (nil? result)
@@ -165,7 +165,7 @@
   (prop/for-all [size (gen/large-integer* {:min 10 :max 20})]
     (let [graph    (fake-area/graph size)
           src      (:db/id (rand-nth (alg/nodes graph)))
-          router   (->PedestrianRouter graph)
+          router   (->PedestrianDatascriptRouter graph)
           coll     (alg/dijkstra router #{src})
           result   (alg/shortest-path src coll)]
       (is (not-empty result)
@@ -180,10 +180,10 @@
     100; tries
     (prop/for-all [size (gen/large-integer* {:min 10 :max 20})]
       (let [graph   (fake-area/graph size)
-            router  (->PedestrianRouter graph)
+            router  (->PedestrianDatascriptRouter graph)
             r1      (alg/looners graph router)
             graph2  (data/db-with graph (for [i r1 ] [:db.fn/retractEntity (:db/id i)]))
-            router2 (->PedestrianRouter graph2)
+            router2 (->PedestrianDatascriptRouter graph2)
             r2      (alg/looners graph2 router2)]
         (is (empty? r2)
             "looners should be empty for a strongly connected graph"))))
@@ -198,11 +198,11 @@
     100; tries
     (prop/for-all [size (gen/large-integer* {:min 10 :max 20})]
       (let [graph   (fake-area/graph size)
-            router  (->PedestrianRouter graph)
+            router  (->PedestrianDatascriptRouter graph)
             r1      (alg/looners graph router)
             graph2  (data/db-with graph (for [i r1 ] [:db.fn/retractEntity (:db/id i)]))
             src     (rand-nth (alg/nodes graph2))
-            router  (->PedestrianRouter graph2)
+            router  (->PedestrianDatascriptRouter graph2)
             coll    (alg/dijkstra router #{src})]
         (is (seq? (reduce (fn [r v] v) nil coll))
             "biggest components should not contain links to nowhere"))))

@@ -25,12 +25,12 @@
   (let [network (fake-area/graph 1000)
         src     (rand-nth (alg/nodes network))
         dst     (rand-nth (alg/nodes network))
-        router  (kt/->PedestrianRouter network)]
+        router  (kt/->PedestrianDatascriptRouter network)]
     (newline) (newline)
     (println "DIJKSTRA forward with:" (count (alg/nodes network)) "nodes")
     (c/quick-bench
-      (let [coll (alg/dijkstra router #{src})]
-        (alg/shortest-path dst coll))
+      (let [coll (alg/dijkstra router #{(:db/id src)})]
+        (alg/shortest-path (:db/id dst) coll))
       :os :runtime :verbose)))
 
 ;; note src nil search will search for points greater or equal to src
@@ -46,19 +46,7 @@
     (c/quick-bench (:node/location (first (fastq/nearest-nodes network src)))
                    :os :runtime :verbose)))
 
-;;(type @kt/network) ;; force read
-(test/deftest ^:benchmark C-pedestrian-road-network
-  (let [network (deref (deref road/network))
-        src     (first (fastq/nearest-nodes network [8.645333, 50.087314]))
-        dst     (first (fastq/nearest-nodes network [8.635897, 50.104172]))
-        router  (kt/->PedestrianRouter network)
-        coll    (alg/dijkstra router #{src})]
-    (newline) (newline)
-    (println "Pedestrian routing with Datascript:" (count (alg/nodes network)) "nodes")
-    (c/quick-bench (alg/shortest-path dst coll)
-      :os :runtime :verbose)))
-
-(defrecord IntMapRouter [graph]
+(defrecord PedestrianIntMapRouter [graph]
   np/Dijkstra
   (node [this id] (get graph id))
   (relax [this arc trail]
@@ -70,14 +58,14 @@
         (+ value (transit/walk-time (:location src)
                                     (:location dst)))))))
 
-(test/deftest ^:benchmark C-2-pedestrian-road-network
+(test/deftest ^:benchmark C-pedestrian-road-network
   (let [network (deref (deref road/network))
         src     (first (fastq/nearest-nodes network [8.645333, 50.087314]))
         dst     (first (fastq/nearest-nodes network [8.635897, 50.104172]))
-        router  (->IntMapRouter (graph/create network))
+        router  (->PedestrianIntMapRouter (graph/create network))
         coll    (alg/dijkstra router #{(:db/id src)})]
     (newline) (newline)
-    (println "Pedestrian routing with IntMap:" (count (alg/nodes network)) "nodes")
+    (println "Pedestrian routing with:" (count (alg/nodes network)) "nodes")
     (c/quick-bench (alg/shortest-path (:db/id dst) coll)
                    :os :runtime :verbose)))
 
@@ -88,10 +76,13 @@
         start      (Duration/between (LocalTime/MIDNIGHT) (. departure (toLocalTime)))
         src        (first (fastq/nearest-nodes network [8.645333, 50.087314]))
         dst        (first (fastq/nearest-nodes network [8.635897, 50.104172]))
-        router     (transit/->TransitRouter network trips)
+        graph      (graph/create network)
+        router     (transit/->TransitRouter network graph trips)
         coll       (alg/dijkstra router
-                                 #{[src (. start (getSeconds))]})]
+                                 #{[(:db/id src) (. start (getSeconds))]})]
     (newline) (newline)
     (println "Transit routing with:" (count (alg/nodes network)) "nodes")
-    (c/quick-bench (alg/shortest-path dst coll)
+    (c/quick-bench (alg/shortest-path (:db/id dst) coll)
                    :os :runtime :verbose)))
+
+;(clojure.test/run-tests)
