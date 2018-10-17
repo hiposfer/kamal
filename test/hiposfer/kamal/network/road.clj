@@ -22,18 +22,13 @@
       (let [src      (dir/->coordinates (:node/location (nth nodes i)))
             dst      (dir/->coordinates (:node/location (nth nodes (* 2 i))))
             depart   (gen/generate (s/gen ::dataspecs/departure))
-            args     {:coordinates [src dst] :departure depart}
+            args     {:coordinates [src dst] :departure depart :steps true}
             _        (alter-meta! conn assoc :area/graph (graph/create @conn))
             result   (dir/direction conn args)]
-        (cond
-          (= result ::timeout)
-          (println "timeout")
-
-          (nil? result)
-          (println "no path found")
-
-          :else
+        (if (nil? result)
+          (do (println "no path found")
+              (is (nil? result) "WTH?"))
           (is (s/valid? ::dataspecs/directions result)
               (str (expound/expound-str ::dataspecs/directions result))))))))
 
-;(clojure.test/run-tests)
+#_(clojure.test/run-tests)
