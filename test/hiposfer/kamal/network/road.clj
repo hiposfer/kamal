@@ -16,7 +16,7 @@
 (defspec ^:integration routing-directions
   30; tries -> expensive test
   (let [conn  (deref network) ;; force
-        nodes (alg/nodes conn)
+        nodes (alg/nodes @conn)
         gc    (count nodes)]
     (prop/for-all [i (gen/large-integer* {:min 0 :max (Math/ceil (/ gc 2))})]
       (let [src      (dir/->coordinates (:node/location (nth nodes i)))
