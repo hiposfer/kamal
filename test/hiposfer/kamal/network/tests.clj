@@ -12,7 +12,8 @@
             [hiposfer.kamal.services.routing.transit :as transit]
             [hiposfer.kamal.services.routing.directions :as dir]
             [expound.alpha :as expound]
-            [datascript.core :as data])
+            [datascript.core :as data]
+            [hiposfer.kamal.services.routing.graph :as graph])
   (:import (datascript.impl.entity Entity)))
 
 ;; Example taken from
@@ -213,7 +214,9 @@
   (prop/for-all [size (gen/large-integer* {:min 10 :max 20})]
     (let [graph    (fake-area/graph size)
           request  (gen/generate (s/gen ::dataspecs/params))
-          result   (dir/direction graph request)]
+          conn     (data/conn-from-db graph)
+          _        (alter-meta! conn assoc :area/graph (graph/create graph))
+          result   (dir/direction conn request)]
       (is (s/valid? ::dataspecs/directions result)
           (str (expound/expound-str ::dataspecs/directions result))))))
 

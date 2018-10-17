@@ -59,15 +59,15 @@
 
 (defn- edge
   [entity]
-  (map->Edge {:src (:db/id (:edge/src entity))
-              :dst (:db/id (:edge/dst entity))
-              :way (:db/id (:edge/way entity))}))
+  (map->Edge {:src   (:db/id (:edge/src entity))
+              :dst   (:db/id (:edge/dst entity))
+              :way/e (:db/id (:edge/way entity))}))
 
 (defn- arc
   [entity]
-  (map->Arc {:src (:db/id (:arc/src entity))
-             :dst (:db/id (:arc/dst entity))
-             :route (:db/id (:arc/route entity))}))
+  (map->Arc {:src     (:db/id (:arc/src entity))
+             :dst     (:db/id (:arc/dst entity))
+             :route/e (:db/id (:arc/route entity))}))
 
 (defn- node-edges
   [network id]
@@ -104,4 +104,8 @@
 
 #_(time
     (let [network @(first @(:networks (:router hiposfer.kamal.dev/system)))]
-      (create network)))
+      (last (::foo (assoc network ::foo (create network))))))
+
+(defn osm-node? [o] (instance? PedestrianNode o))
+
+(defn gtfs-stop? [o] (instance? TransitStop o))

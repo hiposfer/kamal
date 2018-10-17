@@ -203,15 +203,17 @@
 
    Example:
    (direction network :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
-  [network params]
+  [conn params]
   (let [{:keys [coordinates ^ZonedDateTime departure]} params
-        trips      (fastq/day-trips network (. departure (toLocalDate)))
-        start      (Duration/between (LocalTime/MIDNIGHT)
-                                     (. departure (toLocalTime)))
-        src        (first (fastq/nearest-nodes network (first coordinates)))
-        dst        (first (fastq/nearest-nodes network (last coordinates)))]
+        graph   (get (meta conn) :area/graph)
+        network (deref conn)
+        trips   (fastq/day-trips network (. departure (toLocalDate)))
+        start   (Duration/between (LocalTime/MIDNIGHT)
+                                  (. departure (toLocalTime)))
+        src     (first (fastq/nearest-nodes network (first coordinates)))
+        dst     (first (fastq/nearest-nodes network (last coordinates)))]
     (when (and (some? src) (some? dst))
-      (let [router     (transit/->TransitRouter network trips)
+      (let [router     (transit/->TransitRouter network graph trips)
             ; both start and dst should be found since we checked that before
             traversal  (alg/dijkstra router
                                      #{[(:db/id src) (. start (getSeconds))]})
@@ -228,10 +230,10 @@
             (route network rtrail (-> departure (.truncatedTo ChronoUnit/DAYS)
                                                 (.toEpochSecond)))))))))
 
-#_(dotimes [n 1000]
-    (time (direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
-                     {:coordinates [[8.645333, 50.087314]
-                                    ;[8.680412, 50.116680]] ;; innenstadt
-                                    ;[8.699619, 50.097842]] ;; sachsenhausen
-                                    [8.635897, 50.104172]] ;; galluswarte
-                      :departure (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")})))
+;(dotimes [n 1000]
+#_(time (direction (first @(:networks (:router hiposfer.kamal.dev/system)))
+                   {:coordinates [[8.645333, 50.087314]
+                                  ;[8.680412, 50.116680]] ;; innenstadt
+                                  ;[8.699619, 50.097842]] ;; sachsenhausen
+                                  [8.635897, 50.104172]] ;; galluswarte
+                    :departure (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")}))

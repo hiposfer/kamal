@@ -5,6 +5,7 @@
   (:require [hiposfer.kamal.network.algorithms.protocols :as np]
             [hiposfer.kamal.libs.fastq :as fastq]
             [hiposfer.kamal.io.osm :as osm]
+            [hiposfer.kamal.services.routing.graph :as graph]
             [hiposfer.kamal.libs.geometry :as geometry]
             [datascript.core :as data]
             [clojure.set :as set]))
@@ -55,57 +56,43 @@
 (defn trip-step? [o] (instance? TripStep o))
 
 ;; ............................................................................
-(defrecord TransitRouter [network trips]
+(defrecord TransitRouter [network graph trips]
   np/Dijkstra
-  (node [this k] (data/entity network k))
+  (node [this k] (get graph k))
   (relax [this arc trail]
     (let [[src-id value] (first trail)
           dst-id         (np/dst arc)
-          src            (data/entity network src-id)
-          dst            (data/entity network dst-id)
+          src            (get graph src-id)
+          dst            (get graph dst-id)
           now            (np/cost value)]
-      (case [(node? src) (node? dst)]
+      #_(println "src:" src-id " dst:" dst-id)
+      (cond
         ;; The user is just walking so we route based on walking duration
-        [true true] ;; [node node]
-        (->WalkStep (:edge/way arc)
-                    (Long/sum now (walk-time (:node/location src)
-                                             (:node/location dst))))
-
-        ;; The user is walking to a stop
-        [true false] ;; [node stop]
-        (let [location (:node/location src)]
-          (->WalkStep (:edge/way arc) (Long/sum now (walk-time (np/lon location)
-                                                               (np/lat location)
-                                                               (:stop/lon dst)
-                                                               (:stop/lat dst)))))
-
+        (graph/osm-node? src) ;; [node (or node stop)]
+        (->WalkStep (data/entity network (:way/e arc))
+                    (Long/sum now (walk-time src dst)))
         ;; the user is trying to leave a vehicle. Apply penalty but route
         ;; normally
-        [false true] ;; [stop node]
-        (let [location (:node/location dst)]
-          (->WalkStep (:edge/way arc)
-                      (Long/sum (Long/sum now penalty)
-                                (walk-time (:stop/lon src)
-                                           (:stop/lat src)
-                                           (np/lon location)
-                                           (np/lat location)))))
+        (graph/osm-node? dst) ;; [stop node]
+        (->WalkStep (data/entity network (:way/e arc))
+                    (Long/sum (Long/sum now penalty)
+                              (walk-time src dst)))
+        ;; riding on public transport .............
+        ;; the user is already in a trip. Just find the trip going to dst [stop stop]
+        (trip-step? value)
+        (let [?trip (:stop_time/trip (:start value))
+              st    (fastq/continue-trip network dst-id ?trip)]
+          (when (some? st)
+            (->TripStep (:end value) st (:stop_time/arrival_time st))))
 
-        ;; riding on public transport
-        [false false] ;; [stop stop]
-        (if (trip-step? value)
-          ;; the user is already in a trip. Just find the trip going to dst
-          (let [?trip (:stop_time/trip (:start value))
-                st    (fastq/continue-trip network dst ?trip)]
-            (when (some? st)
-              (->TripStep (:end value) st (:stop_time/arrival_time st))))
-
-          ;; the user is trying to get on a vehicle - find the next trip
-          (let [route       (:db/id (:arc/route arc))
-                route-trips (map :e (data/datoms network :avet :trip/route route))
-                local-trips (set/intersection (set route-trips) trips)
-                [st1 st2]   (fastq/find-trip network local-trips src dst now)]
-            (when (some? st2) ;; nil if no trip was found
-              (->TripStep st1 st2 (:stop_time/arrival_time st2)))))))))
+        ;; the user is trying to get on a vehicle - find the next trip
+        :else
+        (let [route       (:route/e arc)
+              route-trips (map :e (data/datoms network :avet :trip/route route))
+              local-trips (set/intersection (set route-trips) trips)
+              [st1 st2]   (fastq/find-trip network local-trips src-id dst-id now)]
+          (when (some? st2) ;; nil if no trip was found
+            (->TripStep st1 st2 (:stop_time/arrival_time st2))))))))
 
 (defn name
   "returns a name that represents this entity in the network.

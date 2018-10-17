@@ -8,22 +8,23 @@
             [hiposfer.kamal.network.algorithms.core :as alg]
             [hiposfer.kamal.services.routing.core :as router]
             [clojure.test.check.clojure-test :refer [defspec]]
-            [hiposfer.kamal.services.routing.directions :as dir]))
+            [hiposfer.kamal.services.routing.directions :as dir]
+            [hiposfer.kamal.services.routing.graph :as graph]))
 
 (defonce network (delay (time (router/network {:area/edn "resources/test/frankfurt.edn.gz"}))))
 
 (defspec ^:integration routing-directions
   30; tries -> expensive test
-  (let [graph    (deref (deref network)) ;; delay atom
-        nodes    (alg/nodes graph)
-        gc       (count nodes)]
+  (let [conn  (deref network) ;; force
+        nodes (alg/nodes conn)
+        gc    (count nodes)]
     (prop/for-all [i (gen/large-integer* {:min 0 :max (Math/ceil (/ gc 2))})]
       (let [src      (dir/->coordinates (:node/location (nth nodes i)))
             dst      (dir/->coordinates (:node/location (nth nodes (* 2 i))))
             depart   (gen/generate (s/gen ::dataspecs/departure))
-            args     {:coordinates [src dst] :departure depart :steps true}
-            response (future (dir/direction graph args))
-            result   (deref response 5000 ::timeout)]
+            args     {:coordinates [src dst] :departure depart}
+            _        (alter-meta! conn assoc :area/graph (graph/create @conn))
+            result   (dir/direction conn args)]
         (cond
           (= result ::timeout)
           (println "timeout")
