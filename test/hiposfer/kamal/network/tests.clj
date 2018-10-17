@@ -15,16 +15,6 @@
             [datascript.core :as data])
   (:import (datascript.impl.entity Entity)))
 
-(extend-type Entity
-  np/Arc
-  (src [this] (:db/id (:edge/src this)))
-  (dst [this] (:db/id (:edge/dst this)))
-  np/Node
-  (successors [this]
-    (let [db (data/entity-db this)]
-      (map #(data/entity db (:e %))
-            (data/datoms db :avet :edge/src (:db/id this))))))
-
 ;; Example taken from
 ;; https://rosettacode.org/wiki/Dijkstra%27s_algorithm
 ;; we assume bidirectional links
@@ -69,6 +59,16 @@
 ;; --- bidirectional arcs ... see kotlin solution
 ;Distances from 1: ((1 0) (2 7) (3 9) (4 20) (5 20) (6 11))
 ;Shortest path: (1 3 6 5)
+
+(extend-type Entity
+  np/Arc
+  (src [this] (:db/id (:edge/src this)))
+  (dst [this] (:db/id (:edge/dst this)))
+  np/Node
+  (successors [this]
+    (let [db (data/entity-db this)]
+      (map #(data/entity db (:e %))
+           (data/datoms db :avet :edge/src (:db/id this))))))
 
 (defrecord RosettaRouter [network]
   np/Dijkstra
