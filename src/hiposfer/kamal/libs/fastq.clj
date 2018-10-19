@@ -19,16 +19,7 @@
 (defn node-edges
   "takes a network and an entity and returns the successors of that entity.
    Only valid for OSM nodes. Assumes bidirectional links i.e. nodes with
-   back-references to entity are also returned
-
-  replaces:
-  '[:find ?successors ?node
-    :in $ ?id
-    :where [?id :node/successors ?successors]
-           [?node :node/successors ?id]]
-
-  The previous query takes around 50 milliseconds to finish. This function
-  takes around 0.25 milliseconds"
+   back-references to entity are also returned"
   [entity]
   (let [network   (data/entity-db entity)
         target-id (:db/id entity)]
@@ -64,9 +55,8 @@
 
    The previous query takes around 50 milliseconds to execute. This function
    takes around 0.22 milliseconds to execute. Depends on :stop_time/trip index"
-  [network dst trip]
-  (let [?dst-id  (:db/id dst)
-        ?trip-id (:db/id trip)]
+  [network ?dst-id trip]
+  (let [?trip-id (:db/id trip)]
     (tool/some #(= ?dst-id (:db/id (:stop_time/stop %)))
                 (references network :stop_time/trip ?trip-id))))
 
@@ -88,14 +78,14 @@
            [(hiposfer.kamal.libs.fastq/after? ?departure ?now)]]
 
   The previous query runs in 118 milliseconds. This function takes 4 milliseconds"
-  [network trips src dst now]
+  [network trips ?src-id ?dst-id now]
   (let [stop_times (eduction (map #(data/entity network (:e %)))
                              (filter #(contains? trips (:db/id (:stop_time/trip %))))
                              (filter #(> (:stop_time/departure_time %) now))
-                             (data/datoms network :avet :stop_time/stop (:db/id src)))]
+                             (data/datoms network :avet :stop_time/stop ?src-id))]
     (when (seq stop_times)
       (let [trip (apply min-key :stop_time/departure_time stop_times)]
-        [trip (continue-trip network dst (:stop_time/trip trip))]))))
+        [trip (continue-trip network ?dst-id (:stop_time/trip trip))]))))
 
 ;; src - [:stop/id 3392140086]
 ;; dst - [:stop/id 582939269]

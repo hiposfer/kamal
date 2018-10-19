@@ -6,7 +6,7 @@
   "returns a sequence of traversal-paths taken to reach each node
 
   Parameters:
-   - router: an implementation of the Router protocol to direct the 'movement'
+   - router: an implementation Dijkstra protocol to direct the 'movement'
       of the graph traversal
    - start-from: is a set of either
       - entities to start searching from
@@ -23,7 +23,8 @@
   "returns the path taken to reach dst using the provided graph traversal"
   [dst graph-traversal]
   (let [dst? (comp #{dst} key first)
-        rf   (fn [_ value] (when (dst? value) (reduced value)))]
+        rf   (fn [_ value]
+               (when (dst? value) (reduced value)))]
     (reduce rf nil graph-traversal)))
 
 (defn nodes
@@ -33,26 +34,26 @@
                   (map #(data/entity network %)))
             (data/datoms network :aevt :node/id)))
 
-(defn- components
-  "returns a lazy sequence of sets of nodes' ids of each strongly connected
+#_(defn- components
+    "returns a lazy sequence of sets of nodes' ids of each strongly connected
    component of a undirected graph
 
    NOTE: only relevant for pedestrian routing"
-  [network router settled]
-  (if (= (count (nodes network)) (count settled)) (list)
-    (let [start     (some #(and (not (settled %)) %)
-                           (nodes network))
-          connected (sequence (comp (map first) (map key))
-                              (dijkstra router #{start}))]
-     (cons connected (lazy-seq (components network router (into settled connected)))))))
+    [network router settled]
+    (if (= (count (nodes network)) (count settled)) (list)
+      (let [start     (some #(and (not (settled %)) %)
+                             (nodes network))
+            connected (sequence (comp (map first) (map key))
+                                (dijkstra router #{start}))]
+       (cons connected (lazy-seq (components network router (into settled connected)))))))
 
 ;; note for specs: the looner of the looner should be empty
-(defn looners
-  "returns a sequence of ids that can be removed from the graph
+#_(defn looners
+    "returns a sequence of ids that can be removed from the graph
   because they are not part of the strongest connected component
 
   NOTE: only relevant for pedestrian routing"
-  [network router]
-  (let [subsets   (components network router #{})
-        connected (into #{} (apply max-key count subsets))]
-    (remove #(contains? connected %) (nodes network))))
+    [network router]
+    (let [subsets   (components network router #{})
+          connected (into #{} (apply max-key count subsets))]
+      (remove #(contains? connected %) (nodes network))))

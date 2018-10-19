@@ -179,18 +179,17 @@
 (defn- route
   "a route from the first to the last waypoint. Only two waypoints
   are currently supported"
-  [network rtrail midnight]
-  (let [trail  (rseq (into [] rtrail))]
-    (if (= (count trail) 1) ;; a single trace is returned for src = dst
-      {:directions/distance 0 :directions/duration 0 :directions/steps []}
-      (let [previous    (volatile! (first trail))
-            pieces      (partition-by #(transit/name (transit/context % previous))
-                                       trail)
-            departs     (np/cost (val (first trail)))
-            arrives     (np/cost (val (last trail)))]
-        {:directions/distance (geometry/arc-length (:coordinates (linestring (map key trail))))
-         :directions/duration (- arrives departs)
-         :directions/steps    (route-steps network pieces midnight)}))))
+  [network trail midnight]
+  (if (= (count trail) 1) ;; a single trace is returned for src = dst
+    {:directions/distance 0 :directions/duration 0 :directions/steps []}
+    (let [previous    (volatile! (first trail))
+          pieces      (partition-by #(transit/name (transit/context % previous))
+                                     trail)
+          departs     (np/cost (val (first trail)))
+          arrives     (np/cost (val (last trail)))]
+      {:directions/distance (geometry/arc-length (:coordinates (linestring (map key trail))))
+       :directions/duration (- arrives departs)
+       :directions/steps    (route-steps network pieces midnight)})))
 
 ;; for the time being we only care about the coordinates of start and end
 ;; but looking into the future it is good to make like this such that we
@@ -203,34 +202,39 @@
 
    Example:
    (direction network :coordinates [{:lon 1 :lat 2} {:lon 3 :lat 4}]"
-  [network params]
+  [conn params]
   (let [{:keys [coordinates ^ZonedDateTime departure]} params
-        trips      (fastq/day-trips network (. departure (toLocalDate)))
-        start      (Duration/between (LocalTime/MIDNIGHT)
-                                     (. departure (toLocalTime)))
-        src        (first (fastq/nearest-nodes network (first coordinates)))
-        dst        (first (fastq/nearest-nodes network (last coordinates)))]
+        graph   (get (meta conn) :area/graph)
+        network (deref conn)
+        trips   (fastq/day-trips network (. departure (toLocalDate)))
+        start   (Duration/between (LocalTime/MIDNIGHT)
+                                  (. departure (toLocalTime)))
+        src     (first (fastq/nearest-nodes network (first coordinates)))
+        dst     (first (fastq/nearest-nodes network (last coordinates)))]
     (when (and (some? src) (some? dst))
-      (let [router     (transit/->TransitRouter network trips)
+      (let [router    (transit/->TransitRouter network graph trips)
             ; both start and dst should be found since we checked that before
-            traversal  (alg/dijkstra router
-                                     #{[src (. start (getSeconds))]})
-            rtrail     (alg/shortest-path dst traversal)]
-        (when (some? rtrail)
+            traversal (alg/dijkstra router #{[(:db/id src) (. start (getSeconds))]})
+            path      (alg/shortest-path (:db/id dst) traversal)
+            trail     (for [[id value] (reverse path)]
+                        ;; HACK: prefetch the entity so that the rest of the code
+                        ;; doesnt. TODO: figure out a better way to do this
+                        (first {(data/entity network id) value}))]
+        (when (not-empty trail)
           (merge
             {:directions/uuid      (data/squuid)
              :directions/waypoints
-             [{:waypoint/name     (:way/name (:way (val (last rtrail))))
+             [{:waypoint/name     (:way/name (:way (val (first trail))))
                :waypoint/location (->coordinates (location src))}
-              {:waypoint/name     (:way/name (:way (val (first rtrail))))
+              {:waypoint/name     (:way/name (:way (val (last trail))))
                :waypoint/location (->coordinates (location dst))}]}
-            (route network rtrail (-> departure (.truncatedTo ChronoUnit/DAYS)
-                                                (.toEpochSecond)))))))))
+            (route network trail (-> departure (.truncatedTo ChronoUnit/DAYS)
+                                               (.toEpochSecond)))))))))
 
-#_(dotimes [n 1000]
-    (time (direction @(first @(:networks (:router hiposfer.kamal.dev/system)))
-                     {:coordinates [[8.645333, 50.087314]
-                                    ;[8.680412, 50.116680]] ;; innenstadt
-                                    ;[8.699619, 50.097842]] ;; sachsenhausen
-                                    [8.635897, 50.104172]] ;; galluswarte
-                      :departure (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")})))
+;(dotimes [n 1000]
+#_(time (direction (first @(:networks (:router hiposfer.kamal.dev/system)))
+                   {:coordinates [[8.645333, 50.087314]
+                                  ;[8.680412, 50.116680]] ;; innenstadt
+                                  ;[8.699619, 50.097842]] ;; sachsenhausen
+                                  [8.635897, 50.104172]] ;; galluswarte
+                    :departure (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")}))

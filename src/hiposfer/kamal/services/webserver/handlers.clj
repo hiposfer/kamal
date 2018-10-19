@@ -32,7 +32,7 @@
   "returns a sequence of coordinates matched to the provided ones"
   [request]
   (let [params  (:params request)
-        network (deref (:network params))
+        network (deref (:area/conn params))
         coords (match-coordinates network params)]
     (if (= (count (:coordinates params)) (count coords)) request
       (code/precondition-failed!
@@ -50,7 +50,7 @@
                          nil
                          networks)]
     (if (some? network)
-      (assoc-in request [:params :network] network)
+      (assoc-in request [:params :area/conn] network)
       (code/bad-request! {:msg "unknown area" :data (:area params)}))))
 
 (defn validate
@@ -87,8 +87,8 @@
 
 (defn- get-directions
   [request]
-  (let [network  (:network (:params request))
-        response (dir/direction network (:params request))]
+  (let [conn     (:area/conn (:params request))
+        response (dir/direction conn (:params request))]
     (if (some? response)
       (code/ok response)
       (code/precondition-failed
@@ -98,14 +98,14 @@
 
 (defn- get-resource
   [request]
-  (let [network (deref (:network (:params request)))
+  (let [network (deref (:area/conn (:params request)))
         k       (keyword (:name (:params request)) "id")
         v       (gtfs/decode (:id (:params request)))]
     (code/ok (gtfs/resource (data/entity network [k v])))))
 
 (defn- query-area
   [request]
-  (let [network (data/filter (:network (:params request))
+  (let [network (data/filter (:area/conn (:params request))
                              (fn [_ datom] (contains? gtfs/keywords (:a datom))))
         q       (:q (:params request))
         args    (:args (:params request))]
@@ -113,7 +113,7 @@
 
 (defn- update-area
   [request]
-  (let [conn (:network (:params request))
+  (let [conn (:area/conn (:params request))
         db   (:db-after (data/with @conn (:body request)))]
     (-> (rio/piped-input-stream #(gtfs/dump! db %))
         (code/ok)

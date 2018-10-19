@@ -1,18 +1,18 @@
 (ns hiposfer.kamal.network.benchmark
   (:require [criterium.core :as c]
             [clojure.test :as test]
-            [clojure.spec.gen.alpha :as gen]
-            [hiposfer.kamal.network.generators :as ng]
             [hiposfer.kamal.network.algorithms.core :as alg]
             [hiposfer.kamal.libs.geometry :as geometry]
-            [hiposfer.kamal.services.routing.core :as router]
             [hiposfer.kamal.libs.fastq :as fastq]
             [hiposfer.kamal.network.tests :as kt]
             [hiposfer.kamal.network.road :as road]
             [datascript.core :as data]
             [hiposfer.kamal.services.routing.transit :as transit]
-            [hiposfer.kamal.network.generators :as fake-area])
-  (:import (java.time ZonedDateTime Duration LocalTime)))
+            [hiposfer.kamal.network.generators :as fake-area]
+            [hiposfer.kamal.services.routing.graph :as graph]
+            [hiposfer.kamal.network.algorithms.protocols :as np])
+  (:import (java.time ZonedDateTime Duration LocalTime)
+           (hiposfer.kamal.services.routing.graph PedestrianNode)))
 
 ;; NOTE: we put a letter in the test names, because apparently the benchmarks
 ;; are ran in alphabetic order
@@ -25,12 +25,12 @@
   (let [network (fake-area/graph 1000)
         src     (rand-nth (alg/nodes network))
         dst     (rand-nth (alg/nodes network))
-        router  (kt/->PedestrianRouter network)]
+        router  (kt/->PedestrianDatascriptRouter network)]
     (newline) (newline)
     (println "DIJKSTRA forward with:" (count (alg/nodes network)) "nodes")
     (c/quick-bench
-      (let [coll (alg/dijkstra router #{src})]
-        (alg/shortest-path dst coll))
+      (let [coll (alg/dijkstra router #{(:db/id src)})]
+        (alg/shortest-path (:db/id dst) coll))
       :os :runtime :verbose)))
 
 ;; note src nil search will search for points greater or equal to src
@@ -46,17 +46,28 @@
     (c/quick-bench (:node/location (first (fastq/nearest-nodes network src)))
                    :os :runtime :verbose)))
 
-;;(type @kt/network) ;; force read
+(defrecord PedestrianIntMapRouter [graph]
+  np/Dijkstra
+  (node [this id] (get graph id))
+  (relax [this arc trail]
+    (let [[src-id value] (first trail)
+          dst-id         (np/dst arc)
+          src            (get graph src-id)
+          dst            (get graph dst-id)]
+      (when (instance? PedestrianNode dst)
+        (+ value (transit/walk-time (:location src)
+                                    (:location dst)))))))
+
 (test/deftest ^:benchmark C-pedestrian-road-network
   (let [network (deref (deref road/network))
         src     (first (fastq/nearest-nodes network [8.645333, 50.087314]))
         dst     (first (fastq/nearest-nodes network [8.635897, 50.104172]))
-        router  (kt/->PedestrianRouter network)
-        coll    (alg/dijkstra router #{src})]
+        router  (->PedestrianIntMapRouter (graph/create network))
+        coll    (alg/dijkstra router #{(:db/id src)})]
     (newline) (newline)
     (println "Pedestrian routing with:" (count (alg/nodes network)) "nodes")
-    (c/quick-bench (alg/shortest-path dst coll)
-      :os :runtime :verbose)))
+    (c/quick-bench (alg/shortest-path (:db/id dst) coll)
+                   :os :runtime :verbose)))
 
 (test/deftest ^:benchmark D-transit-road-network
   (let [network    (deref (deref road/network))
@@ -65,10 +76,13 @@
         start      (Duration/between (LocalTime/MIDNIGHT) (. departure (toLocalTime)))
         src        (first (fastq/nearest-nodes network [8.645333, 50.087314]))
         dst        (first (fastq/nearest-nodes network [8.635897, 50.104172]))
-        router     (transit/->TransitRouter network trips)
+        graph      (graph/create network)
+        router     (transit/->TransitRouter network graph trips)
         coll       (alg/dijkstra router
-                                 #{[src (. start (getSeconds))]})]
+                                 #{[(:db/id src) (. start (getSeconds))]})]
     (newline) (newline)
     (println "Transit routing with:" (count (alg/nodes network)) "nodes")
-    (c/quick-bench (alg/shortest-path dst coll)
+    (c/quick-bench (alg/shortest-path (:db/id dst) coll)
                    :os :runtime :verbose)))
+
+;(clojure.test/run-tests)

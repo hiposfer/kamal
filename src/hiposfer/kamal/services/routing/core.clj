@@ -3,7 +3,8 @@
             [com.stuartsierra.component :as component]
             [hiposfer.kamal.io.edn :as edn]
             [hiposfer.kamal.io.gtfs :as gtfs]
-            [hiposfer.gtfs.edn :as gtfs.edn]))
+            [hiposfer.gtfs.edn :as gtfs.edn]
+            [hiposfer.kamal.services.routing.graph :as graph]))
 
 ;; NOTE: we use :db/index true to replace the lack of :VAET index in datascript
 ;; This is for performance. In lots of cases we want to lookup back-references
@@ -51,7 +52,10 @@
   "builds a datascript in-memory db and conj's it into the passed agent"
   [area]
   ;; re-build the network from the file
-  (data/conn-from-db (edn/parse (:area/edn area))))
+  (let [db   (edn/parse (:area/edn area))
+        conn (data/conn-from-db db)]
+    (alter-meta! conn assoc :area/graph (graph/create db))
+    conn))
 
 (defn- stop-process
   [agnt error]
