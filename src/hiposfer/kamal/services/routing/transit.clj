@@ -37,23 +37,23 @@
 (def penalty 30) ;; seconds
 
 ;; ............................................................................
-(defrecord WalkStep [way ^Long value]
+(defrecord WalkCost [^Long value]
   np/Valuable
   (cost [_] value)
   Comparable
   (compareTo [_ o] (Long/compare value (np/cost o))))
 
-(defn walk-step? [o] (instance? WalkStep o))
+(defn walk-cost? [o] (instance? WalkCost o))
 
 ;; a TripStep represents the transition between two stops in a GTFS feed
 ;; Both the source and destination :stop_time are kept to avoid future lookups
-(defrecord TripStep [start end ^Long value]
+(defrecord TripCost [^Long value]
   np/Valuable
   (cost [_] value)
   Comparable
   (compareTo [_ o] (Long/compare value (np/cost o))))
 
-(defn trip-step? [o] (instance? TripStep o))
+(defn trip-cost? [o] (instance? TripCost o))
 
 ;; ............................................................................
 (defrecord TransitRouter [network graph trips]
@@ -65,25 +65,29 @@
           src            (get graph src-id)
           dst            (get graph dst-id)
           now            (np/cost value)]
-      #_(println "src:" src-id " dst:" dst-id)
+      #_(println "walk?:" (walk-cost? value) "trip?:" (trip-cost? value))
       (cond
         ;; The user is just walking so we route based on walking duration
         (graph/osm-node? src) ;; [node (or node stop)]
-        (->WalkStep (data/entity network (:way/e arc))
-                    (Long/sum now (walk-time src dst)))
+        (map->WalkCost {:value      (Long/sum now (walk-time src dst))
+                        :way/entity (data/entity network (:way/e arc))})
+
         ;; the user is trying to leave a vehicle. Apply penalty but route
         ;; normally
         (graph/osm-node? dst) ;; [stop node]
-        (->WalkStep (data/entity network (:way/e arc))
-                    (Long/sum (Long/sum now penalty)
-                              (walk-time src dst)))
+        (map->WalkCost {:value      (Long/sum (Long/sum now penalty)
+                                              (walk-time src dst))
+                        :way/entity (data/entity network (:way/e arc))})
+
         ;; riding on public transport .............
         ;; the user is already in a trip. Just find the trip going to dst [stop stop]
-        (trip-step? value)
-        (let [?trip (:stop_time/trip (:start value))
-              st    (fastq/continue-trip network dst-id ?trip)]
+        (trip-cost? value)
+        (let [trip (:stop_time/trip (:stop_time/from value))
+              st   (fastq/continue-trip network dst-id trip)]
           (when (some? st)
-            (->TripStep (:end value) st (:stop_time/arrival_time st))))
+            (map->TripCost {:value          (:stop_time/arrival_time st)
+                            :stop_time/from (:stop_time/to value)
+                            :stop_time/to   st})))
 
         ;; the user is trying to get on a vehicle - find the next trip
         :else
@@ -92,7 +96,9 @@
               local-trips (set/intersection (set route-trips) trips)
               [st1 st2]   (fastq/find-trip network local-trips src-id dst-id now)]
           (when (some? st2) ;; nil if no trip was found
-            (->TripStep st1 st2 (:stop_time/arrival_time st2))))))))
+            (map->TripCost {:value          (:stop_time/arrival_time st2)
+                            :stop_time/from st1
+                            :stop_time/to   st2})))))))
 
 (defn name
   "returns a name that represents this entity in the network.
@@ -107,8 +113,8 @@
   that is the way. For transit routing it is the stop"
   ([piece] ;; a piece already represents a context ;)
    (let [step (val (first piece))]
-     (if (walk-step? step) ;; trip-step otherwise
-       (:way step)
+     (if (walk-cost? step) ;; trip-step otherwise
+       (:way/entity step)
        (key (first piece)))))
   ([trace vprev]
    (let [previous @vprev]
@@ -116,11 +122,11 @@
      (cond
        ;; walking normally -> return the way
        (and (node? (key previous)) (node? (key trace)))
-       (:way (val trace))
+       (:way/entity (val trace))
 
        ;; getting into a trip -> return the way of the road
        (and (node? (key previous)) (stop? (key trace)))
-       (:way (val trace))
+       (:way/entity (val trace))
 
        ;; on a trip -> return the stop
        (and (stop? (key previous)) (stop? (key trace)))
