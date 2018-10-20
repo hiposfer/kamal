@@ -111,7 +111,7 @@
            {:stop_time/from from
             :stop_time/to to})))
 
-(defn- stop-times-matches
+(defn- stop-times-match
   [network trips ?src-id ?dst-id now]
   (when (seq trips)
     (let [stop_times (eduction (map #(data/entity network (:e %)))
@@ -137,23 +137,23 @@
 
    Returns nil if no trip was found"
   [network trips ?src-id ?dst-id now]
-  (let [cycle-trips      (frequency-matches network trips ?src-id ?dst-id now)
-        frequency-ids    (eduction (map :frequency/entity)
-                                   (map :frequency/trip)
-                                   (map :db/id)
-                                   cycle-trips)
+  (let [cycle-trips     (frequency-matches network trips ?src-id ?dst-id now)
+        frequency-ids   (eduction (map :frequency/entity)
+                                  (map :frequency/trip)
+                                  (map :db/id)
+                                  cycle-trips)
         ;; constraint the available trips to only fixed time
-        trips            (set/intersection trips (set frequency-ids))
-        fixed-time-trips (stop-times-matches network trips ?src-id ?dst-id now)]
+        trips           (set/difference trips (set frequency-ids))
+        fixed-time-trip (stop-times-match network trips ?src-id ?dst-id now)]
     (cond
-      (and (seq cycle-trips) (nil? fixed-time-trips))
+      (and (seq cycle-trips) (nil? fixed-time-trip))
       (apply min-key :value cycle-trips)
 
-      (and (empty? cycle-trips) (seq fixed-time-trips))
-      (apply min-key :value fixed-time-trips)
+      (and (empty? cycle-trips) (some? fixed-time-trip))
+      fixed-time-trip
 
-      (and (seq cycle-trips) (seq fixed-time-trips))
-      (apply min-key :value (concat cycle-trips fixed-time-trips)))))
+      (and (seq cycle-trips) (seq fixed-time-trip))
+      (apply min-key :value (cons fixed-time-trip cycle-trips)))))
 
 ;; src - [:stop/id 3392140086]
 ;; dst - [:stop/id 582939269]
