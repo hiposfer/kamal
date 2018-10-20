@@ -82,23 +82,19 @@
         ;; riding on public transport .............
         ;; the user is already in a trip. Just find the trip going to dst [stop stop]
         (trip-cost? value)
-        (let [trip (:stop_time/trip (:stop_time/from value))
-              st   (fastq/continue-trip network dst-id trip)]
-          (when (some? st)
-            (map->TripCost {:value          (:stop_time/arrival_time st)
-                            :stop_time/from (:stop_time/to value)
-                            :stop_time/to   st})))
+        (let [trip   (:stop_time/trip (:stop_time/from value))
+              result (fastq/continue-trip network value dst-id)]
+          (when (some? result)
+            (map->TripCost result)))
 
         ;; the user is trying to get on a vehicle - find the next trip
         :else
         (let [route       (:route/e arc)
               route-trips (map :e (data/datoms network :avet :trip/route route))
               local-trips (set/intersection (set route-trips) trips)
-              [st1 st2]   (fastq/find-trip network local-trips src-id dst-id now)]
-          (when (some? st2) ;; nil if no trip was found
-            (map->TripCost {:value          (:stop_time/arrival_time st2)
-                            :stop_time/from st1
-                            :stop_time/to   st2})))))))
+              result      (fastq/find-trip network local-trips src-id dst-id now)]
+          (when (some? result) ;; nil if no trip was found
+            (map->TripCost result)))))))
 
 (defn name
   "returns a name that represents this entity in the network.

@@ -238,7 +238,3 @@
                                   ;[8.699619, 50.097842]] ;; sachsenhausen
                                   [8.635897, 50.104172]] ;; galluswarte
                     :departure (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")}))
-
-#_(let [network @(first @(:networks (:router hiposfer.kamal.dev/system)))]
-    (for [d (data/datoms network :avet :frequency/trip)]
-      (data/touch (data/entity network (:e d)))))

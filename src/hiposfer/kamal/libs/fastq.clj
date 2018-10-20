@@ -6,7 +6,7 @@
   (:require [datascript.core :as data]
             [hiposfer.kamal.libs.tool :as tool]
             [clojure.string :as str]
-            [hiposfer.kamal.network.algorithms.protocols :as np])
+            [clojure.set :as set])
   (:import (java.time LocalDate)))
 
 (defn references
@@ -16,76 +16,142 @@
   (eduction (map #(data/entity network (:e %)))
             (data/datoms network :avet attribute target-id)))
 
-(defn node-edges
-  "takes a network and an entity and returns the successors of that entity.
-   Only valid for OSM nodes. Assumes bidirectional links i.e. nodes with
-   back-references to entity are also returned"
-  [entity]
-  (let [network   (data/entity-db entity)
-        target-id (:db/id entity)]
-    (concat (references network :edge/src target-id)
-            (eduction (map np/mirror)
-                      (references network :edge/dst target-id)))))
-
-(defn stop-successors
-  [entity]
-  (let [network (data/entity-db entity)]
-    (concat (references network :arc/src (:db/id entity))
-            (eduction (map np/mirror)
-                      (references network :edge/dst (:db/id entity))))))
-
 (defn nearest-nodes
   "returns the nearest node/location to point"
   [network point]
   (eduction (map #(data/entity network (:e %)))
             (data/index-range network :node/location point nil)))
 
+(defn- continue-frequency-trip
+  "returns a map representation of the cost of reaching ?dst-id through
+  a frequency-trip computed previous(ly) as defined in frequencies.txt
+
+  Returns nil if no trip going to ?dst-id was found"
+  [network previous ?dst-id]
+  (let [from     (:stop_time/to previous)
+        ?trip-id (:db/id (:stop_time/trip from))
+        to       (tool/some #(= ?dst-id (:db/id (:stop_time/stop %)))
+                             (references network :stop_time/trip ?trip-id))]
+    (when (some? to)
+      (merge previous
+             {:value (+ (:value previous)
+                        (- (:stop_time/arrival_time to)
+                           (:stop_time/departure_time from)))
+              :stop_time/from from
+              :stop_time/to   to}))))
+
+(defn- continue-fixed-time-trip
+  "returns a map representation of the cost of reaching ?dst-id for the
+   fixed-time trip previous(ly) found as defined in stop_times.txt.
+
+  Returns nil if no trip going to ?dst-id was found"
+  [network previous ?dst-id]
+  (let [from     (:stop_time/to previous) ;; the previous to is the new from
+        ?trip-id (:db/id (:stop_time/trip from))
+        to       (tool/some #(= ?dst-id (:db/id (:stop_time/stop %)))
+                             (references network :stop_time/trip ?trip-id))]
+    (when (some? to)
+      {:value (:stop_time/arrival_time to)
+       :stop_time/from from
+       :stop_time/to to})))
+
 (defn continue-trip
-  "returns the :stop_time entity to reach ?dst-id via ?trip
+  "given the previous(ly) found result through (find-trips ...) compute the
+  cost of reaching ?dst-id"
+  [network previous ?dst-id]
+  (if (some? (:frequency/cycle previous))
+    (continue-frequency-trip network previous ?dst-id)
+    (continue-fixed-time-trip network previous ?dst-id)))
 
-  Returns nil if no trip going to ?dst-id was found
+(defn- frequency-cycle
+  "given a frequency entity, the duration between two stops on that trip
+  and the current time (now), calculate the cycle and arrival time
+  such that the user can reach the target stop at value.
 
-  replaces:
-  '[:find ?departure
-    :in $ ?dst-id ?trip ?start
-    :where [?dst :stop_time/stop ?dst-id]
-           [?dst :stop_time/trip ?trip]
-           [?dst :stop_time/arrival_time ?seconds]
-           [(plus-seconds ?start ?seconds) ?departure]]
+  Returns a {:frequency/entity :frequency/cycle :value} map"
+  ([frequency duration now]
+   (frequency-cycle frequency duration now 1))
+  ([frequency duration now n]
+   (let [arrival (+ duration (* n (:frequency/headway_secs frequency)))]
+     (if (< now arrival)
+       {:value arrival :frequency/cycle n :frequency/entity frequency}
+       (recur frequency duration now (inc n))))))
 
-   The previous query takes around 50 milliseconds to execute. This function
-   takes around 0.22 milliseconds to execute. Depends on :stop_time/trip index"
-  [network ?dst-id trip]
-  (let [?trip-id (:db/id trip)]
-    (tool/some #(= ?dst-id (:db/id (:stop_time/stop %)))
-                (references network :stop_time/trip ?trip-id))))
+(defn- frequency-context
+  "returns a sequence of [start src dst] stop_times entities for the given
+  ?trip-id, which should be a frequency-based trip"
+  [network ?trip-id ?src-id ?dst-id]
+  (let [datoms (data/datoms network :avet :stop_time/trip ?trip-id)
+        start  (data/entity network (:e (first datoms)))]
+    (cons start
+      (for [d datoms
+            :let [stop_time (data/entity network (:e d))]
+            :when (or (= ?src-id (:db/id (:stop_time/stop stop_time)))
+                      (= ?dst-id (:db/id (:stop_time/stop stop_time))))]
+        stop_time))))
+
+(defn- frequency-matches
+  "returns a sequence of
+
+   {:value :stop_times/from :stop_times/to :frequency/cycle :frequency/entity}
+
+   for each frequency-based trip that the user could take to
+   travel from ?src-id to ?dst-id at time now"
+  [network trips ?src-id ?dst-id now]
+  (for [?trip-id trips
+        d        (data/datoms network :avet :frequency/trip ?trip-id)
+        :let [frequency (data/entity network (:e d))]
+        :when (> now (:frequency/start_time frequency))
+        :when (< now (:frequency/end_time frequency))
+        :let [[start from to] (frequency-context network ?trip-id ?src-id ?dst-id)
+              duration  (- (:stop_time/arrival_time to)
+                           (:stop_time/departure_time start))]]
+    (merge (frequency-cycle frequency duration now)
+           {:stop_time/from from
+            :stop_time/to to})))
+
+(defn- stop-times-matches
+  [network trips ?src-id ?dst-id now]
+  (when (seq trips)
+    (let [stop_times (eduction (map #(data/entity network (:e %)))
+                               (filter #(contains? trips (:db/id (:stop_time/trip %))))
+                               (filter #(> (:stop_time/departure_time %) now))
+                               (data/datoms network :avet :stop_time/stop ?src-id))]
+      (when (seq stop_times)
+        (let [from (apply min-key :stop_time/departure_time stop_times)
+              to   (continue-fixed-time-trip network ?dst-id (:stop_time/trip from))]
+          (when (some? to)
+            {:value          (:stop_time/arrival_time to)
+             :stop_time/from from
+             :stop_time/to   to}))))))
 
 (defn find-trip
-  "Returns a [src dst] :stop_time pair for the next trip between ?src-id
-   and ?dst-id departing after ?now.
+  "Returns a map with {:value :stop_times/from :stop_times/to} and maybe
+   {:frequency/cycle :frequency/entity} on a frequency match.
 
-   Returns nil if no trip was found
+   To find a matching trip, we search among repetitive trips (frequencies.txt)
+   and exact time trips (stop_times.txt). The closest departing trip to now is
+   chosen.
 
-  replaces:
-  '[:find ?trip ?departure
-    :in $ ?src-id ?dst-id ?now ?start
-    :where [?src :stop_time/stop ?src-id]
-           [?dst :stop_time/stop ?dst-id]
-           [?src :stop_time/trip ?trip]
-           [?dst :stop_time/trip ?trip]
-           [?src :stop_time/departure_time ?amount]
-           [(hiposfer.kamal.libs.fastq/plus-seconds ?start ?amount) ?departure]
-           [(hiposfer.kamal.libs.fastq/after? ?departure ?now)]]
-
-  The previous query runs in 118 milliseconds. This function takes 4 milliseconds"
+   Returns nil if no trip was found"
   [network trips ?src-id ?dst-id now]
-  (let [stop_times (eduction (map #(data/entity network (:e %)))
-                             (filter #(contains? trips (:db/id (:stop_time/trip %))))
-                             (filter #(> (:stop_time/departure_time %) now))
-                             (data/datoms network :avet :stop_time/stop ?src-id))]
-    (when (seq stop_times)
-      (let [trip (apply min-key :stop_time/departure_time stop_times)]
-        [trip (continue-trip network ?dst-id (:stop_time/trip trip))]))))
+  (let [cycle-trips      (frequency-matches network trips ?src-id ?dst-id now)
+        frequency-ids    (eduction (map :frequency/entity)
+                                   (map :frequency/trip)
+                                   (map :db/id)
+                                   cycle-trips)
+        ;; constraint the available trips to only fixed time
+        trips            (set/intersection trips (set frequency-ids))
+        fixed-time-trips (stop-times-matches network trips ?src-id ?dst-id now)]
+    (cond
+      (and (seq cycle-trips) (nil? fixed-time-trips))
+      (apply min-key :value cycle-trips)
+
+      (and (empty? cycle-trips) (seq fixed-time-trips))
+      (apply min-key :value fixed-time-trips)
+
+      :else
+      (apply min-key :value (concat cycle-trips fixed-time-trips)))))
 
 ;; src - [:stop/id 3392140086]
 ;; dst - [:stop/id 582939269]
