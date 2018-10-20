@@ -1,4 +1,4 @@
-(ns hiposfer.kamal.components.router.util.fastq
+(ns hiposfer.kamal.router.util.fastq
   "namespace for hand-optimized queries that are used inside the routing
   algorithm and need to run extremely fast (< 1 ms per query)
 
@@ -6,7 +6,7 @@
   (:require [datascript.core :as data]
             [clojure.string :as str]
             [clojure.set :as set]
-            [hiposfer.kamal.components.router.util.misc :as tool])
+            [hiposfer.kamal.router.util.misc :as tool])
   (:import (java.time LocalDate)))
 
 (defn references

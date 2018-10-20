@@ -1,4 +1,4 @@
-(ns hiposfer.kamal.components.server.core
+(ns hiposfer.kamal.server.core
   (:require [clojure.walk :as walk]
             [com.stuartsierra.component :as component]
             [ring.adapter.jetty :as jetty]
@@ -9,9 +9,9 @@
             [ring.middleware.json :as json]
             [ring.util.http-response :as code]
             [ring.middleware.accept :as accept]
-            [hiposfer.kamal.components.server.edn :as edn]
-            [hiposfer.kamal.components.server.handlers :as handler]
-            [hiposfer.kamal.components.router.util.misc :as misc])
+            [hiposfer.kamal.server.edn :as edn]
+            [hiposfer.kamal.server.handlers :as handler]
+            [hiposfer.kamal.router.util.misc :as misc])
   (:import (org.eclipse.jetty.server Server)
            (clojure.lang ExceptionInfo)))
 

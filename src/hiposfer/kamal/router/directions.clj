@@ -1,4 +1,4 @@
-(ns hiposfer.kamal.components.router.directions
+(ns hiposfer.kamal.router.directions
   "collection of functions to provide routing directions based on Open Street
   Maps and General Transit Feed Specification data. It follows (as close
   as possible) the MapBox v5 directions specification.
@@ -12,12 +12,12 @@
   - loop over the pieces to create instructions based on each previous, current
     and next piece"
   (:require [datascript.core :as data]
-            [hiposfer.kamal.components.router.algorithms.dijkstra :as dijkstra]
-            [hiposfer.kamal.components.router.algorithms.protocols :as np]
-            [hiposfer.kamal.components.router.transit :as transit]
-            [hiposfer.kamal.components.router.util.geometry :as geometry]
-            [hiposfer.kamal.components.router.util.fastq :as fastq]
-            [hiposfer.kamal.components.router.io.gtfs :as gtfs])
+            [hiposfer.kamal.router.algorithms.dijkstra :as dijkstra]
+            [hiposfer.kamal.router.algorithms.protocols :as np]
+            [hiposfer.kamal.router.transit :as transit]
+            [hiposfer.kamal.router.util.geometry :as geometry]
+            [hiposfer.kamal.router.util.fastq :as fastq]
+            [hiposfer.kamal.router.io.gtfs :as gtfs])
   (:import (java.time Duration LocalTime ZonedDateTime)
            (java.time.temporal ChronoUnit)))
 

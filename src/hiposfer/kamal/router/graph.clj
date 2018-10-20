@@ -1,10 +1,10 @@
-(ns hiposfer.kamal.components.router.graph
+(ns hiposfer.kamal.router.graph
   "functions to transform a Datascript representation to an Int-Map for
    super-fast lookups and Dijkstra routing"
   (:require [datascript.core :as data]
             [clojure.data.int-map :as i]
-            [hiposfer.kamal.components.router.util.fastq :as fastq]
-            [hiposfer.kamal.components.router.algorithms.protocols :as np]))
+            [hiposfer.kamal.router.util.fastq :as fastq]
+            [hiposfer.kamal.router.algorithms.protocols :as np]))
 
 
 (defn edge? [o] (and (satisfies? np/Arc o)

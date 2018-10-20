@@ -1,19 +1,19 @@
-(ns hiposfer.kamal.components.router.tests
+(ns hiposfer.kamal.router.tests
   (:require [clojure.spec.alpha :as s]
             [clojure.test :refer [is deftest]]
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
-            [hiposfer.kamal.components.router.algorithms.dijkstra :as dijkstra]
-            [hiposfer.kamal.components.router.algorithms.protocols :as np]
-            [hiposfer.kamal.components.router.core :as router]
-            [hiposfer.kamal.components.router.generators :as fake-area]
-            [hiposfer.kamal.components.router.transit :as transit]
-            [hiposfer.kamal.components.router.directions :as dir]
-            [hiposfer.kamal.components.server.specs.directions :as dataspecs]
+            [hiposfer.kamal.router.algorithms.dijkstra :as dijkstra]
+            [hiposfer.kamal.router.algorithms.protocols :as np]
+            [hiposfer.kamal.router.core :as router]
+            [hiposfer.kamal.router.generators :as fake-area]
+            [hiposfer.kamal.router.transit :as transit]
+            [hiposfer.kamal.router.directions :as dir]
+            [hiposfer.kamal.server.specs.directions :as dataspecs]
             [expound.alpha :as expound]
             [datascript.core :as data]
-            [hiposfer.kamal.components.router.graph :as graph])
+            [hiposfer.kamal.router.graph :as graph])
   (:import (datascript.impl.entity Entity)))
 
 (defn nodes

@@ -1,6 +1,6 @@
-(ns hiposfer.kamal.components.router.io.osm
+(ns hiposfer.kamal.router.io.osm
   (:require [clojure.data.xml :as xml]
-            [hiposfer.kamal.components.router.algorithms.core :as record]))
+            [hiposfer.kamal.router.algorithms.core :as record]))
 
 ;;TODO: include routing attributes for penalties
 ;; bridge=yes      Also true/1/viaduct

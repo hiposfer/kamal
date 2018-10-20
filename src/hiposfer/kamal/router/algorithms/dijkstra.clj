@@ -1,5 +1,5 @@
-(ns hiposfer.kamal.components.router.algorithms.dijkstra
-  (:require [hiposfer.kamal.components.router.algorithms.protocols :as np])
+(ns hiposfer.kamal.router.algorithms.dijkstra
+  (:require [hiposfer.kamal.router.algorithms.protocols :as np])
   (:import (java.util HashMap Map AbstractMap$SimpleImmutableEntry)
            (clojure.lang Seqable IReduceInit IReduce Sequential)
            (org.teneighty.heap FibonacciHeap Heap Heap$Entry)))

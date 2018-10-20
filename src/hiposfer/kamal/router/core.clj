@@ -1,10 +1,10 @@
-(ns hiposfer.kamal.components.router.core
+(ns hiposfer.kamal.router.core
   (:require [datascript.core :as data]
             [com.stuartsierra.component :as component]
             [hiposfer.gtfs.edn :as gtfs.edn]
-            [hiposfer.kamal.components.router.io.edn :as edn]
-            [hiposfer.kamal.components.router.io.gtfs :as gtfs]
-            [hiposfer.kamal.components.router.graph :as graph]))
+            [hiposfer.kamal.router.io.edn :as edn]
+            [hiposfer.kamal.router.io.gtfs :as gtfs]
+            [hiposfer.kamal.router.graph :as graph]))
 
 ;; NOTE: we use a node/location instead of lat, lon separate to avoid creating
 ;; so many datoms and to have a single entity that we can apply protocols against.

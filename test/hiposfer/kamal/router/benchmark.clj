@@ -1,18 +1,18 @@
-(ns hiposfer.kamal.components.router.benchmark
+(ns hiposfer.kamal.router.benchmark
   (:require [criterium.core :as c]
             [clojure.test :as test]
             [datascript.core :as data]
-            [hiposfer.kamal.components.router.util.geometry :as geometry]
-            [hiposfer.kamal.components.router.util.fastq :as fastq]
-            [hiposfer.kamal.components.router.tests :as kt]
-            [hiposfer.kamal.components.router.road :as road]
-            [hiposfer.kamal.components.router.transit :as transit]
-            [hiposfer.kamal.components.router.generators :as fake-area]
-            [hiposfer.kamal.components.router.graph :as graph]
-            [hiposfer.kamal.components.router.algorithms.protocols :as np]
-            [hiposfer.kamal.components.router.algorithms.dijkstra :as dijkstra])
+            [hiposfer.kamal.router.util.geometry :as geometry]
+            [hiposfer.kamal.router.util.fastq :as fastq]
+            [hiposfer.kamal.router.tests :as kt]
+            [hiposfer.kamal.router.road :as road]
+            [hiposfer.kamal.router.transit :as transit]
+            [hiposfer.kamal.router.generators :as fake-area]
+            [hiposfer.kamal.router.graph :as graph]
+            [hiposfer.kamal.router.algorithms.protocols :as np]
+            [hiposfer.kamal.router.algorithms.dijkstra :as dijkstra])
   (:import (java.time ZonedDateTime Duration LocalTime)
-           (hiposfer.kamal.components.router.graph PedestrianNode)))
+           (hiposfer.kamal.router.graph PedestrianNode)))
 
 ;; NOTE: we put a letter in the test names, because apparently the benchmarks
 ;; are ran in alphabetic order

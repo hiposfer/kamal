@@ -1,15 +1,15 @@
-(ns hiposfer.kamal.components.router.road
+(ns hiposfer.kamal.router.road
   (:require [clojure.spec.alpha :as s]
             [expound.alpha :as expound]
             [clojure.test :refer [is deftest]]
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
-            [hiposfer.kamal.components.server.specs.directions :as dataspecs]
-            [hiposfer.kamal.components.router.tests :as rt]
-            [hiposfer.kamal.components.router.core :as router]
-            [hiposfer.kamal.components.router.directions :as dir]
-            [hiposfer.kamal.components.router.graph :as graph]))
+            [hiposfer.kamal.server.specs.directions :as dataspecs]
+            [hiposfer.kamal.router.tests :as rt]
+            [hiposfer.kamal.router.core :as router]
+            [hiposfer.kamal.router.directions :as dir]
+            [hiposfer.kamal.router.graph :as graph]))
 
 (defonce network (delay (time (router/network {:area/edn "resources/test/frankfurt.edn.gz"}))))
 

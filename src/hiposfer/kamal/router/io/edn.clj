@@ -1,8 +1,8 @@
-(ns hiposfer.kamal.components.router.io.edn
+(ns hiposfer.kamal.router.io.edn
   (:require [clojure.java.io :as io]
             [clojure.edn :as edn]
             [datascript.core :as data]
-            [hiposfer.kamal.components.router.algorithms.core :as records])
+            [hiposfer.kamal.router.algorithms.core :as records])
   (:import (java.time LocalDateTime DayOfWeek LocalDate ZoneId)
            (java.io PushbackReader InputStreamReader)
            (java.util.zip GZIPInputStream)))
@@ -23,7 +23,7 @@
 
 (def local-readers
   "qualified symbol to parsing function. Used to get datascript to understand local objects"
-  {'hiposfer.kamal.components.router.algorithms.core records/map->Location
+  {'hiposfer.kamal.router.algorithms.core records/map->Location
    'object                                           read-object})
 
 (defn parse

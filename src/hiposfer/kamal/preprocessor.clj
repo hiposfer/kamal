@@ -9,11 +9,11 @@
             [hiposfer.kamal.dev :as dev]
             [hiposfer.kamal.core :as core]
             [hiposfer.geojson.specs :as geojson]
-            [hiposfer.kamal.components.router.core :as routing]
-            [hiposfer.kamal.components.router.util.fastq :as fastq]
-            [hiposfer.kamal.components.router.io.gtfs :as gtfs]
-            [hiposfer.kamal.components.router.io.osm :as osm]
-            [hiposfer.kamal.components.router.algorithms.protocols :as np])
+            [hiposfer.kamal.router.core :as routing]
+            [hiposfer.kamal.router.util.fastq :as fastq]
+            [hiposfer.kamal.router.io.gtfs :as gtfs]
+            [hiposfer.kamal.router.io.osm :as osm]
+            [hiposfer.kamal.router.algorithms.protocols :as np])
   (:import (java.net URLEncoder URL)
            (java.util.zip ZipInputStream GZIPOutputStream)))
 

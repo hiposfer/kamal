@@ -1,5 +1,5 @@
-(ns hiposfer.kamal.components.router.algorithms.core
-  (:require [hiposfer.kamal.components.router.algorithms.protocols :as np])
+(ns hiposfer.kamal.router.algorithms.core
+  (:require [hiposfer.kamal.router.algorithms.protocols :as np])
   (:import (clojure.lang APersistentMap IPersistentVector)
            (ch.hsr.geohash GeoHash)))
 

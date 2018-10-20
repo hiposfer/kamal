@@ -1,4 +1,4 @@
-(ns hiposfer.kamal.components.router.util.misc
+(ns hiposfer.kamal.router.util.misc
   "useful functions that have not found a proper place yet"
   (:refer-clojure :rename {some some*} :exclude [assert])
   (:require [clojure.spec.alpha :as s]

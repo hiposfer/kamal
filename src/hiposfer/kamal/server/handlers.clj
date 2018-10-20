@@ -1,4 +1,4 @@
-(ns hiposfer.kamal.components.server.handlers
+(ns hiposfer.kamal.server.handlers
   (:require [datascript.core :as data]
             [clojure.edn :as edn]
             [compojure.core :as api]
@@ -6,13 +6,13 @@
             [ring.util.io :as rio]
             [ring.util.response :as response]
             [ring.util.http-response :as code]
-            [hiposfer.kamal.components.router.directions :as dir]
-            [hiposfer.kamal.components.server.specs.directions :as dirspecs]
-            [hiposfer.kamal.components.server.specs.resources :as resource]
-            [hiposfer.kamal.components.router.util.geometry :as geometry]
-            [hiposfer.kamal.components.router.util.fastq :as fastq]
-            [hiposfer.kamal.components.router.util.misc :as misc]
-            [hiposfer.kamal.components.router.io.gtfs :as gtfs])
+            [hiposfer.kamal.router.directions :as dir]
+            [hiposfer.kamal.server.specs.directions :as dirspecs]
+            [hiposfer.kamal.server.specs.resources :as resource]
+            [hiposfer.kamal.router.util.geometry :as geometry]
+            [hiposfer.kamal.router.util.fastq :as fastq]
+            [hiposfer.kamal.router.util.misc :as misc]
+            [hiposfer.kamal.router.io.gtfs :as gtfs])
   (:import (java.time ZonedDateTime)))
 
 (def max-distance 1000) ;; meters
