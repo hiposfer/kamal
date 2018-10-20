@@ -1,6 +1,6 @@
 
-Testing hiposfer.kamal.network.benchmark
-"Elapsed time: 4573.923139 msecs"
+Testing hiposfer.kamal.router.benchmark
+"Elapsed time: 4962.177982 msecs"
 
 
 Road network: nearest neighbour search with random src/dst
@@ -9,14 +9,14 @@ accuracy:  14.397657786540089 meters
 x86_64 Mac OS X 10.13.6 8 cpu(s)
 Java HotSpot(TM) 64-Bit Server VM 25.101-b13
 Runtime arguments: -Dfile.encoding=UTF-8 -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/Users/Camilo/Proyectos/kamal/target/classes -Dkamal.version=0.18.1 -Dclojure.debug=false
-Evaluation count : 29136 in 6 samples of 4856 calls.
-      Execution time sample mean : 20.861272 µs
-             Execution time mean : 20.874462 µs
-Execution time sample std-deviation : 430.261411 ns
-    Execution time std-deviation : 434.396701 ns
-   Execution time lower quantile : 20.537877 µs ( 2.5%)
-   Execution time upper quantile : 21.589133 µs (97.5%)
-                   Overhead used : 1.796905 ns
+Evaluation count : 27162 in 6 samples of 4527 calls.
+      Execution time sample mean : 22.349489 µs
+             Execution time mean : 22.352483 µs
+Execution time sample std-deviation : 593.211301 ns
+    Execution time std-deviation : 594.180254 ns
+   Execution time lower quantile : 22.034206 µs ( 2.5%)
+   Execution time upper quantile : 23.378569 µs (97.5%)
+                   Overhead used : 1.799125 ns
 
 Found 1 outliers in 6 samples (16.6667 %)
 	low-severe	 1 (16.6667 %)
@@ -28,13 +28,13 @@ x86_64 Mac OS X 10.13.6 8 cpu(s)
 Java HotSpot(TM) 64-Bit Server VM 25.101-b13
 Runtime arguments: -Dfile.encoding=UTF-8 -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/Users/Camilo/Proyectos/kamal/target/classes -Dkamal.version=0.18.1 -Dclojure.debug=false
 Evaluation count : 18 in 6 samples of 3 calls.
-      Execution time sample mean : 38.660907 ms
-             Execution time mean : 38.635912 ms
-Execution time sample std-deviation : 944.481921 µs
-    Execution time std-deviation : 1.066157 ms
-   Execution time lower quantile : 37.214196 ms ( 2.5%)
-   Execution time upper quantile : 39.886597 ms (97.5%)
-                   Overhead used : 1.796905 ns
+      Execution time sample mean : 41.666909 ms
+             Execution time mean : 41.644226 ms
+Execution time sample std-deviation : 694.568908 µs
+    Execution time std-deviation : 739.240943 µs
+   Execution time lower quantile : 40.674140 ms ( 2.5%)
+   Execution time upper quantile : 42.320290 ms (97.5%)
+                   Overhead used : 1.799125 ns
 
 
 Transit routing with: 50915 nodes
@@ -42,31 +42,27 @@ x86_64 Mac OS X 10.13.6 8 cpu(s)
 Java HotSpot(TM) 64-Bit Server VM 25.101-b13
 Runtime arguments: -Dfile.encoding=UTF-8 -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/Users/Camilo/Proyectos/kamal/target/classes -Dkamal.version=0.18.1 -Dclojure.debug=false
 Evaluation count : 6 in 6 samples of 1 calls.
-      Execution time sample mean : 130.607274 ms
-             Execution time mean : 130.707615 ms
-Execution time sample std-deviation : 3.391188 ms
-    Execution time std-deviation : 3.439405 ms
-   Execution time lower quantile : 126.827610 ms ( 2.5%)
-   Execution time upper quantile : 135.953964 ms (97.5%)
-                   Overhead used : 1.796905 ns
-
-Found 1 outliers in 6 samples (16.6667 %)
-	low-severe	 1 (16.6667 %)
- Variance from outliers : 13.8889 % Variance is moderately inflated by outliers
+      Execution time sample mean : 125.068624 ms
+             Execution time mean : 125.057520 ms
+Execution time sample std-deviation : 3.474232 ms
+    Execution time std-deviation : 3.611091 ms
+   Execution time lower quantile : 121.027470 ms ( 2.5%)
+   Execution time upper quantile : 129.940304 ms (97.5%)
+                   Overhead used : 1.799125 ns
 
 
-DIJKSTRA forward with: 1014 nodes
+DIJKSTRA forward with: 1022 nodes
 x86_64 Mac OS X 10.13.6 8 cpu(s)
 Java HotSpot(TM) 64-Bit Server VM 25.101-b13
 Runtime arguments: -Dfile.encoding=UTF-8 -XX:-OmitStackTraceInFastThrow -Dclojure.compile.path=/Users/Camilo/Proyectos/kamal/target/classes -Dkamal.version=0.18.1 -Dclojure.debug=false
-Evaluation count : 240108 in 6 samples of 40018 calls.
-      Execution time sample mean : 2.524666 µs
-             Execution time mean : 2.524742 µs
-Execution time sample std-deviation : 26.900295 ns
-    Execution time std-deviation : 28.511805 ns
-   Execution time lower quantile : 2.498645 µs ( 2.5%)
-   Execution time upper quantile : 2.557943 µs (97.5%)
-                   Overhead used : 1.796905 ns
+Evaluation count : 295992 in 6 samples of 49332 calls.
+      Execution time sample mean : 2.069178 µs
+             Execution time mean : 2.069178 µs
+Execution time sample std-deviation : 56.861623 ns
+    Execution time std-deviation : 58.733517 ns
+   Execution time lower quantile : 2.020867 µs ( 2.5%)
+   Execution time upper quantile : 2.143718 µs (97.5%)
+                   Overhead used : 1.799125 ns
 
 Ran 4 tests containing 0 assertions.
 0 failures, 0 errors.

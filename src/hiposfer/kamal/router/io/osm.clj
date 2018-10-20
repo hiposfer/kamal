@@ -1,6 +1,6 @@
-(ns hiposfer.kamal.io.osm
+(ns hiposfer.kamal.router.io.osm
   (:require [clojure.data.xml :as xml]
-            [hiposfer.kamal.network.core :as network]))
+            [hiposfer.kamal.router.algorithms.core :as record]))
 
 ;;TODO: include routing attributes for penalties
 ;; bridge=yes      Also true/1/viaduct
@@ -23,8 +23,8 @@
   "takes an OSM node and returns a [id Node-instance]"
   [element]
   {:node/id  (Long/parseLong (:id  (:attrs element)))
-   :node/location (network/->Location (Double/parseDouble (:lon (:attrs element)))
-                                      (Double/parseDouble (:lat (:attrs element))))})
+   :node/location (record/->Location (Double/parseDouble (:lon (:attrs element)))
+                                     (Double/parseDouble (:lat (:attrs element))))})
 
 ; <way id="26659127" user="Masch" uid="55988" visible="true" version="5" changeset="4142606"
       ;timestamp="2010-03-16T11:47:08Z">

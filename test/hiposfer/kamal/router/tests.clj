@@ -1,20 +1,27 @@
-(ns hiposfer.kamal.network.tests
+(ns hiposfer.kamal.router.tests
   (:require [clojure.spec.alpha :as s]
             [clojure.test :refer [is deftest]]
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
-            [hiposfer.kamal.network.algorithms.core :as alg]
-            [hiposfer.kamal.network.algorithms.protocols :as np]
-            [hiposfer.kamal.services.routing.core :as router]
-            [hiposfer.kamal.network.generators :as fake-area]
-            [hiposfer.kamal.specs.directions :as dataspecs]
-            [hiposfer.kamal.services.routing.transit :as transit]
-            [hiposfer.kamal.services.routing.directions :as dir]
+            [hiposfer.kamal.router.algorithms.dijkstra :as dijkstra]
+            [hiposfer.kamal.router.algorithms.protocols :as np]
+            [hiposfer.kamal.router.core :as router]
+            [hiposfer.kamal.router.generators :as fake-area]
+            [hiposfer.kamal.router.transit :as transit]
+            [hiposfer.kamal.router.directions :as dir]
+            [hiposfer.kamal.server.specs.directions :as dataspecs]
             [expound.alpha :as expound]
             [datascript.core :as data]
-            [hiposfer.kamal.services.routing.graph :as graph])
+            [hiposfer.kamal.router.graph :as graph])
   (:import (datascript.impl.entity Entity)))
+
+(defn nodes
+  "returns all the node entities in the network"
+  [network]
+  (sequence (comp (map :e)
+                  (map #(data/entity network %)))
+            (data/datoms network :aevt :node/id)))
 
 ;; Example taken from
 ;; https://rosettacode.org/wiki/Dijkstra%27s_algorithm
@@ -85,8 +92,7 @@
         dst       (:db/id (data/entity network [:node/id 5]))
         src       (:db/id (data/entity network [:node/id 1]))
         router    (->RosettaRouter network)
-        performer (alg/dijkstra router #{src})
-        traversal (alg/shortest-path dst performer)]
+        traversal (dijkstra/shortest-path router #{src} dst)]
     (is (not (empty? traversal))
         "shortest path not found")
     (is (= '(5 4 3 1) (map key traversal))
@@ -98,10 +104,10 @@
                       (:db-after))
         src       (:db/id (data/entity network [:node/id 1]))
         router    (->RosettaRouter network)
-        performer (alg/dijkstra router #{src})
+        view      (dijkstra/view router #{src})
         traversal (into {} (comp (map first)
                                  (map (juxt key (comp np/cost val))))
-                           performer)]
+                        view)]
     (is (not (nil? traversal))
         "shortest path not found")
     (is (= {1 0, 2 7, 3 9, 4 20, 5 26, 6 11}
@@ -128,12 +134,11 @@
   100; tries
   (prop/for-all [size (gen/large-integer* {:min 10 :max 20})]
     (let [graph    (fake-area/graph size)
-          src      (:db/id (rand-nth (alg/nodes graph)))
-          dst      (:db/id (rand-nth (alg/nodes graph)))
+          src      (:db/id (rand-nth (nodes graph)))
+          dst      (:db/id (rand-nth (nodes graph)))
           router   (->PedestrianDatascriptRouter graph)
-          coll     (alg/dijkstra router #{src})
           results  (for [_ (range 10)]
-                     (alg/shortest-path dst coll))]
+                     (dijkstra/shortest-path router #{src} dst))]
       (is (or (every? nil? results)
               (and (apply = (map (comp key first) results))
                    (apply = (map (comp np/cost val first) results))))
@@ -146,11 +151,10 @@
   100; tries
   (prop/for-all [size (gen/large-integer* {:min 10 :max 20})]
      (let [graph    (fake-area/graph size)
-           src      (:db/id (rand-nth (alg/nodes graph)))
-           dst      (:db/id (rand-nth (alg/nodes graph)))
+           src      (:db/id (rand-nth (nodes graph)))
+           dst      (:db/id (rand-nth (nodes graph)))
            router   (->PedestrianDatascriptRouter graph)
-           coll     (alg/dijkstra router #{src})
-           result   (alg/shortest-path dst coll)]
+           result   (dijkstra/shortest-path router #{src} dst)]
        (is (or (nil? result)
                (apply >= (concat (map (comp np/cost val) result)
                                  [0])))
@@ -164,10 +168,9 @@
   100; tries
   (prop/for-all [size (gen/large-integer* {:min 10 :max 20})]
     (let [graph    (fake-area/graph size)
-          src      (:db/id (rand-nth (alg/nodes graph)))
+          src      (:db/id (rand-nth (nodes graph)))
           router   (->PedestrianDatascriptRouter graph)
-          coll     (alg/dijkstra router #{src})
-          result   (alg/shortest-path src coll)]
+          result   (dijkstra/shortest-path router #{src} src)]
       (is (not-empty result)
           "no path from node to himself found")
       (is (= 1 (count result))
@@ -201,7 +204,7 @@
             router  (->PedestrianDatascriptRouter graph)
             r1      (alg/looners graph router)
             graph2  (data/db-with graph (for [i r1 ] [:db.fn/retractEntity (:db/id i)]))
-            src     (rand-nth (alg/nodes graph2))
+            src     (rand-nth (nodes graph2))
             router  (->PedestrianDatascriptRouter graph2)
             coll    (alg/dijkstra router #{src})]
         (is (seq? (reduce (fn [r v] v) nil coll))

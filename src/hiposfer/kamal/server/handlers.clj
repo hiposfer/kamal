@@ -1,21 +1,19 @@
-(ns hiposfer.kamal.services.webserver.handlers
-  (:require [ring.util.http-response :as code]
-            [ring.util.io :as rio]
+(ns hiposfer.kamal.server.handlers
+  (:require [datascript.core :as data]
+            [clojure.edn :as edn]
             [compojure.core :as api]
             [compojure.route :as route]
-            [hiposfer.kamal.specs.directions :as dirspecs]
-            [hiposfer.kamal.specs.resources :as resource]
-            [hiposfer.kamal.services.routing.directions :as dir]
-            [hiposfer.kamal.libs.geometry :as geometry]
-            [hiposfer.kamal.libs.fastq :as fastq]
-            [datascript.core :as data]
-            [clojure.edn :as edn]
-            [hiposfer.kamal.libs.tool :as tool]
-            [hiposfer.kamal.io.gtfs :as gtfs]
-            [clojure.java.io :as io]
-            [ring.util.response :as response])
-  (:import (java.time ZonedDateTime)
-           (java.util.zip GZIPOutputStream)))
+            [ring.util.io :as rio]
+            [ring.util.response :as response]
+            [ring.util.http-response :as code]
+            [hiposfer.kamal.router.directions :as dir]
+            [hiposfer.kamal.server.specs.directions :as dirspecs]
+            [hiposfer.kamal.server.specs.resources :as resource]
+            [hiposfer.kamal.router.util.geometry :as geometry]
+            [hiposfer.kamal.router.util.fastq :as fastq]
+            [hiposfer.kamal.router.util.misc :as misc]
+            [hiposfer.kamal.router.io.gtfs :as gtfs])
+  (:import (java.time ZonedDateTime)))
 
 (def max-distance 1000) ;; meters
 
@@ -68,7 +66,7 @@
   ([request spec]
    (validate request :params spec))
   ([request k spec]
-   (let [errors (tool/assert (get request k) spec)]
+   (let [errors (misc/assert (get request k) spec)]
      (if (not (some? errors)) request
        (code/bad-request! errors)))))
 
@@ -128,7 +126,7 @@
       (code/ok {:version (System/getProperty "kamal.version")}))
     (api/GET "/area" request (get-area request))
     (api/GET "/area/:area/directions" request
-      (-> (update request :params tool/coerce directions-coercer)
+      (-> (update request :params misc/coerce directions-coercer)
           (validate ::dirspecs/params)
           (select-network)
           (validate-coordinates)
@@ -138,7 +136,7 @@
           (select-network)
           (get-resource)))
     (api/GET "/area/:area/gtfs" request
-      (-> (update request :params tool/coerce {:q    edn/read-string
+      (-> (update request :params misc/coerce {:q    edn/read-string
                                                :args edn/read-string})
           (validate ::resource/query)
           (select-network)

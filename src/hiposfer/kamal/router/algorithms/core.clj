@@ -1,5 +1,5 @@
-(ns hiposfer.kamal.network.core
-  (:require [hiposfer.kamal.network.algorithms.protocols :as np])
+(ns hiposfer.kamal.router.algorithms.core
+  (:require [hiposfer.kamal.router.algorithms.protocols :as np])
   (:import (clojure.lang APersistentMap IPersistentVector)
            (ch.hsr.geohash GeoHash)))
 
@@ -35,3 +35,27 @@
 (extend-type Number
   np/Valuable
   (cost [this] this))
+
+#_(defn- components
+    "returns a lazy sequence of sets of nodes' ids of each strongly connected
+   component of a undirected graph
+
+   NOTE: only relevant for pedestrian routing"
+    [network router settled]
+    (if (= (count (nodes network)) (count settled)) (list)
+      (let [start     (some #(and (not (settled %)) %)
+                             (nodes network))
+            connected (sequence (comp (map first) (map key))
+                                (dijkstra router #{start}))]
+       (cons connected (lazy-seq (components network router (into settled connected)))))))
+
+;; note for specs: the looner of the looner should be empty
+#_(defn looners
+    "returns a sequence of ids that can be removed from the graph
+  because they are not part of the strongest connected component
+
+  NOTE: only relevant for pedestrian routing"
+    [network router]
+    (let [subsets   (components network router #{})
+          connected (into #{} (apply max-key count subsets))]
+      (remove #(contains? connected %) (nodes network))))

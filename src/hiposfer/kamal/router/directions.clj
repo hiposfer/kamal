@@ -1,4 +1,4 @@
-(ns hiposfer.kamal.services.routing.directions
+(ns hiposfer.kamal.router.directions
   "collection of functions to provide routing directions based on Open Street
   Maps and General Transit Feed Specification data. It follows (as close
   as possible) the MapBox v5 directions specification.
@@ -11,13 +11,13 @@
     The 'context' is the road name or the stop name
   - loop over the pieces to create instructions based on each previous, current
     and next piece"
-  (:require [hiposfer.kamal.network.algorithms.core :as alg]
-            [hiposfer.kamal.network.algorithms.protocols :as np]
-            [hiposfer.kamal.services.routing.transit :as transit]
-            [hiposfer.kamal.libs.geometry :as geometry]
-            [hiposfer.kamal.libs.fastq :as fastq]
-            [datascript.core :as data]
-            [hiposfer.kamal.io.gtfs :as gtfs])
+  (:require [datascript.core :as data]
+            [hiposfer.kamal.router.algorithms.dijkstra :as dijkstra]
+            [hiposfer.kamal.router.algorithms.protocols :as np]
+            [hiposfer.kamal.router.transit :as transit]
+            [hiposfer.kamal.router.util.geometry :as geometry]
+            [hiposfer.kamal.router.util.fastq :as fastq]
+            [hiposfer.kamal.router.io.gtfs :as gtfs])
   (:import (java.time Duration LocalTime ZonedDateTime)
            (java.time.temporal ChronoUnit)))
 
@@ -212,14 +212,14 @@
         src     (first (fastq/nearest-nodes network (first coordinates)))
         dst     (first (fastq/nearest-nodes network (last coordinates)))]
     (when (and (some? src) (some? dst))
-      (let [router    (transit/->TransitRouter network graph trips)
+      (let [router (transit/->TransitRouter network graph trips)
             ; both start and dst should be found since we checked that before
-            traversal (alg/dijkstra router #{[(:db/id src) (. start (getSeconds))]})
-            path      (alg/shortest-path (:db/id dst) traversal)
-            trail     (for [[id value] (reverse path)]
-                        ;; HACK: prefetch the entity so that the rest of the code
-                        ;; doesnt. TODO: figure out a better way to do this
-                        (first {(data/entity network id) value}))]
+            start  [(:db/id src) (. start (getSeconds))]
+            path   (dijkstra/shortest-path router #{start} (:db/id dst))
+            trail  (for [[id value] (reverse path)]
+                     ;; HACK: prefetch the entity so that the rest of the code
+                     ;; doesnt. TODO: figure out a better way to do this
+                     (first {(data/entity network id) value}))]
         (when (not-empty trail)
           (merge
             {:directions/uuid      (data/squuid)

@@ -1,12 +1,11 @@
-(ns hiposfer.kamal.network.generators
+(ns hiposfer.kamal.router.generators
   (:require [clojure.test.check.generators :as gen]
-            [hiposfer.geojson.specs :as geojson]
             [clojure.string :as str]
             [clojure.spec.alpha :as s]
-            [hiposfer.kamal.network.core :as network]
             [datascript.core :as data]
-            [hiposfer.kamal.network.algorithms.core :as alg]
-            [hiposfer.kamal.services.routing.core :as router]))
+            [hiposfer.geojson.specs :as geojson]
+            [hiposfer.kamal.router.algorithms.core :as network]
+            [hiposfer.kamal.router.core :as router]))
 
 (def string-alpha
   "Generate alpha strings"

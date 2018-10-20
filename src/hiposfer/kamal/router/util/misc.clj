@@ -1,4 +1,4 @@
-(ns hiposfer.kamal.libs.tool
+(ns hiposfer.kamal.router.util.misc
   "useful functions that have not found a proper place yet"
   (:refer-clojure :rename {some some*} :exclude [assert])
   (:require [clojure.spec.alpha :as s]
@@ -41,17 +41,6 @@
                  coll))
   ([f] (map (fn [[k v]] [k (f v)]))))
 
-(defn some
-  "an alternative version of Clojure's some which uses reduce instead of
-  recur. Useful for collections that know how to reduce themselves faster
-  than first/next
-
-  Returns the value that caused (pred? value) to be true; as opposed to Clojure's"
-  [pred? coll]
-  (reduce (fn [_ value] (when (pred? value) (reduced value)))
-          nil
-          coll))
-
 (defn assert
   "checks that m conforms to spec. Returns an error message on error or nil
   otherwise"
@@ -87,3 +76,14 @@
     (keyword (name value))
 
     :else value))
+
+(defn some
+  "an alternative version of Clojure's some which uses reduce instead of
+  recur. Useful for collections that know how to reduce themselves faster
+  than first/next
+
+  Returns the value that caused (pred? value) to be true; as opposed to Clojure's"
+  [pred? coll]
+  (reduce (fn [_ value] (when (pred? value) (reduced value)))
+          nil
+          coll))

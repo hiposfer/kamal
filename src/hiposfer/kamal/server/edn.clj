@@ -1,4 +1,4 @@
-(ns hiposfer.kamal.services.webserver.edn
+(ns hiposfer.kamal.server.edn
   "Ring middleware for parsing EDN requests and generating EDN responses."
   (:require [clojure.edn :as edn])
   (:import (java.io InputStreamReader PushbackReader)))

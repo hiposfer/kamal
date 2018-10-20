@@ -1,22 +1,22 @@
-(ns hiposfer.kamal.network.road
+(ns hiposfer.kamal.router.road
   (:require [clojure.spec.alpha :as s]
             [expound.alpha :as expound]
             [clojure.test :refer [is deftest]]
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
-            [hiposfer.kamal.specs.directions :as dataspecs]
-            [hiposfer.kamal.network.algorithms.core :as alg]
-            [hiposfer.kamal.services.routing.core :as router]
             [clojure.test.check.clojure-test :refer [defspec]]
-            [hiposfer.kamal.services.routing.directions :as dir]
-            [hiposfer.kamal.services.routing.graph :as graph]))
+            [hiposfer.kamal.server.specs.directions :as dataspecs]
+            [hiposfer.kamal.router.tests :as rt]
+            [hiposfer.kamal.router.core :as router]
+            [hiposfer.kamal.router.directions :as dir]
+            [hiposfer.kamal.router.graph :as graph]))
 
 (defonce network (delay (time (router/network {:area/edn "resources/test/frankfurt.edn.gz"}))))
 
 (defspec ^:integration routing-directions
   30; tries -> expensive test
   (let [conn  (deref network) ;; force
-        nodes (alg/nodes @conn)
+        nodes (rt/nodes @conn)
         gc    (count nodes)
         graph (graph/create @conn)]
     (alter-meta! conn assoc :area/graph graph)

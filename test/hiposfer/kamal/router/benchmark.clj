@@ -1,18 +1,18 @@
-(ns hiposfer.kamal.network.benchmark
+(ns hiposfer.kamal.router.benchmark
   (:require [criterium.core :as c]
             [clojure.test :as test]
-            [hiposfer.kamal.network.algorithms.core :as alg]
-            [hiposfer.kamal.libs.geometry :as geometry]
-            [hiposfer.kamal.libs.fastq :as fastq]
-            [hiposfer.kamal.network.tests :as kt]
-            [hiposfer.kamal.network.road :as road]
             [datascript.core :as data]
-            [hiposfer.kamal.services.routing.transit :as transit]
-            [hiposfer.kamal.network.generators :as fake-area]
-            [hiposfer.kamal.services.routing.graph :as graph]
-            [hiposfer.kamal.network.algorithms.protocols :as np])
+            [hiposfer.kamal.router.util.geometry :as geometry]
+            [hiposfer.kamal.router.util.fastq :as fastq]
+            [hiposfer.kamal.router.tests :as kt]
+            [hiposfer.kamal.router.road :as road]
+            [hiposfer.kamal.router.transit :as transit]
+            [hiposfer.kamal.router.generators :as fake-area]
+            [hiposfer.kamal.router.graph :as graph]
+            [hiposfer.kamal.router.algorithms.protocols :as np]
+            [hiposfer.kamal.router.algorithms.dijkstra :as dijkstra])
   (:import (java.time ZonedDateTime Duration LocalTime)
-           (hiposfer.kamal.services.routing.graph PedestrianNode)))
+           (hiposfer.kamal.router.graph PedestrianNode)))
 
 ;; NOTE: we put a letter in the test names, because apparently the benchmarks
 ;; are ran in alphabetic order
@@ -23,14 +23,12 @@
 ;; finds a path (really fast)
 (test/deftest ^:benchmark A-dijkstra-random-graph
   (let [network (fake-area/graph 1000)
-        src     (rand-nth (alg/nodes network))
-        dst     (rand-nth (alg/nodes network))
+        src     (rand-nth (kt/nodes network))
+        dst     (rand-nth (kt/nodes network))
         router  (kt/->PedestrianDatascriptRouter network)]
     (newline) (newline)
-    (println "DIJKSTRA forward with:" (count (alg/nodes network)) "nodes")
-    (c/quick-bench
-      (let [coll (alg/dijkstra router #{(:db/id src)})]
-        (alg/shortest-path (:db/id dst) coll))
+    (println "DIJKSTRA forward with:" (count (kt/nodes network)) "nodes")
+    (c/quick-bench (dijkstra/shortest-path router #{(:db/id src)} (:db/id dst))
       :os :runtime :verbose)))
 
 ;; note src nil search will search for points greater or equal to src
@@ -62,11 +60,10 @@
   (let [network (deref (deref road/network))
         src     (first (fastq/nearest-nodes network [8.645333, 50.087314]))
         dst     (first (fastq/nearest-nodes network [8.635897, 50.104172]))
-        router  (->PedestrianIntMapRouter (graph/create network))
-        coll    (alg/dijkstra router #{(:db/id src)})]
+        router  (->PedestrianIntMapRouter (graph/create network))]
     (newline) (newline)
-    (println "Pedestrian routing with:" (count (alg/nodes network)) "nodes")
-    (c/quick-bench (alg/shortest-path (:db/id dst) coll)
+    (println "Pedestrian routing with:" (count (kt/nodes network)) "nodes")
+    (c/quick-bench (dijkstra/shortest-path router #{(:db/id src)} (:db/id dst))
                    :os :runtime :verbose)))
 
 (test/deftest ^:benchmark D-transit-road-network
@@ -78,11 +75,10 @@
         dst        (first (fastq/nearest-nodes network [8.635897, 50.104172]))
         graph      (graph/create network)
         router     (transit/->TransitRouter network graph trips)
-        coll       (alg/dijkstra router
-                                 #{[(:db/id src) (. start (getSeconds))]})]
+        start      [(:db/id src) (. start (getSeconds))]]
     (newline) (newline)
-    (println "Transit routing with:" (count (alg/nodes network)) "nodes")
-    (c/quick-bench (alg/shortest-path (:db/id dst) coll)
+    (println "Transit routing with:" (count (kt/nodes network)) "nodes")
+    (c/quick-bench (dijkstra/shortest-path router #{start} (:db/id dst))
                    :os :runtime :verbose)))
 
 ;(clojure.test/run-tests)

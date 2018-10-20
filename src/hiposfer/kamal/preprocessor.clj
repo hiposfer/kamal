@@ -1,19 +1,19 @@
 (ns hiposfer.kamal.preprocessor
   (:gen-class)
   (:require [clojure.java.io :as io]
-            [hiposfer.kamal.dev :as dev]
-            [hiposfer.kamal.services.routing.core :as routing]
-            [hiposfer.kamal.core :as core]
             [clojure.walk :as walk]
             [clojure.spec.alpha :as s]
             [clojure.string :as str]
             [datascript.core :as data]
-            [hiposfer.kamal.libs.fastq :as fastq]
-            [hiposfer.kamal.io.gtfs :as gtfs]
-            [hiposfer.kamal.io.osm :as osm]
             [expound.alpha :as expound]
+            [hiposfer.kamal.dev :as dev]
+            [hiposfer.kamal.core :as core]
             [hiposfer.geojson.specs :as geojson]
-            [hiposfer.kamal.network.algorithms.protocols :as np])
+            [hiposfer.kamal.router.core :as routing]
+            [hiposfer.kamal.router.util.fastq :as fastq]
+            [hiposfer.kamal.router.io.gtfs :as gtfs]
+            [hiposfer.kamal.router.io.osm :as osm]
+            [hiposfer.kamal.router.algorithms.protocols :as np])
   (:import (java.net URLEncoder URL)
            (java.util.zip ZipInputStream GZIPOutputStream)))
 
