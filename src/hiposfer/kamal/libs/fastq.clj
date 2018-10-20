@@ -83,6 +83,7 @@
   [network ?trip-id ?src-id ?dst-id]
   (let [datoms (data/datoms network :avet :stop_time/trip ?trip-id)
         start  (data/entity network (:e (first datoms)))]
+    ;; TODO: is there any guarantee that the first datom is the start of the trip ?
     (cons start
       (for [d datoms
             :let [stop_time (data/entity network (:e d))]
@@ -119,7 +120,8 @@
                                (data/datoms network :avet :stop_time/stop ?src-id))]
       (when (seq stop_times)
         (let [from (apply min-key :stop_time/departure_time stop_times)
-              to   (continue-fixed-time-trip network ?dst-id (:stop_time/trip from))]
+              to   (tool/some #(= ?dst-id (:db/id (:stop_time/stop %)))
+                               (references network :stop_time/trip (:db/id (:stop_time/trip from))))]
           (when (some? to)
             {:value          (:stop_time/arrival_time to)
              :stop_time/from from
