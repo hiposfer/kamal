@@ -1,4 +1,4 @@
-(ns hiposfer.kamal.io.gtfs
+(ns hiposfer.kamal.components.router.io.gtfs
   "namespace for handling GTFS to Datascript convertion and vice versa.
 
   The algorithms coerces GTFS csv files into entities that reference

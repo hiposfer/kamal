@@ -1,17 +1,17 @@
-(ns hiposfer.kamal.services.webserver.core
-  (:require [com.stuartsierra.component :as component]
-            [hiposfer.kamal.services.webserver.handlers :as handler]
+(ns hiposfer.kamal.components.server.core
+  (:require [clojure.walk :as walk]
+            [com.stuartsierra.component :as component]
             [ring.adapter.jetty :as jetty]
             [ring.util.response :as rut]
             [ring.middleware.keyword-params :refer [wrap-keyword-params]]
             [ring.middleware.nested-params :refer [wrap-nested-params]]
             [ring.middleware.params :refer [wrap-params]]
             [ring.middleware.json :as json]
-            [hiposfer.kamal.services.webserver.edn :as edn]
             [ring.util.http-response :as code]
             [ring.middleware.accept :as accept]
-            [hiposfer.kamal.libs.tool :as tool]
-            [clojure.walk :as walk])
+            [hiposfer.kamal.components.server.edn :as edn]
+            [hiposfer.kamal.components.server.handlers :as handler]
+            [hiposfer.kamal.components.router.util.misc :as misc])
   (:import (org.eclipse.jetty.server Server)
            (clojure.lang ExceptionInfo)))
 
@@ -34,7 +34,7 @@
         response
         (case (:mime (:accept request))
           "application/json"
-          (update response :body #(walk/postwalk tool/jsonista %))
+          (update response :body #(walk/postwalk misc/jsonista %))
 
           "application/edn"
           (-> (update response :body pr-str)

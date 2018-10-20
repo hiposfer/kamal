@@ -1,4 +1,4 @@
-(ns hiposfer.kamal.network.algorithms.protocols)
+(ns hiposfer.kamal.components.router.algorithms.protocols)
 
 ;; ------ special protocols for Dijkstra network traversal
 (defprotocol Valuable

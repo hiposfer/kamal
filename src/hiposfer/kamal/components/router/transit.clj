@@ -1,12 +1,12 @@
-(ns hiposfer.kamal.services.routing.transit
+(ns hiposfer.kamal.components.router.transit
   "collection of functions related to the use of GTFS feed on routing
   networks."
   (:refer-clojure :exclude [name])
-  (:require [hiposfer.kamal.network.algorithms.protocols :as np]
-            [hiposfer.kamal.libs.fastq :as fastq]
-            [hiposfer.kamal.io.osm :as osm]
-            [hiposfer.kamal.services.routing.graph :as graph]
-            [hiposfer.kamal.libs.geometry :as geometry]
+  (:require [hiposfer.kamal.components.router.algorithms.protocols :as np]
+            [hiposfer.kamal.components.router.util.fastq :as fastq]
+            [hiposfer.kamal.components.router.util.geometry :as geometry]
+            [hiposfer.kamal.components.router.io.osm :as osm]
+            [hiposfer.kamal.components.router.graph :as graph]
             [datascript.core :as data]
             [clojure.set :as set]))
 

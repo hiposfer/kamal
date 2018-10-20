@@ -10,8 +10,8 @@
   and lowercase names as custom created keywords"
   (:gen-class)
   (:require [com.stuartsierra.component :as component]
-            [hiposfer.kamal.services.webserver.core :as webserver]
-            [hiposfer.kamal.services.routing.core :as routing]
+            [hiposfer.kamal.components.server.core :as webserver]
+            [hiposfer.kamal.components.router.core :as routing]
             [clojure.walk :as walk]
             [clojure.spec.alpha :as s]
             [clojure.string :as str]

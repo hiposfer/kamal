@@ -1,11 +1,8 @@
-(ns hiposfer.kamal.network.algorithms.dijkstra
-  (:require [hiposfer.kamal.network.algorithms.protocols :as np])
+(ns hiposfer.kamal.components.router.algorithms.dijkstra
+  (:require [hiposfer.kamal.components.router.algorithms.protocols :as np])
   (:import (java.util HashMap Map AbstractMap$SimpleImmutableEntry)
            (clojure.lang Seqable IReduceInit IReduce Sequential)
            (org.teneighty.heap FibonacciHeap Heap Heap$Entry)))
-
-
-;; ------------------ DIJKSTRA CORE -------------------
 
 (defmacro trace [k v] `(new AbstractMap$SimpleImmutableEntry ~k ~v))
 
@@ -113,3 +110,35 @@
   ;; declaring as Sequential will cause the seq to be used for nth, etc
   Sequential)
 
+(defn view
+  "returns a sequence of traversal-paths taken to reach each node i.e.
+  the path viewwed from each node up until the start
+
+  Parameters:
+   - router: an implementation Dijkstra protocol to direct the 'movement'
+      of the graph traversal
+   - start: is a set of either
+      - entities to start searching from
+      - [entity init] pair where init is value to start settling nodes
+   - comparator: a standard java.util.comparator implementation to compare the
+      values returned by the router. Defaults to nil, which means that Valuable
+      implementation MUST be comparable i.e. implement java.util.Comparable"
+  ([router start]
+   (view router start nil))
+  ([router start-from comparator]
+   (->Dijkstra router start-from comparator)))
+
+(defn shortest-path
+  "computes the shortest path using Dijkstra's algorithm.
+
+  Returns the path taken to reach dst from start or nil if not found
+
+  Takes the same arguments as view"
+  ([router start dst]
+   (shortest-path router start dst nil))
+  ([router start dst comparator]
+   (let [graph-traversal (view router start comparator)
+         rf              (fn [_ value]
+                           (when (= dst (key (first value)))
+                             (reduced value)))]
+     (reduce rf nil graph-traversal))))

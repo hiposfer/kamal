@@ -1,9 +1,9 @@
-(ns hiposfer.kamal.specs.directions
+(ns hiposfer.kamal.components.server.specs.directions
   (:require [clojure.spec.alpha :as s]
             [hiposfer.geojson.specs :as geojson]
             [clojure.spec.gen.alpha :as gen]
-            [hiposfer.kamal.services.routing.directions :as dir]
-            [hiposfer.kamal.io.gtfs :as gtfs]
+            [hiposfer.kamal.components.router.directions :as dir]
+            [hiposfer.kamal.components.router.io.gtfs :as gtfs]
             [clojure.string :as str])
   (:import (java.time ZoneOffset ZonedDateTime Instant)))
 

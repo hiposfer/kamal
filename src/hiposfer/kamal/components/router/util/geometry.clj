@@ -1,6 +1,6 @@
-(ns hiposfer.kamal.libs.geometry
+(ns hiposfer.kamal.components.router.util.geometry
   (:refer-clojure :rename {contains? contains?!})
-  (:require [hiposfer.kamal.network.algorithms.protocols :as np]))
+  (:require [hiposfer.kamal.components.router.algorithms.protocols :as np]))
 
 ;; Note in these scripts, I generally use
 ;; - latitude, longitude in degrees

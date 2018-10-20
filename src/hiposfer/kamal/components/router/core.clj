@@ -1,17 +1,10 @@
-(ns hiposfer.kamal.services.routing.core
+(ns hiposfer.kamal.components.router.core
   (:require [datascript.core :as data]
             [com.stuartsierra.component :as component]
-            [hiposfer.kamal.io.edn :as edn]
-            [hiposfer.kamal.io.gtfs :as gtfs]
             [hiposfer.gtfs.edn :as gtfs.edn]
-            [hiposfer.kamal.services.routing.graph :as graph]))
-
-;; NOTE: we use :db/index true to replace the lack of :VAET index in datascript
-;; This is for performance. In lots of cases we want to lookup back-references
-;; to a certain datom. Without indexes it is not possible to find it without
-;; traversing most (all?) of the db.
-;; The same kind of behavior can be achieved by combining entity with index-range
-;; such that the queries can still be answered pretty fast :)
+            [hiposfer.kamal.components.router.io.edn :as edn]
+            [hiposfer.kamal.components.router.io.gtfs :as gtfs]
+            [hiposfer.kamal.components.router.graph :as graph]))
 
 ;; NOTE: we use a node/location instead of lat, lon separate to avoid creating
 ;; so many datoms and to have a single entity that we can apply protocols against.
