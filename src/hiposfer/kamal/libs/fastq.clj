@@ -152,7 +152,7 @@
       (and (empty? cycle-trips) (seq fixed-time-trips))
       (apply min-key :value fixed-time-trips)
 
-      :else
+      (and (seq cycle-trips) (seq fixed-time-trips))
       (apply min-key :value (concat cycle-trips fixed-time-trips)))))
 
 ;; src - [:stop/id 3392140086]
