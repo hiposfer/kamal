@@ -120,7 +120,8 @@
 ;; these are also the only supported files for the time being
 ;; we dont read anything that is not here yet
 (def read-order ["agency.txt" "calendar.txt" "routes.txt"
-                 "trips.txt" "stops.txt" "stop_times.txt"])
+                 "trips.txt" "stops.txt" "stop_times.txt"
+                 "frequencies.txt"])
 
 (defn- transaction*
   "returns a sequence of [filename transaction].
@@ -186,9 +187,12 @@
 ;; ............................................................................
 
 (defn encode
+  "encodes the value of a gtfs field back to the format specified in the
+  reference spec"
   [k v]
   (case k
-    (:stop_time/arrival_time :stop_time/departure_time)
+    (:stop_time/arrival_time :stop_time/departure_time
+     :frequency/start_time   :frequency/end_time)
     (let [duration (Duration/ofSeconds v)]
       (format "%d:%02d:%02d"
               (.toHours duration)
@@ -211,6 +215,8 @@
           (filter :unique reference/fields)))
 
 (def feed-hidrator
+  "A map of filename -> fn -> [entity ...]. Useful to fetch entities that do
+  not have a unique field to fetch from"
   {"stop_times.txt"
    (fn [network]
      (for [trip (data/datoms network :aevt :trip/id)
@@ -225,6 +231,8 @@
    ;feed_info.txt
 
 (defn- key-paths
+  "returns a lazy sequence of [k1 ..] (a pth) to fetch the values from
+  feed such that references are deconstructed up until its value"
   [feed]
   (for [field reference/fields
         :when (= (:filename feed) (:filename field))]
@@ -233,6 +241,7 @@
       [(:keyword field)])))
 
 (defn- feed-entities
+  "returns a lazy sequence of all entities belonging to feed"
   [network feed]
   (let [filename (:filename feed)
         field-id (first (filter :unique (:fields feed)))
@@ -246,8 +255,8 @@
       (apply (feed-hidrator (:filename feed)) [network]))))
 
 (defn- dump
-  "returns a sequence of [filename content] for each feed of the gtfs spec
-  present in network"
+  "returns a lazy sequence of [filename content] for each feed of the gtfs
+   spec present in network"
   [network]
   (for [feed (:feeds reference/gtfs-spec)
         :let [paths (key-paths feed)]

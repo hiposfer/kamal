@@ -66,7 +66,7 @@
 
       ;; taking a trip on a public transport vehicle
       "continue" ;; only applies to transit
-      (let [tstart  (:start (val (first piece)))
+      (let [tstart  (:stop_time/from (val (first piece)))
             route   (:trip/route (:stop_time/trip tstart))
             vehicle (transit/route-types (:route/type route))
             id      (str vehicle " " (or (:route/short_name route)
@@ -74,7 +74,7 @@
         (str "Continue on " id))
 
       "notification"
-      (let [tend    (:start (val (first piece)))
+      (let [tend    (:stop_time/from (val (first piece)))
             trip    (:stop_time/trip tend)
             route   (:trip/route trip)
             vehicle (transit/route-types (:route/type route))
@@ -160,8 +160,8 @@
         {:step/departure (+ start departs)})
       (when (= "transit" mode)
         (if (= "exit vehicle" (:maneuver/type man))
-          (gtfs/resource (:end (val (first piece))))
-          (gtfs/resource (:start (val (first piece)))))))))
+          (gtfs/resource (:stop_time/to (val (first piece))))
+          (gtfs/resource (:stop_time/from (val (first piece)))))))))
 
 (defn- route-steps
   "returns a route-steps vector or an empty vector if no steps are needed"
@@ -224,9 +224,9 @@
           (merge
             {:directions/uuid      (data/squuid)
              :directions/waypoints
-             [{:waypoint/name     (:way/name (:way (val (first trail))))
+             [{:waypoint/name     (:way/name (:way/entity (val (first trail))))
                :waypoint/location (->coordinates (location src))}
-              {:waypoint/name     (:way/name (:way (val (last trail))))
+              {:waypoint/name     (:way/name (:way/entity (val (last trail))))
                :waypoint/location (->coordinates (location dst))}]}
             (route network trail (-> departure (.truncatedTo ChronoUnit/DAYS)
                                                (.toEpochSecond)))))))))
