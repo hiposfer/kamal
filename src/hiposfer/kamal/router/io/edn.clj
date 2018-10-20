@@ -23,8 +23,8 @@
 
 (def local-readers
   "qualified symbol to parsing function. Used to get datascript to understand local objects"
-  {'hiposfer.kamal.router.algorithms.core records/map->Location
-   'object                                           read-object})
+  {'hiposfer.kamal.router.algorithms.core.Location records/map->Location
+   'object                                         read-object})
 
 (defn parse
   "streams a zip file and creates a Datascript DB from each file inside the zip.
