@@ -9,6 +9,5 @@ RUN lein with-profile release uberjar
 FROM openjdk:alpine
 WORKDIR /usr/src/app
 COPY --from=builder /app/target/kamal.jar ./target/kamal.jar
-COPY --from=builder /app/resources/ ./resources
 EXPOSE 3000
 CMD java $JAVA_OPTIONS -XX:+PrintFlagsFinal -jar target/kamal.jar
