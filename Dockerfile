@@ -10,4 +10,4 @@ FROM openjdk:alpine
 WORKDIR /usr/src/app
 COPY --from=builder /app/target/kamal.jar ./target/kamal.jar
 EXPOSE 3000
-CMD java $JAVA_OPTIONS -jar target/kamal.jar
+CMD java $JAVA_OPTIONS -XX:+PrintFlagsFinal -jar target/kamal.jar
