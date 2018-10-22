@@ -47,7 +47,7 @@
   ;; re-build the network from the file
   (let [db   (edn/parse (:area/edn area))
         conn (data/conn-from-db db)]
-    (alter-meta! conn assoc :area/graph (graph/create db))
+    (alter-meta! conn assoc :area/graph (time (graph/create db)))
     conn))
 
 (defn- stop-process
