@@ -103,9 +103,9 @@
 
   We just piggie-back on Datascript to do the hard work on resolving references"
   [network]
-  (as-> (time (data/db-with network (edges-tx network))) db
-        (time (data/db-with db (fastq/link-stops db)))
-        (time (data/db-with db (fastq/cache-stop-successors db)))))
+  (as-> (data/db-with network (edges-tx network)) db
+        (data/db-with db (fastq/link-stops db))
+        (data/db-with db (fastq/cache-stop-successors db))))
 
 (defn create
   [network]
