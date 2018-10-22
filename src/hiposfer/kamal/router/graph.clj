@@ -6,14 +6,6 @@
             [hiposfer.kamal.router.util.fastq :as fastq]
             [hiposfer.kamal.router.algorithms.protocols :as np]))
 
-
-(defn edge? [o] (and (satisfies? np/Arc o)
-                     (satisfies? np/Bidirectional o)))
-
-(defn arc? [o] (satisfies? np/Arc o))
-
-(defn node? [o] (satisfies? np/Node o))
-
 ;; A bidirectional Arc. The bidirectionality is represented
 ;; through a mirror Arc, which is created as requested at runtime
 (defrecord Edge [^long src ^long dst]
@@ -53,7 +45,7 @@
   np/Node
   (successors [_]
     (for [link links]
-      (if (and (edge? link) (= id (np/dst link)))
+      (if (and (np/edge? link) (= id (np/dst link)))
         (np/mirror link)
         link))))
 
