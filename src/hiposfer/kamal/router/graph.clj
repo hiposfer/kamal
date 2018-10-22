@@ -98,26 +98,31 @@
      :edge/dst (:db/id (data/entity network [:node/id to]))
      :edge/way (:db/id (data/entity network [:way/id (:way/id way)]))}))
 
+(defn postprocess
+  "temporarily add information needed for routing to Datascript.
+
+  We just piggie-back on Datascript to do the hard work on resolving references"
+  [network]
+  (as-> (time (data/db-with network (edges-tx network))) db
+        (time (data/db-with db (fastq/link-stops db)))
+        (time (data/db-with db (fastq/cache-stop-successors db)))))
+
 (defn create
   [network]
-  (let [db     (as-> (time (data/db-with network (edges-tx network))) db
-                     (time (data/db-with db (fastq/link-stops db)))
-                     (time (data/db-with db (fastq/cache-stop-successors db))))
-        edges  (for [datom (data/datoms db :aevt :edge/src)]
-                 (edge (data/entity db (:e datom))))
-        arcs   (for [datom (data/datoms db :aevt :arc/src)]
-                 (arc (data/entity db (:e datom))))
-        outs   (group-by np/src edges)
-        ins    (group-by np/dst edges)
-        arrows (group-by np/src arcs)]
+  (let [db       (postprocess network)
+        edges    (for [datom (data/datoms db :aevt :edge/src)]
+                   (edge (data/entity db (:e datom))))
+        arcs     (for [datom (data/datoms db :aevt :arc/src)]
+                   (arc (data/entity db (:e datom))))
+        edges-to (group-by np/dst edges)]
     (into (i/int-map)
-          (concat (nodes db outs ins)
-                  (stops db ins arrows)))))
+          (concat (nodes db (group-by np/src edges) edges-to)
+                  (stops db edges-to (group-by np/src arcs))))))
 
 #_(time
     (let [network @(first @(:networks (:router hiposfer.kamal.dev/system)))]
       (last (::foo (assoc network ::foo (create network))))))
 
-(defn osm-node? [o] (instance? PedestrianNode o))
+(defn node? [o] (instance? PedestrianNode o))
 
-(defn gtfs-stop? [o] (instance? TransitStop o))
+(defn stop? [o] (instance? TransitStop o))
