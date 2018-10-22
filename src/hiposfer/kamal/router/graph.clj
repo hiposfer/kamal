@@ -119,10 +119,6 @@
           (concat (nodes db (group-by np/src edges) edges-to)
                   (stops db edges-to (group-by np/src arcs))))))
 
-#_(time
-    (let [network @(first @(:networks (:router hiposfer.kamal.dev/system)))]
-      (last (::foo (assoc network ::foo (create network))))))
-
 (defn node? [o] (instance? PedestrianNode o))
 
 (defn stop? [o] (instance? TransitStop o))
