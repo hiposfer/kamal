@@ -22,7 +22,7 @@
 ;; meant to go from one place to the other, thus Dijkstra almost always fails to
 ;; finds a path (really fast)
 (test/deftest ^:benchmark A-dijkstra-random-graph
-  (let [network (fake-area/graph 1000)
+  (let [network (fake-area/osm-gen 1000)
         src     (rand-nth (kt/nodes network))
         dst     (rand-nth (kt/nodes network))
         router  (kt/->PedestrianDatascriptRouter network)]
