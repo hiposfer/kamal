@@ -7,7 +7,7 @@
             [hiposfer.kamal.router.algorithms.dijkstra :as dijkstra]
             [hiposfer.kamal.router.algorithms.protocols :as np]
             [hiposfer.kamal.router.core :as router]
-            [hiposfer.kamal.router.generators :as fake-area]
+            [hiposfer.kamal.router.generators :as sim-area]
             [hiposfer.kamal.router.transit :as transit]
             [hiposfer.kamal.router.directions :as dir]
             [hiposfer.kamal.server.specs.directions :as dataspecs]
@@ -133,7 +133,7 @@
 (defspec deterministic
   100; tries
   (prop/for-all [size (gen/large-integer* {:min 10 :max 20})]
-    (let [graph    (fake-area/graph size)
+    (let [graph    (sim-area/osm-gen size)
           src      (:db/id (rand-nth (nodes graph)))
           dst      (:db/id (rand-nth (nodes graph)))
           router   (->PedestrianDatascriptRouter graph)
@@ -150,7 +150,7 @@
 (defspec monotonic
   100; tries
   (prop/for-all [size (gen/large-integer* {:min 10 :max 20})]
-     (let [graph    (fake-area/graph size)
+     (let [graph    (sim-area/osm-gen size)
            src      (:db/id (rand-nth (nodes graph)))
            dst      (:db/id (rand-nth (nodes graph)))
            router   (->PedestrianDatascriptRouter graph)
@@ -167,7 +167,7 @@
 (defspec symmetry
   100; tries
   (prop/for-all [size (gen/large-integer* {:min 10 :max 20})]
-    (let [graph    (fake-area/graph size)
+    (let [graph    (sim-area/osm-gen size)
           src      (:db/id (rand-nth (nodes graph)))
           router   (->PedestrianDatascriptRouter graph)
           result   (dijkstra/shortest-path router #{src} src)]
@@ -182,7 +182,7 @@
 #_(defspec components
     100; tries
     (prop/for-all [size (gen/large-integer* {:min 10 :max 20})]
-      (let [graph   (fake-area/graph size)
+      (let [graph   (sim-area/osm-gen size)
             router  (->PedestrianDatascriptRouter graph)
             r1      (alg/looners graph router)
             graph2  (data/db-with graph (for [i r1 ] [:db.fn/retractEntity (:db/id i)]))
@@ -200,7 +200,7 @@
 #_(defspec routable-components
     100; tries
     (prop/for-all [size (gen/large-integer* {:min 10 :max 20})]
-      (let [graph   (fake-area/graph size)
+      (let [graph   (sim-area/osm-gen size)
             router  (->PedestrianDatascriptRouter graph)
             r1      (alg/looners graph router)
             graph2  (data/db-with graph (for [i r1 ] [:db.fn/retractEntity (:db/id i)]))
@@ -215,7 +215,7 @@
 (defspec generative-directions
   100; tries
   (prop/for-all [size (gen/large-integer* {:min 10 :max 20})]
-    (let [graph    (fake-area/graph size)
+    (let [graph    (sim-area/osm-gen size)
           request  (gen/generate (s/gen ::dataspecs/params))
           conn     (data/conn-from-db graph)
           _        (alter-meta! conn assoc :area/graph (graph/create graph))

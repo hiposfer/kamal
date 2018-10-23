@@ -8,8 +8,7 @@
             [hiposfer.kamal.server.specs.directions :as dataspecs]
             [hiposfer.kamal.router.tests :as rt]
             [hiposfer.kamal.router.core :as router]
-            [hiposfer.kamal.router.directions :as dir]
-            [hiposfer.kamal.router.graph :as graph]))
+            [hiposfer.kamal.router.directions :as dir]))
 
 (defonce network (delay (time (router/network {:area/edn "resources/test/frankfurt.edn.gz"}))))
 
@@ -17,9 +16,7 @@
   30; tries -> expensive test
   (let [conn  (deref network) ;; force
         nodes (rt/nodes @conn)
-        gc    (count nodes)
-        graph (graph/create @conn)]
-    (alter-meta! conn assoc :area/graph graph)
+        gc    (count nodes)]
     (prop/for-all [i (gen/large-integer* {:min 0 :max (Math/ceil (/ gc 2))})]
       (let [src      (dir/->coordinates (:node/location (nth nodes i)))
             dst      (dir/->coordinates (:node/location (nth nodes (* 2 i))))

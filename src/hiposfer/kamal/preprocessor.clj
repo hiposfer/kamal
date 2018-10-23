@@ -71,9 +71,11 @@
     (as-> (data/empty-db routing/schema) $
           (time (data/db-with $ (fetch-osm! area)))
           (time (data/db-with $ (gtfs/transaction! z)))
-          (time (data/db-with $ (fastq/link-stops $)))
-          (time (data/db-with $ (fastq/cache-stop-successors $)))
-          (time (data/db-with $ (area-transaction $ area)))))) ;; add the area as transaction
+          ;; force lazy seqs to ensure that they dont throw errors
+          (time (do (dorun (fastq/link-stops $))
+                    (dorun (fastq/cache-stop-successors $))
+                    ;; add the area as transaction
+                    (data/db-with $ (area-transaction $ area)))))))
 
 (defn -main
   "Script for preprocessing OSM and GTFS files into gzip files each with

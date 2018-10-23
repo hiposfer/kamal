@@ -6,14 +6,6 @@
             [hiposfer.kamal.router.util.fastq :as fastq]
             [hiposfer.kamal.router.algorithms.protocols :as np]))
 
-
-(defn edge? [o] (and (satisfies? np/Arc o)
-                     (satisfies? np/Bidirectional o)))
-
-(defn arc? [o] (satisfies? np/Arc o))
-
-(defn node? [o] (satisfies? np/Node o))
-
 ;; A bidirectional Arc. The bidirectionality is represented
 ;; through a mirror Arc, which is created as requested at runtime
 (defrecord Edge [^long src ^long dst]
@@ -53,7 +45,7 @@
   np/Node
   (successors [_]
     (for [link links]
-      (if (and (edge? link) (= id (np/dst link)))
+      (if (and (np/edge? link) (= id (np/dst link)))
         (np/mirror link)
         link))))
 
@@ -69,43 +61,56 @@
              :dst     (:db/id (:arc/dst entity))
              :route/e (:db/id (:arc/route entity))}))
 
-(defn- node-edges
-  [network id]
-  (map edge (concat (fastq/references network :edge/src id)
-                    (fastq/references network :edge/dst id))))
-
-(defn- stop-links
-  [network id]
-  (concat (map arc (fastq/references network :arc/src id))
-          (map edge (fastq/references network :edge/dst id))))
-
 (defn- nodes
-  [network]
-  (for [node-id (data/datoms network :avet :node/id)
-        :let [node (data/entity network (:e node-id))]]
-    [(:e node-id) (->PedestrianNode (:e node-id)
-                                    (:node/location node)
-                                    (node-edges network (:e node-id)))]))
+  [network edges-from edges-to]
+  (for [datom (data/datoms network :avet :node/id)
+        :let [node (data/entity network (:e datom))]]
+    [(:e datom) (->PedestrianNode (:e datom)
+                                  (:node/location node)
+                                  (concat (get edges-from (:e datom))
+                                          (get edges-to (:e datom))))]))
 
 (defn- stops
+  [network edges-to arcs-from]
+  (for [datom (data/datoms network :avet :stop/id)
+        :let [stop (data/entity network (:e datom))]]
+    [(:e datom) (->TransitStop (:e datom)
+                               (:stop/lat stop)
+                               (:stop/lon stop)
+                               (concat (get edges-to (:e datom))
+                                       (get arcs-from (:e datom))))]))
+
+(defn- edges-tx
   [network]
-  (for [stop-id (data/datoms network :avet :stop/id)
-        :let [stop (data/entity network (:e stop-id))]]
-    [(:e stop-id) (->TransitStop (:e stop-id)
-                                 (:stop/lat stop)
-                                 (:stop/lon stop)
-                                 (stop-links network (:e stop-id)))]))
+  (for [datom (data/datoms network :aevt :way/nodes)
+        :let [nodes (:v datom)
+              way   (data/entity network (:e datom))]
+        [from to] (map vector nodes (rest nodes))]
+    {:edge/src (:db/id (data/entity network [:node/id from]))
+     :edge/dst (:db/id (data/entity network [:node/id to]))
+     :edge/way (:db/id (data/entity network [:way/id (:way/id way)]))}))
+
+(defn postprocess
+  "temporarily add information needed for routing to Datascript.
+
+  We just piggie-back on Datascript to do the hard work on resolving references"
+  [network]
+  (as-> (data/db-with network (edges-tx network)) db
+        (data/db-with db (fastq/link-stops db))
+        (data/db-with db (fastq/cache-stop-successors db))))
 
 (defn create
   [network]
-  (into (i/int-map)
-        (concat (nodes network)
-                (stops network))))
+  (let [db       (postprocess network)
+        edges    (for [datom (data/datoms db :aevt :edge/src)]
+                   (edge (data/entity db (:e datom))))
+        arcs     (for [datom (data/datoms db :aevt :arc/src)]
+                   (arc (data/entity db (:e datom))))
+        edges-to (group-by np/dst edges)]
+    (into (i/int-map)
+          (concat (nodes db (group-by np/src edges) edges-to)
+                  (stops db edges-to (group-by np/src arcs))))))
 
-#_(time
-    (let [network @(first @(:networks (:router hiposfer.kamal.dev/system)))]
-      (last (::foo (assoc network ::foo (create network))))))
+(defn node? [o] (instance? PedestrianNode o))
 
-(defn osm-node? [o] (instance? PedestrianNode o))
-
-(defn gtfs-stop? [o] (instance? TransitStop o))
+(defn stop? [o] (instance? TransitStop o))

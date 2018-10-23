@@ -31,3 +31,10 @@
   (node [this key])
   (relax [this arc trail]
     "attempts to relax node following trail path. Returns a Valuable implementation"))
+
+(defn edge? [o] (and (satisfies? Arc o)
+                     (satisfies? Bidirectional o)))
+
+(defn arc? [o] (satisfies? Arc o))
+
+(defn node? [o] (satisfies? Node o))

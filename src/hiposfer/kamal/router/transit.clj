@@ -68,13 +68,13 @@
       #_(println "walk?:" (walk-cost? value) "trip?:" (trip-cost? value))
       (cond
         ;; The user is just walking so we route based on walking duration
-        (graph/osm-node? src) ;; [node (or node stop)]
+        (graph/node? src) ;; [node (or node stop)]
         (map->WalkCost {:value      (Long/sum now (walk-time src dst))
                         :way/entity (data/entity network (:way/e arc))})
 
         ;; the user is trying to leave a vehicle. Apply penalty but route
         ;; normally
-        (graph/osm-node? dst) ;; [stop node]
+        (graph/node? dst) ;; [stop node]
         (map->WalkCost {:value      (Long/sum (Long/sum now penalty)
                                               (walk-time src dst))
                         :way/entity (data/entity network (:way/e arc))})
