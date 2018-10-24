@@ -141,7 +141,7 @@
 ;https://www.mapbox.com/api-documentation/#routestep-object
 (defn- step ;; piece => [trace ...]
   "includes one StepManeuver object and travel to the following RouteStep"
-  [start network prev-piece piece next-piece]
+  [zone-midnight network prev-piece piece next-piece]
   (let [context (transit/context piece)
         line    (linestring (map key (concat piece [(first next-piece)])))
         man     (maneuver network prev-piece piece next-piece)
@@ -156,8 +156,8 @@
       (when (not-empty (transit/name context))
         {:step/name (transit/name context)})
       (if (= "arrive" (:maneuver/type man))
-        {:step/arrive (+ start arrives)}
-        {:step/departure (+ start departs)})
+        {:step/arrive (+ zone-midnight arrives)}
+        {:step/departure (+ zone-midnight departs)})
       (when (= "transit" mode)
         (if (= "exit vehicle" (:maneuver/type man))
           (gtfs/resource (:stop_time/to (val (first piece))))
@@ -165,11 +165,11 @@
 
 (defn- route-steps
   "returns a route-steps vector or an empty vector if no steps are needed"
-  [network pieces midnight] ;; piece => [[trace via] ...]
+  [network pieces zone-midnight] ;; piece => [[trace via] ...]
   (let [start     [(first pieces)] ;; add depart and arrival pieces into the calculation
         end       [[(last (last pieces))]] ;; use only the last point as end - not the entire piece
         extended  (concat start pieces end)]
-    (map step (repeat midnight)
+    (map step (repeat zone-midnight)
               (repeat network)
               extended
               (rest extended)
@@ -179,7 +179,7 @@
 (defn- route
   "a route from the first to the last waypoint. Only two waypoints
   are currently supported"
-  [network trail midnight]
+  [network trail zone-midnight]
   (if (= (count trail) 1) ;; a single trace is returned for src = dst
     {:directions/distance 0 :directions/duration 0 :directions/steps []}
     (let [previous    (volatile! (first trail))
@@ -189,7 +189,7 @@
           arrives     (np/cost (val (last trail)))]
       {:directions/distance (geometry/arc-length (:coordinates (linestring (map key trail))))
        :directions/duration (- arrives departs)
-       :directions/steps    (route-steps network pieces midnight)})))
+       :directions/steps    (route-steps network pieces zone-midnight)})))
 
 ;; for the time being we only care about the coordinates of start and end
 ;; but looking into the future it is good to make like this such that we
@@ -207,14 +207,14 @@
         graph   (get (meta conn) :area/graph)
         network (deref conn)
         trips   (fastq/day-trips network (. departure (toLocalDate)))
-        start   (Duration/between (LocalTime/MIDNIGHT)
+        init    (Duration/between (LocalTime/MIDNIGHT)
                                   (. departure (toLocalTime)))
         src     (first (fastq/nearest-nodes network (first coordinates)))
         dst     (first (fastq/nearest-nodes network (last coordinates)))]
     (when (and (some? src) (some? dst))
       (let [router (transit/->TransitRouter network graph trips)
             ; both start and dst should be found since we checked that before
-            start  [(:db/id src) (. start (getSeconds))]
+            start  [(:db/id src) (. init (getSeconds))]
             path   (dijkstra/shortest-path router #{start} (:db/id dst))
             trail  (for [[id value] (reverse path)]
                      ;; HACK: prefetch the entity so that the rest of the code
