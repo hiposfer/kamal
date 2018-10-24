@@ -53,10 +53,10 @@
   []
   (stop!)
   (init!)
-  (clojure.spec.test.alpha/instrument)
   (alter-var-root #'s/*explain-out* (constantly custom-printer))
-  (set! *warn-on-reflection* true)
-  (set! *print-length* 50)
+  (clojure.spec.test.alpha/instrument)
+  (alter-var-root #'*warn-on-reflection* (constantly true))
+  (alter-var-root #'*print-length* (constantly 50))
   (start!))
 
 (defn refresh!
@@ -66,6 +66,5 @@
   (repl/refresh :after 'hiposfer.kamal.dev/go!))
 
 ;(refresh!)
-
 ;(type @(first @(:networks (:router system))))
 ;(take 10 @(first @(:networks (:router system))))
