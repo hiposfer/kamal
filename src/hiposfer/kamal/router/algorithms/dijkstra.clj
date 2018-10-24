@@ -147,7 +147,7 @@
 (s/def ::router #(satisfies? np/Dijkstra %))
 (s/def ::start (s/or :entity (s/and some? #(not (vector? %)))
                      :pair   (s/tuple some? np/valuable?)))
-(s/def ::comparator #(instance? Comparator %))
+(s/def ::comparator (s/or :default nil? :instance #(instance? Comparator %)))
 
 ;; note: SimpleImmutableEntry is not accepted by s/tuple :(
 (s/def ::trace (s/and map-entry?
@@ -165,6 +165,5 @@
         :args (s/cat :router ::router
                      :start ::start
                      :dst  nil?
-                     :comparator (s/? (s/or :default nil?
-                                            :instance #(instance? Comparator %))))
+                     :comparator (s/? ::comparator))
         :ret int?)
