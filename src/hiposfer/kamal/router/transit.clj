@@ -82,8 +82,7 @@
         ;; riding on public transport .............
         ;; the user is already in a trip. Just find the trip going to dst [stop stop]
         (trip-cost? value)
-        (let [trip   (:stop_time/trip (:stop_time/from value))
-              result (fastq/continue-trip network value dst-id)]
+        (let [result (fastq/continue-trip network value dst-id)]
           (when (some? result)
             (map->TripCost result)))
 
@@ -108,10 +107,10 @@
   "Returns an entity holding the 'context' of the trace. For pedestrian routing
   that is the way. For transit routing it is the stop"
   ([piece] ;; a piece already represents a context ;)
-   (let [step (val (first piece))]
-     (if (walk-cost? step) ;; trip-step otherwise
-       (:way/entity step)
-       (key (first piece)))))
+   (let [value (val (first piece))]
+     (if (walk-cost? value) ;; trip-step otherwise
+       (:way/entity value)
+       (key (first piece))))) ;; stop
   ([trace vprev]
    (let [previous @vprev]
      (vreset! vprev trace)
@@ -120,7 +119,7 @@
        (and (node? (key previous)) (node? (key trace)))
        (:way/entity (val trace))
 
-       ;; getting into a trip -> return the way of the road
+       ;; getting into a trip -> return the way
        (and (node? (key previous)) (stop? (key trace)))
        (:way/entity (val trace))
 

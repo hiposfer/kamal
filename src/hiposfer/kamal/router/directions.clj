@@ -54,32 +54,30 @@
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
 (defn- instruction
   "returns a human readable version of the maneuver to perform"
-  [network result piece next-piece]
-  (let [context  (transit/context piece)
-        modifier (:maneuver/modifier result)
-        maneuver (:maneuver/type result)
-        name     (transit/name context)]
-    (case maneuver
+  [_type _modifier piece next-piece]
+  (let [context (transit/context piece)
+        _name   (transit/name context)]
+    (case _type
       ;; walking normally
       "turn" ;; only applies for walking
-      (str "Take " modifier (when name (str " on " name)))
+      (str "Take " _modifier (when _name (str " on " _name)))
 
       ;; taking a trip on a public transport vehicle
       "continue" ;; only applies to transit
-      (let [tstart  (:stop_time/from (val (first piece)))
-            route   (:trip/route (:stop_time/trip tstart))
-            vehicle (transit/route-types (:route/type route))
-            id      (str vehicle " " (or (:route/short_name route)
-                                         (:route/long_name route)))]
+      (let [stoptime (:stop_time/to (val (first piece)))
+            route    (:trip/route (:stop_time/trip stoptime))
+            vehicle  (transit/route-types (:route/type route))
+            id       (str vehicle " " (or (:route/short_name route)
+                                          (:route/long_name route)))]
         (str "Continue on " id))
 
       "notification"
-      (let [tend    (:stop_time/from (val (first piece)))
-            trip    (:stop_time/trip tend)
-            route   (:trip/route trip)
-            vehicle (transit/route-types (:route/type route))
-            id      (str vehicle " " (or (:route/short_name route)
-                                         (:route/long_name route)))]
+      (let [stoptime (:stop_time/to (val (first piece)))
+            trip     (:stop_time/trip stoptime)
+            route    (:trip/route trip)
+            vehicle  (transit/route-types (:route/type route))
+            id       (str vehicle " " (or (:route/short_name route)
+                                          (:route/long_name route)))]
         (str "Hop on " id " to " (:trip/headsign trip)))
 
       ;; exiting a vehicle
@@ -88,9 +86,9 @@
 
       ;; This is the first instruction that the user gets
       "depart"
-      (let [n2 (transit/name (transit/context next-piece))]
-        (if (or name n2)
-          (str "Head on to " (or name n2))
+      (let [next-name (transit/name (transit/context next-piece))]
+        (if (some? next-name)
+          (str "Head on to " next-name)
           "Depart"))
 
       ;; This is the last instruction that the user gets
@@ -99,13 +97,16 @@
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
 (defn- maneuver-type
-  [network prev-piece piece next-piece]
+  [prev-piece piece next-piece]
   (let [last-context (transit/context prev-piece)
         context      (transit/context piece)
         next-context (transit/context next-piece)]
     (cond
-      (= prev-piece piece) "depart"
-      (= piece next-piece) "arrive"
+      (= prev-piece piece)
+      "depart"
+
+      (= piece next-piece)
+      "arrive"
 
       ;; change conditions, e.g. change of mode from walking to transit
       (and (not (transit/stop? last-context)) (transit/stop? context))
@@ -119,58 +120,58 @@
       (and (transit/stop? context) (not (transit/stop? next-context)))
       "exit vehicle"
 
-      :else                "turn")))
+      :else
+      "turn")))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
 (defn- maneuver ;; piece => [trace ...]
   "returns a step maneuver"
-  [network prev-piece piece next-piece]
+  [prev-piece piece next-piece]
   (let [pre-bearing  (geometry/bearing (location (key (first prev-piece)))
                                        (location (key (first piece))))
         post-bearing (geometry/bearing (location (key (first piece)))
                                        (location (key (first next-piece))))
         angle        (mod (+ 360 (- post-bearing pre-bearing)) 360)
-        _type        (maneuver-type network prev-piece piece next-piece)
-        result       (merge {:maneuver/bearing_before pre-bearing
-                             :maneuver/bearing_after  post-bearing
-                             :maneuver/type _type}
-                       (when (= _type "turn")
-                         {:maneuver/modifier (modifier angle _type)}))]
-    (assoc result :maneuver/instruction (instruction network result piece next-piece))))
+        _type        (maneuver-type prev-piece piece next-piece)
+        _modifier    (modifier angle _type)
+        human-text   (instruction _type _modifier piece next-piece)]
+    (merge {:maneuver/bearing_before pre-bearing
+            :maneuver/bearing_after  post-bearing
+            :maneuver/type _type
+            :maneuver/instruction human-text}
+           (when (= _type "turn")
+             {:maneuver/modifier _modifier}))))
 
 ;https://www.mapbox.com/api-documentation/#routestep-object
 (defn- step ;; piece => [trace ...]
   "includes one StepManeuver object and travel to the following RouteStep"
-  [zone-midnight network prev-piece piece next-piece]
+  [zone-midnight prev-piece piece next-piece]
   (let [context (transit/context piece)
         line    (linestring (map key (concat piece [(first next-piece)])))
-        man     (maneuver network prev-piece piece next-piece)
+        man     (maneuver prev-piece piece next-piece)
         mode    (if (transit/stop? context) "transit" "walking")
         departs (np/cost (val (first piece)))
         arrives (np/cost (val (first next-piece)))]
-    (merge man
-      {:step/mode     mode
-       :step/distance (geometry/arc-length (:coordinates line))
-       :step/duration (- arrives departs)
-       :step/geometry line}
-      (when (not-empty (transit/name context))
-        {:step/name (transit/name context)})
-      (if (= "arrive" (:maneuver/type man))
-        {:step/arrive (+ zone-midnight arrives)}
-        {:step/departure (+ zone-midnight departs)})
-      (when (= "transit" mode)
-        (if (= "exit vehicle" (:maneuver/type man))
-          (gtfs/resource (:stop_time/to (val (first piece))))
-          (gtfs/resource (:stop_time/from (val (first piece)))))))))
+    (merge {:step/mode     mode
+            :step/distance (geometry/arc-length (:coordinates line))
+            :step/duration (- arrives departs)
+            :step/geometry line
+            :step/maneuver man}
+           (when (not-empty (transit/name context))
+             {:step/name (transit/name context)})
+           (if (= "arrive" (:maneuver/type man))
+             {:step/arrive (+ zone-midnight arrives)}
+             {:step/departure (+ zone-midnight departs)})
+           (when (= "transit" mode)
+             {:step/trip (gtfs/resource (:stop_time/trip (:stop_time/to (val (first piece)))))}))))
 
 (defn- route-steps
   "returns a route-steps vector or an empty vector if no steps are needed"
-  [network pieces zone-midnight] ;; piece => [[trace via] ...]
+  [pieces zone-midnight] ;; piece => [[trace via] ...]
   (let [start     [(first pieces)] ;; add depart and arrival pieces into the calculation
         end       [[(last (last pieces))]] ;; use only the last point as end - not the entire piece
         extended  (concat start pieces end)]
     (map step (repeat zone-midnight)
-              (repeat network)
               extended
               (rest extended)
               (rest (rest extended)))))
@@ -179,7 +180,7 @@
 (defn- route
   "a route from the first to the last waypoint. Only two waypoints
   are currently supported"
-  [network trail zone-midnight]
+  [trail zone-midnight]
   (if (= (count trail) 1) ;; a single trace is returned for src = dst
     {:directions/distance 0 :directions/duration 0 :directions/steps []}
     (let [previous    (volatile! (first trail))
@@ -189,7 +190,7 @@
           arrives     (np/cost (val (last trail)))]
       {:directions/distance (geometry/arc-length (:coordinates (linestring (map key trail))))
        :directions/duration (- arrives departs)
-       :directions/steps    (route-steps network pieces zone-midnight)})))
+       :directions/steps    (route-steps pieces zone-midnight)})))
 
 ;; for the time being we only care about the coordinates of start and end
 ;; but looking into the future it is good to make like this such that we
@@ -221,15 +222,14 @@
                      ;; doesnt. TODO: figure out a better way to do this
                      (first {(data/entity network id) value}))]
         (when (not-empty trail)
-          (merge
-            {:directions/uuid      (data/squuid)
-             :directions/waypoints
-             [{:waypoint/name     (:way/name (:way/entity (val (first trail))))
-               :waypoint/location (->coordinates (location src))}
-              {:waypoint/name     (:way/name (:way/entity (val (last trail))))
-               :waypoint/location (->coordinates (location dst))}]}
-            (route network trail (-> departure (.truncatedTo ChronoUnit/DAYS)
-                                               (.toEpochSecond)))))))))
+          (merge {:directions/uuid      (data/squuid)
+                  :directions/waypoints
+                  [{:waypoint/name     (:way/name (:way/entity (val (first trail))))
+                    :waypoint/location (->coordinates (location src))}
+                   {:waypoint/name     (:way/name (:way/entity (val (last trail))))
+                    :waypoint/location (->coordinates (location dst))}]}
+                 (route trail (-> departure (.truncatedTo ChronoUnit/DAYS)
+                                            (.toEpochSecond)))))))))
 
 ;(dotimes [n 1000]
 #_(time (direction (first @(:networks (:router hiposfer.kamal.dev/system)))

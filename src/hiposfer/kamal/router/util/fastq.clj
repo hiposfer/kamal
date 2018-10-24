@@ -37,7 +37,6 @@
              {:value (+ (:value previous)
                         (- (:stop_time/arrival_time to)
                            (:stop_time/departure_time from)))
-              :stop_time/from from
               :stop_time/to   to}))))
 
 (defn- continue-fixed-time-trip
@@ -52,7 +51,6 @@
                              (references network :stop_time/trip ?trip-id))]
     (when (some? to)
       {:value (:stop_time/arrival_time to)
-       :stop_time/from from
        :stop_time/to to})))
 
 (defn continue-trip
@@ -80,15 +78,14 @@
 (defn- frequency-context
   "returns a sequence of [start src dst] stop_times entities for the given
   ?trip-id, which should be a frequency-based trip"
-  [network ?trip-id ?src-id ?dst-id]
+  [network ?trip-id ?dst-id]
   (let [datoms (data/datoms network :avet :stop_time/trip ?trip-id)
         start  (data/entity network (:e (first datoms)))]
     ;; TODO: is there any guarantee that the first datom is the start of the trip ?
     (cons start
       (for [d datoms
             :let [stop_time (data/entity network (:e d))]
-            :when (or (= ?src-id (:db/id (:stop_time/stop stop_time)))
-                      (= ?dst-id (:db/id (:stop_time/stop stop_time))))]
+            :when (= ?dst-id (:db/id (:stop_time/stop stop_time)))]
         stop_time))))
 
 (defn- frequency-matches
@@ -98,18 +95,17 @@
 
    for each frequency-based trip that the user could take to
    travel from ?src-id to ?dst-id at time now"
-  [network trips ?src-id ?dst-id now]
+  [network trips ?dst-id now]
   (for [?trip-id trips
         d        (data/datoms network :avet :frequency/trip ?trip-id)
         :let [frequency (data/entity network (:e d))]
         :when (> now (:frequency/start_time frequency))
         :when (< now (:frequency/end_time frequency))
-        :let [[start from to] (frequency-context network ?trip-id ?src-id ?dst-id)
+        :let [[start to] (frequency-context network ?trip-id ?dst-id)
               duration  (- (:stop_time/arrival_time to)
                            (:stop_time/departure_time start))]]
     (merge (frequency-cycle frequency duration now)
-           {:stop_time/from from
-            :stop_time/to to})))
+           {:stop_time/to to})))
 
 (defn- stop-times-match
   [network trips ?src-id ?dst-id now]
@@ -124,7 +120,6 @@
                                (references network :stop_time/trip (:db/id (:stop_time/trip from))))]
           (when (some? to)
             {:value          (:stop_time/arrival_time to)
-             :stop_time/from from
              :stop_time/to   to}))))))
 
 (defn find-trip
@@ -137,23 +132,23 @@
 
    Returns nil if no trip was found"
   [network trips ?src-id ?dst-id now]
-  (let [cycle-trips     (frequency-matches network trips ?src-id ?dst-id now)
+  (let [frequent-trips  (frequency-matches network trips ?dst-id now)
         frequency-ids   (eduction (map :frequency/entity)
                                   (map :frequency/trip)
                                   (map :db/id)
-                                  cycle-trips)
+                                  frequent-trips)
         ;; constraint the available trips to only fixed time
         trips           (set/difference trips (set frequency-ids))
         fixed-time-trip (stop-times-match network trips ?src-id ?dst-id now)]
     (cond
-      (and (seq cycle-trips) (nil? fixed-time-trip))
-      (apply min-key :value cycle-trips)
+      (and (seq frequent-trips) (nil? fixed-time-trip))
+      (apply min-key :value frequent-trips)
 
-      (and (empty? cycle-trips) (some? fixed-time-trip))
+      (and (empty? frequent-trips) (some? fixed-time-trip))
       fixed-time-trip
 
-      (and (seq cycle-trips) (seq fixed-time-trip))
-      (apply min-key :value (cons fixed-time-trip cycle-trips)))))
+      (and (seq frequent-trips) (seq fixed-time-trip))
+      (apply min-key :value (cons fixed-time-trip frequent-trips)))))
 
 ;; src - [:stop/id 3392140086]
 ;; dst - [:stop/id 582939269]
