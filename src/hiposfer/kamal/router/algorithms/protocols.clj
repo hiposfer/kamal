@@ -32,6 +32,8 @@
   (relax [this arc trail]
     "attempts to relax node following trail path. Returns a Valuable implementation"))
 
+(defn valuable? [o] (satisfies? Valuable o))
+
 (defn edge? [o] (and (satisfies? Arc o)
                      (satisfies? Bidirectional o)))
 

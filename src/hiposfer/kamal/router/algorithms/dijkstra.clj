@@ -1,6 +1,7 @@
 (ns hiposfer.kamal.router.algorithms.dijkstra
-  (:require [hiposfer.kamal.router.algorithms.protocols :as np])
-  (:import (java.util HashMap Map AbstractMap$SimpleImmutableEntry)
+  (:require [hiposfer.kamal.router.algorithms.protocols :as np]
+            [clojure.spec.alpha :as s])
+  (:import (java.util HashMap Map AbstractMap$SimpleImmutableEntry Comparator)
            (clojure.lang Seqable IReduceInit IReduce Sequential)
            (org.teneighty.heap FibonacciHeap Heap Heap$Entry)))
 
@@ -142,3 +143,27 @@
                            (when (= dst (key (first value)))
                              (reduced value)))]
      (reduce rf nil graph-traversal))))
+
+(s/def ::router #(satisfies? np/Dijkstra %))
+(s/def ::start (s/or :entity (s/and some? #(not (vector? %)))
+                     :pair   (s/tuple some? np/valuable?)))
+(s/def ::comparator (s/or :default nil? :instance #(instance? Comparator %)))
+
+;; note: SimpleImmutableEntry is not accepted by s/tuple :(
+(s/def ::trace (s/and map-entry?
+                      (fn [[k v]] (and (some? k) (np/valuable? v)))))
+(s/def ::path (s/coll-of ::trace :min-count 1 :kind sequential?))
+
+(s/fdef view
+        :args (s/cat :router ::router
+                     :start ::start
+                     :comparator (s/? (s/or :default nil?
+                                            :instance #(instance? Comparator %))))
+        :ret #(instance? Dijkstra %))
+
+(s/fdef shortest-path
+        :args (s/cat :router ::router
+                     :start ::start
+                     :dst  some?
+                     :comparator (s/? ::comparator))
+        :ret int?)
