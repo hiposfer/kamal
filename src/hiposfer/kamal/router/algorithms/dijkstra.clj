@@ -164,6 +164,6 @@
 (s/fdef shortest-path
         :args (s/cat :router ::router
                      :start ::start
-                     :dst  nil?
+                     :dst  some?
                      :comparator (s/? ::comparator))
         :ret int?)
