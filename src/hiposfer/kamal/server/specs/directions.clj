@@ -34,12 +34,12 @@
 (s/def :step/trip      ::trip)
 (s/def :step/geometry  ::geojson/linestring)
 
-(s/def :transit/step (s/keys :req [:step/transit]))
+(s/def :transit/step (s/keys :req [:step/trip]))
 (s/def :base/step    (s/keys :req [:step/mode :step/distance :step/duration
                                    :step/geometry]
                              :opt [:step/name (or :step/arrive :step/departure)]))
 (s/def ::step        (s/or :transit (s/merge :base/step :transit/step)
-                           :walk    (s/and :base/step #(not (contains? % :step/transit)))))
+                           :walk    (s/and :base/step #(not (contains? % :step/trip)))))
 
 (s/def :waypoint/name     (s/nilable ::name))
 (s/def :waypoint/location :hiposfer.geojson.specs.point/coordinates)
