@@ -36,8 +36,8 @@
 
 (s/def :transit/step (s/keys :req [:step/trip]))
 (s/def :base/step    (s/keys :req [:step/mode :step/distance :step/duration
-                                   :step/geometry]
-                             :opt [:step/name (or :step/arrive :step/departure)]))
+                                   :step/geometry (or :step/arrive :step/departure)]
+                             :opt [:step/name]))
 (s/def ::step        (s/or :transit (s/merge :base/step :transit/step)
                            :walk    (s/and :base/step #(not (contains? % :step/trip)))))
 
