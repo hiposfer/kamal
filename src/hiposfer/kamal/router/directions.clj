@@ -163,7 +163,8 @@
              {:step/arrive (+ zone-midnight arrives)}
              {:step/departure (+ zone-midnight departs)})
            (when (= "transit" mode)
-             {:step/trip (gtfs/resource (:stop_time/trip (:stop_time/to (val (first piece)))))}))))
+             {:step/trip (select-keys (:stop_time/trip (:stop_time/to (val (first piece))))
+                                      [:trip/id])}))))
 
 (defn- route-steps
   "returns a route-steps vector or an empty vector if no steps are needed"
