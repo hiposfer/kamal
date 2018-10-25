@@ -21,7 +21,7 @@
                                  :maneuver/instruction]
                            :opt [:maneuver/modifier]))
 
-(def trip-keys (set (map :keyword (filter #(= "trips" (:filename %)) gtfs/fields))))
+(def trip-keys (set (map :keyword (filter #(= "trips.txt" (:filename %)) gtfs/fields))))
 (s/def ::trip (s/map-of trip-keys some?))
 
 (s/def :step/name      ::name)
