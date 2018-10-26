@@ -107,26 +107,37 @@
   "Returns an entity holding the 'context' of the trace. For pedestrian routing
   that is the way. For transit routing it is the stop"
   ([piece] ;; a piece already represents a context ;)
-   (let [value (val (first piece))]
-     (if (walk-cost? value) ;; trip-step otherwise
-       (:way/entity value)
-       (key (first piece))))) ;; stop
+   (if (node? (key (first piece))) ;; trip-step otherwise
+     (:way/entity (val (first piece)))
+     (key (first piece)))) ;; stop
   ([trace vprev]
    (let [previous @vprev]
      (vreset! vprev trace)
      (cond
        ;; walking normally -> return the way
        (and (node? (key previous)) (node? (key trace)))
-       (:way/entity (val trace))
+       (do (println "node:node"
+                    (name (:way/entity (val previous))) ", "
+                    (name (:way/entity (val trace))))
+           (:way/entity (val trace)))
 
-       ;; getting into a trip -> return the way
+       ;; getting into a trip -> return the stop
        (and (node? (key previous)) (stop? (key trace)))
-       (:way/entity (val trace))
+       (do (println "node:stop"
+                    (name (:way/entity (val previous))) ", "
+                    (name (key trace)))
+           (key trace))
 
        ;; on a trip -> return the stop
        (and (stop? (key previous)) (stop? (key trace)))
-       (key trace)
+       (do (println "stop:stop"
+                    (name (key previous)) ", "
+                    (name (key trace)))
+           (key trace))
 
        ;; leaving a trip -> return the last stop
        (and (stop? (key previous)) (node? (key trace)))
-       (key previous)))))
+       (do (println "stop:node"
+                    (name (key previous)) ", "
+                    (name (:way/entity (val trace))))
+           (key previous))))))

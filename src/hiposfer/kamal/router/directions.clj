@@ -16,8 +16,7 @@
             [hiposfer.kamal.router.algorithms.protocols :as np]
             [hiposfer.kamal.router.transit :as transit]
             [hiposfer.kamal.router.util.geometry :as geometry]
-            [hiposfer.kamal.router.util.fastq :as fastq]
-            [hiposfer.kamal.router.io.gtfs :as gtfs])
+            [hiposfer.kamal.router.util.fastq :as fastq])
   (:import (java.time Duration LocalTime ZonedDateTime)
            (java.time.temporal ChronoUnit)))
 
@@ -72,7 +71,7 @@
         (str "Continue on " id))
 
       "notification"
-      (let [stoptime (:stop_time/to (val (first piece)))
+      (let [stoptime (:stop_time/to (val (first next-piece)))
             trip     (:stop_time/trip stoptime)
             route    (:trip/route trip)
             vehicle  (transit/route-types (:route/type route))
@@ -163,7 +162,7 @@
              {:step/arrive (+ zone-midnight arrives)}
              {:step/departure (+ zone-midnight departs)})
            (when (= "transit" mode)
-             {:step/trip (select-keys (:stop_time/trip (:stop_time/to (val (first piece))))
+             {:step/trip (select-keys (:stop_time/trip (:stop_time/to (val (first next-piece))))
                                       [:trip/id])}))))
 
 (defn- route-steps
@@ -224,10 +223,10 @@
                      (first {(data/entity network id) value}))]
         (when (not-empty trail)
           (merge {:directions/uuid      (data/squuid)
-                  :directions/waypoints
-                  [{:waypoint/name     (:way/name (:way/entity (val (first trail))))
+                  :directions/waypoints ;; use some for a best guess approach in case the first and last point dont have a way
+                  [{:waypoint/name     (some (comp :way/name :way/entity val) trail)
                     :waypoint/location (->coordinates (location src))}
-                   {:waypoint/name     (:way/name (:way/entity (val (last trail))))
+                   {:waypoint/name     (some (comp :way/name :way/entity val) (reverse trail))
                     :waypoint/location (->coordinates (location dst))}]}
                  (route trail (-> departure (.truncatedTo ChronoUnit/DAYS)
                                             (.toEpochSecond)))))))))
