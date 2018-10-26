@@ -116,28 +116,16 @@
      (cond
        ;; walking normally -> return the way
        (and (node? (key previous)) (node? (key trace)))
-       (do (println "node:node"
-                    (name (:way/entity (val previous))) ", "
-                    (name (:way/entity (val trace))))
-           (:way/entity (val trace)))
+       (:way/entity (val trace))
 
        ;; getting into a trip -> return the stop
        (and (node? (key previous)) (stop? (key trace)))
-       (do (println "node:stop"
-                    (name (:way/entity (val previous))) ", "
-                    (name (key trace)))
-           (key trace))
+       (key trace)
 
        ;; on a trip -> return the stop
        (and (stop? (key previous)) (stop? (key trace)))
-       (do (println "stop:stop"
-                    (name (key previous)) ", "
-                    (name (key trace)))
-           (key trace))
+       (key trace)
 
        ;; leaving a trip -> return the last stop
        (and (stop? (key previous)) (node? (key trace)))
-       (do (println "stop:node"
-                    (name (key previous)) ", "
-                    (name (:way/entity (val trace))))
-           (key previous))))))
+       (key previous)))))
