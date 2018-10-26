@@ -162,8 +162,9 @@
              {:step/arrive (+ zone-midnight arrives)}
              {:step/departure (+ zone-midnight departs)})
            (when (= "transit" mode)
-             {:step/trip (select-keys (:stop_time/trip (:stop_time/to (val (first next-piece))))
-                                      [:trip/id])}))))
+             (let [transit-piece (if (= "exit vehicle" (:maneuver/type man)) piece next-piece)]
+               {:step/trip (select-keys (:stop_time/trip (:stop_time/to (val (first transit-piece))))
+                                        [:trip/id])})))))
 
 (defn- route-steps
   "returns a route-steps vector or an empty vector if no steps are needed"
