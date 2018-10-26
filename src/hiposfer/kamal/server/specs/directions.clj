@@ -22,7 +22,7 @@
                            :opt [:maneuver/modifier]))
 
 (def trip-keys (set (map :keyword (filter #(= "trips.txt" (:filename %)) gtfs/fields))))
-(s/def ::trip (s/map-of trip-keys some?))
+(s/def ::trip (s/map-of trip-keys some? :min-count 1 :conform-keys true))
 
 (s/def :step/name      ::name)
 (s/def :step/mode     #{"transit" "walking"})
