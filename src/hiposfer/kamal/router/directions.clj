@@ -158,8 +158,7 @@
             :step/maneuver man}
            (when (not-empty (transit/name context))
              {:step/name (transit/name context)})
-           (if (= "arrive" (:maneuver/type man))
-             {:step/arrive (+ zone-midnight arrives)}
+           (when (not= "arrive" (:maneuver/type man))
              {:step/departure (+ zone-midnight departs)})
            (when (= "transit" mode)
              (let [transit-piece (if (= "exit vehicle" (:maneuver/type man)) piece next-piece)]
