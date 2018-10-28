@@ -55,7 +55,9 @@
   "returns a human readable version of the maneuver to perform"
   [_type _modifier piece next-piece]
   (let [context (transit/context piece)
-        _name   (transit/name context)]
+        _name   (transit/name context)
+        next-context (transit/context next-piece)
+        next-name (transit/name next-context)]
     (case _type
       ;; walking normally
       "turn" ;; only applies for walking
@@ -85,10 +87,8 @@
 
       ;; This is the first instruction that the user gets
       "depart"
-      (let [next-name (transit/name (transit/context next-piece))]
-        (if (some? next-name)
-          (str "Head on to " next-name)
-          "Depart"))
+      (if (empty? next-name) "depart"
+        (str "Head on to " next-name))
 
       ;; This is the last instruction that the user gets
       "arrive"
@@ -108,7 +108,7 @@
       "arrive"
 
       ;; change conditions, e.g. change of mode from walking to transit
-      (and (not (transit/stop? last-context)) (transit/stop? context))
+      (and (transit/way? last-context) (transit/stop? context))
       "notification"
 
       ;; already on a transit trip, continue
@@ -116,7 +116,7 @@
       "continue"
 
       ;; change of conditions -> exit vehicle
-      (and (transit/stop? context) (not (transit/stop? next-context)))
+      (and (transit/stop? context) (transit/way? next-context))
       "exit vehicle"
 
       :else
@@ -223,7 +223,8 @@
                      (first {(data/entity network id) value}))]
         (when (not-empty trail)
           (merge {:directions/uuid      (data/squuid)
-                  :directions/waypoints ;; use some for a best guess approach in case the first and last point dont have a way
+          ;; use some for a best guess approach in case the first and last point dont have a way
+                  :directions/waypoints
                   [{:waypoint/name     (some (comp :way/name :way/entity val) trail)
                     :waypoint/location (->coordinates (location src))}
                    {:waypoint/name     (some (comp :way/name :way/entity val) (reverse trail))

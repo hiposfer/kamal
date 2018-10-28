@@ -29,7 +29,6 @@
 (s/def :step/distance #(not (neg? %)))
 (s/def :step/duration  (s/and nat-int? #(not (neg? %))))
 (s/def :step/departure (s/and nat-int? pos?))
-(s/def :step/arrive    (s/and nat-int? pos?))
 (s/def :step/maneuver  ::maneuver)
 (s/def :step/trip      ::trip)
 (s/def :step/geometry  ::geojson/linestring)
