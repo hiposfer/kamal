@@ -47,6 +47,7 @@
   "return the turn indication based on the angle"
   [angle _type]
   (when (= "turn" _type)
+    (println "angle:" angle)
     (val (last (subseq bearing-turns <= angle)))))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
@@ -148,17 +149,16 @@
         line    (linestring (map key (concat piece [(first next-piece)])))
         man     (maneuver prev-piece piece next-piece)
         mode    (if (transit/stop? context) "transit" "walking")
-        departs (np/cost (val (first piece)))
-        arrives (np/cost (val (first next-piece)))]
+        arrives (np/cost (val (first piece)))]
     (merge {:step/mode     mode
             :step/distance (geometry/arc-length (:coordinates line))
-            :step/duration (- arrives departs)
             :step/geometry line
-            :step/maneuver man}
+            :step/maneuver man
+            :step/arrive   (+ zone-midnight arrives)}
            (when (not-empty (transit/name context))
              {:step/name (transit/name context)})
-           (when (not= "arrive" (:maneuver/type man))
-             {:step/departure (+ zone-midnight departs)})
+           (when (= "notification" (:maneuver/type man))
+             {:step/wait (:stop_time/wait (val (first next-piece)))})
            (when (= "transit" mode)
              (let [transit-piece (if (= "exit vehicle" (:maneuver/type man)) piece next-piece)]
                {:step/trip (select-keys (:stop_time/trip (:stop_time/to (val (first transit-piece))))
@@ -234,7 +234,7 @@
 ;(dotimes [n 1000]
 #_(time (direction (first @(:networks (:router hiposfer.kamal.dev/system)))
                    {:coordinates [[8.645333, 50.087314]
-                                  ;[8.680412, 50.116680]] ;; innenstadt
+                                  ;[8.680412, 50.116680] ;; innenstadt
                                   ;[8.699619, 50.097842]] ;; sachsenhausen
                                   [8.635897, 50.104172]] ;; galluswarte
-                    :departure (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")}))
+                    :departure   (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")}))

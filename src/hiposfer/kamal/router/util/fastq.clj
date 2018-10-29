@@ -50,8 +50,9 @@
         to       (tool/some #(= ?dst-id (:db/id (:stop_time/stop %)))
                              (references network :stop_time/trip ?trip-id))]
     (when (some? to)
-      {:value (:stop_time/arrival_time to)
-       :stop_time/to to})))
+      (merge previous
+             {:value (:stop_time/arrival_time to)
+              :stop_time/to to}))))
 
 (defn continue-trip
   "given the previous(ly) found result through (find-trips ...) compute the
@@ -62,50 +63,59 @@
     (continue-fixed-time-trip network previous ?dst-id)))
 
 (defn- frequency-cycle
-  "given a frequency entity, the duration between two stops on that trip
-  and the current time (now), calculate the cycle and arrival time
-  such that the user can reach the target stop at value.
+  "given a frequency entity, the init between from the first stop on that
+  trip and the current time (now), calculate the cycle and arrival time such
+  that the user can reach the target stop at value.
 
   Returns a {:frequency/entity :frequency/cycle :value} map"
-  ([frequency duration now]
-   (frequency-cycle frequency duration now 1))
-  ([frequency duration now n]
-   (let [arrival (+ duration (* n (:frequency/headway_secs frequency)))]
+  ([frequency init now]
+   (frequency-cycle frequency init now 1))
+  ([frequency init now n]
+   (let [arrival (+ init (* n (:frequency/headway_secs frequency)))]
      (if (< now arrival)
        {:value arrival :frequency/cycle n :frequency/entity frequency}
-       (recur frequency duration now (inc n))))))
+       (recur frequency init now (inc n))))))
 
 (defn- frequency-context
   "returns a sequence of [start src dst] stop_times entities for the given
   ?trip-id, which should be a frequency-based trip"
-  [network ?trip-id ?dst-id]
+  [network ?trip-id ?src-id ?dst-id]
   (let [datoms (data/datoms network :avet :stop_time/trip ?trip-id)
         start  (data/entity network (:e (first datoms)))]
     ;; TODO: is there any guarantee that the first datom is the start of the trip ?
     (cons start
       (for [d datoms
             :let [stop_time (data/entity network (:e d))]
-            :when (= ?dst-id (:db/id (:stop_time/stop stop_time)))]
+            :when (or (= ?src-id (:db/id (:stop_time/stop stop_time)))
+                      (= ?dst-id (:db/id (:stop_time/stop stop_time))))]
         stop_time))))
 
 (defn- frequency-matches
   "returns a sequence of
 
-   {:value :stop_times/from :stop_times/to :frequency/cycle :frequency/entity}
+   {:value :stop_time/wait :stop_times/to :frequency/cycle :frequency/entity}
 
    for each frequency-based trip that the user could take to
    travel from ?src-id to ?dst-id at time now"
-  [network trips ?dst-id now]
+  [network trips ?src-id ?dst-id now]
   (for [?trip-id trips
         d        (data/datoms network :avet :frequency/trip ?trip-id)
         :let [frequency (data/entity network (:e d))]
         :when (> now (:frequency/start_time frequency))
         :when (< now (:frequency/end_time frequency))
-        :let [[start to] (frequency-context network ?trip-id ?dst-id)
-              duration  (- (:stop_time/arrival_time to)
-                           (:stop_time/departure_time start))]]
-    (merge (frequency-cycle frequency duration now)
-           {:stop_time/to to})))
+        :let [[start from to] (frequency-context network ?trip-id ?src-id ?dst-id)
+              init            (+ (:frequency/start_time frequency)
+                                 (- (:stop_time/arrival_time to)
+                                    (:stop_time/departure_time start)))
+              cycle           (frequency-cycle frequency init now)]]
+    (merge cycle
+           {:stop_time/wait (- (+ (:frequency/start_time frequency)
+                                  (* (:frequency/headway_secs frequency)
+                                     (:frequency/cycle cycle))
+                                  (- (:stop_time/departure_time from)
+                                     (:stop_time/departure_time start)))
+                               now)
+            :stop_time/to   to})))
 
 (defn- stop-times-match
   [network trips ?src-id ?dst-id now]
@@ -120,10 +130,11 @@
                                (references network :stop_time/trip (:db/id (:stop_time/trip from))))]
           (when (some? to)
             {:value          (:stop_time/arrival_time to)
+             :stop_time/wait (- (:stop_time/departure_time from) now)
              :stop_time/to   to}))))))
 
 (defn find-trip
-  "Returns a map with {:value :stop_times/from :stop_times/to} and maybe
+  "Returns a map with {:value :stop_times/wait :stop_times/to} and maybe
    {:frequency/cycle :frequency/entity} on a frequency match.
 
    To find a matching trip, we search among repetitive trips (frequencies.txt)
@@ -132,7 +143,7 @@
 
    Returns nil if no trip was found"
   [network trips ?src-id ?dst-id now]
-  (let [frequent-trips  (frequency-matches network trips ?dst-id now)
+  (let [frequent-trips  (frequency-matches network trips ?src-id ?dst-id now)
         frequency-ids   (eduction (map :frequency/entity)
                                   (map :frequency/trip)
                                   (map :db/id)
