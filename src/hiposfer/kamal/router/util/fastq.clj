@@ -6,8 +6,16 @@
   (:require [datascript.core :as data]
             [clojure.string :as str]
             [clojure.set :as set]
-            [hiposfer.kamal.router.util.misc :as tool])
+            [hiposfer.kamal.router.util.misc :as tool]
+            [hiposfer.kamal.router.algorithms.protocols :as np])
   (:import (java.time LocalDate)))
+
+;; a TripCost represents the transition between two stops in a GTFS feed
+(defrecord TripCost [^Long value]
+  np/Valuable
+  (cost [_] value)
+  Comparable
+  (compareTo [_ o] (Long/compare value (np/cost o))))
 
 (defn references
   "returns all entities that reference/point to target-id through
@@ -153,13 +161,13 @@
         fixed-time-trip (stop-times-match network trips ?src-id ?dst-id now)]
     (cond
       (and (seq frequent-trips) (nil? fixed-time-trip))
-      (apply min-key :value frequent-trips)
+      (map->TripCost (apply min-key :value frequent-trips))
 
       (and (empty? frequent-trips) (some? fixed-time-trip))
-      fixed-time-trip
+      (map->TripCost fixed-time-trip)
 
       (and (seq frequent-trips) (seq fixed-time-trip))
-      (apply min-key :value (cons fixed-time-trip frequent-trips)))))
+      (map->TripCost (apply min-key :value (cons fixed-time-trip frequent-trips))))))
 
 ;; src - [:stop/id 3392140086]
 ;; dst - [:stop/id 582939269]

@@ -45,16 +45,6 @@
 
 (defn walk-cost? [o] (instance? WalkCost o))
 
-;; a TripStep represents the transition between two stops in a GTFS feed
-;; Both the source and destination :stop_time are kept to avoid future lookups
-(defrecord TripCost [^Long value]
-  np/Valuable
-  (cost [_] value)
-  Comparable
-  (compareTo [_ o] (Long/compare value (np/cost o))))
-
-(defn trip-cost? [o] (instance? TripCost o))
-
 ;; ............................................................................
 (defrecord TransitRouter [network graph trips]
   np/Dijkstra
@@ -65,7 +55,6 @@
           src            (get graph src-id)
           dst            (get graph dst-id)
           now            (np/cost value)]
-      #_(println "walk?:" (walk-cost? value) "trip?:" (trip-cost? value))
       (cond
         ;; The user is just walking so we route based on walking duration
         (graph/node? src) ;; [node (or node stop)]
@@ -80,20 +69,16 @@
                         :way/entity (data/entity network (:way/e arc))})
 
         ;; riding on public transport .............
-        ;; the user is already in a trip. Just find the trip going to dst [stop stop]
-        (trip-cost? value)
-        (let [result (fastq/continue-trip network value dst-id)]
-          (when (some? result)
-            (map->TripCost result)))
-
+        (walk-cost? value)
         ;; the user is trying to get on a vehicle - find the next trip
-        :else
         (let [route       (:route/e arc)
               route-trips (map :e (data/datoms network :avet :trip/route route))
-              local-trips (set/intersection (set route-trips) trips)
-              result      (fastq/find-trip network local-trips src-id dst-id now)]
-          (when (some? result) ;; nil if no trip was found
-            (map->TripCost result)))))))
+              local-trips (set/intersection (set route-trips) trips)]
+          (fastq/find-trip network local-trips src-id dst-id now))
+
+        ;; the user is already in a trip. Just find the trip going to dst [stop stop]
+        :else
+        (fastq/continue-trip network value dst-id)))))
 
 (defn name
   "returns a name that represents this entity in the network.

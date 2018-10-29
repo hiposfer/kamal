@@ -27,10 +27,11 @@
               60   "right"
               120  "sharp right"
               160  "uturn"
-              200  "sharp left"
-              240  "left"
-              300  "slight left"
-              340  "straight"))
+              -20  "sharp left"
+              -60  "left"
+              -120  "slight left"
+              180  "straight"
+              -180  "straight"))
 
 
 (def ->coordinates (juxt np/lon np/lat))
@@ -47,7 +48,6 @@
   "return the turn indication based on the angle"
   [angle _type]
   (when (= "turn" _type)
-    (println "angle:" angle)
     (val (last (subseq bearing-turns <= angle)))))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
@@ -130,7 +130,7 @@
                                        (location (key (first piece))))
         post-bearing (geometry/bearing (location (key (first piece)))
                                        (location (key (first next-piece))))
-        angle        (mod (+ 360 (- post-bearing pre-bearing)) 360)
+        angle        (geometry/angle pre-bearing post-bearing)
         _type        (maneuver-type prev-piece piece next-piece)
         _modifier    (modifier angle _type)
         human-text   (instruction _type _modifier piece next-piece)]
@@ -235,6 +235,16 @@
 #_(time (direction (first @(:networks (:router hiposfer.kamal.dev/system)))
                    {:coordinates [[8.645333, 50.087314]
                                   ;[8.680412, 50.116680] ;; innenstadt
-                                  ;[8.699619, 50.097842]] ;; sachsenhausen
-                                  [8.635897, 50.104172]] ;; galluswarte
+                                  [8.699619, 50.097842]] ;; sachsenhausen
+                                  ;[8.635897, 50.104172]] ;; galluswarte
                     :departure   (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")}))
+
+#_{:type "MultiLineString"
+   :coordinates (let [response (direction (first @(:networks (:router hiposfer.kamal.dev/system)))
+                                          {:coordinates [[8.645333, 50.087314]
+                                                         ;[8.680412, 50.116680] ;; innenstadt
+                                                         [8.699619, 50.097842]] ;; sachsenhausen
+                                                         ;[8.635897, 50.104172]] ;; galluswarte
+                                           :departure   (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")})]
+                  (for [step (:directions/steps response)]
+                    (:coordinates (:step/geometry step))))}

@@ -85,8 +85,16 @@
         y (* (Math/sin Δλ) (Math/cos φ2))
         x (- (* (Math/cos φ1) (Math/sin φ2))
              (* (Math/sin φ1) (Math/cos φ2) (Math/cos Δλ)))]
-    (rem (+ (Math/toDegrees (Math/atan2 y x)) 360)
-         360)));
+    (+ (Math/toDegrees (Math/atan2 y x)))))
+
+(defn angle
+  "find the angle (degrees) between two bearings (also in degrees)"
+  [bearing-1 bearing-2]
+  (let [result (rem (- bearing-2 bearing-1) 360)]
+    (cond
+      (< result -180) (+ result 360)
+      (> result 180)  (- result 360)
+      :else result)))
 
 (defn contains?
   "checks if point is contained in bbox"
