@@ -7,7 +7,7 @@
   (:import (java.time ZoneOffset ZonedDateTime Instant)))
 
 (s/def ::name    (s/and string? not-empty))
-(s/def ::bearing (s/and number? #(<= 0 % 360)))
+(s/def ::bearing (s/and number? #(<= -180 % 180)))
 
 (s/def :maneuver/instruction    (s/and string? not-empty))
 (s/def :maneuver/modifier       (set (vals dir/bearing-turns)))
@@ -27,16 +27,16 @@
 (s/def :step/name      ::name)
 (s/def :step/mode     #{"transit" "walking"})
 (s/def :step/distance #(not (neg? %)))
-(s/def :step/duration  (s/and nat-int? #(not (neg? %))))
-(s/def :step/departure (s/and nat-int? pos?))
+(s/def :step/arrive    (s/and nat-int? #(not (neg? %))))
+(s/def :step/wait      (s/and nat-int? #(not (neg? %))))
 (s/def :step/maneuver  ::maneuver)
 (s/def :step/trip      ::trip)
 (s/def :step/geometry  ::geojson/linestring)
 
 (s/def :transit/step (s/keys :req [:step/trip]))
-(s/def :base/step    (s/keys :req [:step/mode :step/distance :step/duration
-                                   :step/geometry (or :step/arrive :step/departure)]
-                             :opt [:step/name]))
+(s/def :base/step    (s/keys :req [:step/mode :step/distance :step/geometry
+                                   :step/arrive]
+                             :opt [:step/name :step/wait]))
 (s/def ::step        (s/or :transit (s/merge :base/step :transit/step)
                            :walk    (s/and :base/step #(not (contains? % :step/trip)))))
 
