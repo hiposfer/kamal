@@ -85,7 +85,7 @@
         y (* (Math/sin Δλ) (Math/cos φ2))
         x (- (* (Math/cos φ1) (Math/sin φ2))
              (* (Math/sin φ1) (Math/cos φ2) (Math/cos Δλ)))]
-    (+ (Math/toDegrees (Math/atan2 y x)))))
+    (Math/toDegrees (Math/atan2 y x))))
 
 (defn angle
   "find the angle (degrees) between two bearings (also in degrees)"
