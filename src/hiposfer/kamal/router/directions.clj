@@ -183,7 +183,7 @@
   (if (= (count trail) 1) ;; a single trace is returned for src = dst
     {:directions/distance 0 :directions/duration 0 :directions/steps []}
     (let [previous    (volatile! (first trail))
-          pieces      (partition-by #(transit/name (transit/context % previous))
+          pieces      (partition-by #(transit/namespace (transit/context % previous))
                                      trail)
           departs     (np/cost (val (first trail)))
           arrives     (np/cost (val (last trail)))]
@@ -238,13 +238,3 @@
                                   ;[8.699619, 50.097842]] ;; sachsenhausen
                                   [8.635897, 50.104172]] ;; galluswarte
                     :departure   (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")}))
-
-#_{:type "MultiLineString"
-   :coordinates (let [response (direction (first @(:networks (:router hiposfer.kamal.dev/system)))
-                                          {:coordinates [[8.645333, 50.087314]
-                                                         ;[8.680412, 50.116680] ;; innenstadt
-                                                         [8.699619, 50.097842]] ;; sachsenhausen
-                                                         ;[8.635897, 50.104172]] ;; galluswarte
-                                           :departure   (ZonedDateTime/parse "2018-05-07T10:15:30+02:00")})]
-                  (for [step (:directions/steps response)]
-                    (:coordinates (:step/geometry step))))}

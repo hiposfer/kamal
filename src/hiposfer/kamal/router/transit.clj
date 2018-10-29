@@ -1,7 +1,7 @@
 (ns hiposfer.kamal.router.transit
   "collection of functions related to the use of GTFS feed on routing
   networks."
-  (:refer-clojure :exclude [name])
+  (:refer-clojure :exclude [name namespace])
   (:require [hiposfer.kamal.router.algorithms.protocols :as np]
             [hiposfer.kamal.router.util.fastq :as fastq]
             [hiposfer.kamal.router.util.geometry :as geometry]
@@ -87,6 +87,17 @@
   (cond
     (way? e) (:way/name e)
     (stop? e) (:stop/name e)))
+
+;; WARNING: this function exists solely for the purpose of removing the ambiguity
+;; that arises from Ways and Stops having the same name, which makes the `name`
+;; function above not correct for partition-by
+(defn namespace
+  "same as name but returns a vector [k v] where k is the keyword used to
+   fetch v. returns nil if the entity has no name"
+  [e]
+  (cond
+    (way? e) [:way/name (:way/name e)]
+    (stop? e) [:stop/name (:stop/name e)]))
 
 (defn context
   "Returns an entity holding the 'context' of the trace. For pedestrian routing
