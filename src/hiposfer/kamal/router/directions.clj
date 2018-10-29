@@ -44,11 +44,10 @@
    :coordinates (for [e entities] (->coordinates (location e)))})
 
 (defn- modifier
+  "return the turn indication based on the angle"
   [angle _type]
-  (case _type
-    ("depart" "arrive") nil
-    ;; return the turn indication based on the angle
-    "turn") (val (last (subseq bearing-turns <= angle))))
+  (when (= "turn" _type)
+    (val (last (subseq bearing-turns <= angle)))))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
 (defn- instruction
@@ -101,10 +100,10 @@
         context      (transit/context piece)
         next-context (transit/context next-piece)]
     (cond
-      (= prev-piece piece)
+      (= prev-piece [(first piece)])
       "depart"
 
-      (= piece next-piece)
+      (= piece [(last next-piece)])
       "arrive"
 
       ;; change conditions, e.g. change of mode from walking to transit
@@ -168,7 +167,7 @@
 (defn- route-steps
   "returns a route-steps vector or an empty vector if no steps are needed"
   [pieces zone-midnight] ;; piece => [[trace via] ...]
-  (let [start     [(first pieces)] ;; add depart and arrival pieces into the calculation
+  (let [start     [[(first (first pieces))]] ;; add depart and arrival pieces into the calculation
         end       [[(last (last pieces))]] ;; use only the last point as end - not the entire piece
         extended  (concat start pieces end)]
     (map step (repeat zone-midnight)
