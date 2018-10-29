@@ -117,12 +117,9 @@
                                     (:stop_time/departure_time start)))
               cycle           (frequency-cycle frequency init now)]]
     (merge cycle
-           {:stop_time/wait (- (+ (:frequency/start_time frequency)
-                                  (* (:frequency/headway_secs frequency)
-                                     (:frequency/cycle cycle))
-                                  (- (:stop_time/departure_time from)
-                                     (:stop_time/departure_time start)))
-                               now)
+           {:stop_time/wait (- (:value cycle) now
+                               (- (:stop_time/departure_time from)
+                                  (:stop_time/arrival_time to)))
             :stop_time/to   to})))
 
 (defn- stop-times-match
