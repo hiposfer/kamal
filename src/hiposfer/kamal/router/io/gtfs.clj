@@ -254,12 +254,15 @@
         field-id (first (filter :unique (:fields feed)))
         id       (reference/get-mapping filename (:field-name field-id))]
     (cond
+      ;; the feed contains a unique ID, use it to fetch all entities
       (some? id)
       (for [d (data/datoms network :avet (:keyword id))]
         (data/entity network (:e d)))
 
+      ;; if there is a feed hidrator for the feed use it to fetch entities
       (some? (feed-hidrator (:filename feed)))
       (apply (feed-hidrator (:filename feed)) [network]))))
+      ;; nothing found - ignore feed)))
 
 (defn- dump
   "returns a lazy sequence of [filename content] for each feed of the gtfs
