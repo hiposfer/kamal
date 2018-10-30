@@ -274,6 +274,7 @@
          (for [path paths]
            (if (= 1 (count path))
              (encode (first path) (or (get-in entity path) ""))
+             ;; references MUST NOT be encoded
              (get-in entity path)))))]))
 
 (defn dump!
