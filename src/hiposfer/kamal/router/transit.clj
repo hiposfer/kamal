@@ -1,7 +1,7 @@
 (ns hiposfer.kamal.router.transit
   "collection of functions related to the use of GTFS feed on routing
   networks."
-  (:refer-clojure :exclude [name])
+  (:refer-clojure :exclude [name namespace])
   (:require [hiposfer.kamal.router.algorithms.protocols :as np]
             [hiposfer.kamal.router.util.fastq :as fastq]
             [hiposfer.kamal.router.util.geometry :as geometry]
@@ -45,16 +45,6 @@
 
 (defn walk-cost? [o] (instance? WalkCost o))
 
-;; a TripStep represents the transition between two stops in a GTFS feed
-;; Both the source and destination :stop_time are kept to avoid future lookups
-(defrecord TripCost [^Long value]
-  np/Valuable
-  (cost [_] value)
-  Comparable
-  (compareTo [_ o] (Long/compare value (np/cost o))))
-
-(defn trip-cost? [o] (instance? TripCost o))
-
 ;; ............................................................................
 (defrecord TransitRouter [network graph trips]
   np/Dijkstra
@@ -65,7 +55,6 @@
           src            (get graph src-id)
           dst            (get graph dst-id)
           now            (np/cost value)]
-      #_(println "walk?:" (walk-cost? value) "trip?:" (trip-cost? value))
       (cond
         ;; The user is just walking so we route based on walking duration
         (graph/node? src) ;; [node (or node stop)]
@@ -80,21 +69,16 @@
                         :way/entity (data/entity network (:way/e arc))})
 
         ;; riding on public transport .............
-        ;; the user is already in a trip. Just find the trip going to dst [stop stop]
-        (trip-cost? value)
-        (let [trip   (:stop_time/trip (:stop_time/from value))
-              result (fastq/continue-trip network value dst-id)]
-          (when (some? result)
-            (map->TripCost result)))
-
+        (walk-cost? value)
         ;; the user is trying to get on a vehicle - find the next trip
-        :else
         (let [route       (:route/e arc)
               route-trips (map :e (data/datoms network :avet :trip/route route))
-              local-trips (set/intersection (set route-trips) trips)
-              result      (fastq/find-trip network local-trips src-id dst-id now)]
-          (when (some? result) ;; nil if no trip was found
-            (map->TripCost result)))))))
+              local-trips (set/intersection (set route-trips) trips)]
+          (fastq/find-trip network local-trips src-id dst-id now))
+
+        ;; the user is already in a trip. Just find the trip going to dst [stop stop]
+        :else
+        (fastq/continue-trip network value dst-id)))))
 
 (defn name
   "returns a name that represents this entity in the network.
@@ -104,14 +88,24 @@
     (way? e) (:way/name e)
     (stop? e) (:stop/name e)))
 
+;; WARNING: this function exists solely for the purpose of removing the ambiguity
+;; that arises from Ways and Stops having the same name, which makes the `name`
+;; function above not correct for partition-by
+(defn namespace
+  "same as name but returns a vector [k v] where k is the keyword used to
+   fetch v. returns nil if the entity has no name"
+  [e]
+  (cond
+    (way? e) [:way/name (:way/name e)]
+    (stop? e) [:stop/name (:stop/name e)]))
+
 (defn context
   "Returns an entity holding the 'context' of the trace. For pedestrian routing
   that is the way. For transit routing it is the stop"
   ([piece] ;; a piece already represents a context ;)
-   (let [step (val (first piece))]
-     (if (walk-cost? step) ;; trip-step otherwise
-       (:way/entity step)
-       (key (first piece)))))
+   (if (node? (key (first piece))) ;; trip-step otherwise
+     (:way/entity (val (first piece)))
+     (key (first piece)))) ;; stop
   ([trace vprev]
    (let [previous @vprev]
      (vreset! vprev trace)
@@ -120,9 +114,9 @@
        (and (node? (key previous)) (node? (key trace)))
        (:way/entity (val trace))
 
-       ;; getting into a trip -> return the way of the road
+       ;; getting into a trip -> return the stop
        (and (node? (key previous)) (stop? (key trace)))
-       (:way/entity (val trace))
+       (key trace)
 
        ;; on a trip -> return the stop
        (and (stop? (key previous)) (stop? (key trace)))

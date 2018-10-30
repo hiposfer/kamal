@@ -100,6 +100,9 @@
         (data/db-with db (fastq/cache-stop-successors db))))
 
 (defn create
+  "create a graph representation using an Int Map
+  - The network OSM nodes and stops are mapped using Datascript's entity ID
+  - The edges/arcs are computed based on OSM ways and GTFS trips"
   [network]
   (let [db       (postprocess network)
         edges    (for [datom (data/datoms db :aevt :edge/src)]
