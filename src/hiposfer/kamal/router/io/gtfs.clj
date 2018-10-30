@@ -232,7 +232,6 @@
            frequency (sort-by :frequency/start_time entries)]
        frequency))})
    ;calendar_dates.txt
-   ;frequencies.txt
    ;fare_rules.txt
    ;transfers.txt
    ;feed_info.txt
