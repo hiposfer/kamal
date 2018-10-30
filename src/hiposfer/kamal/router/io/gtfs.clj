@@ -219,11 +219,18 @@
   not have a unique field to fetch from"
   {"stop_times.txt"
    (fn [network]
-     (for [trip (data/datoms network :aevt :trip/id)
+     (for [trip      (data/datoms network :aevt :trip/id)
            :let [std     (data/datoms network :avet :stop_time/trip (:e trip))
                  entries (map #(data/entity network (:e %)) std)]
            stop_time (sort-by :stop_time/stop_sequence entries)]
-       stop_time))})
+       stop_time))
+   "frequencies.txt"
+   (fn [network]
+     (for [trip      (data/datoms network :aevt :trip/id)
+           :let [fd      (data/datoms network :avet :frequency/trip (:e trip))
+                 entries (map #(data/entity network (:e %)) fd)]
+           frequency (sort-by :frequency/start_time entries)]
+       frequency))})
    ;calendar_dates.txt
    ;frequencies.txt
    ;fare_rules.txt
