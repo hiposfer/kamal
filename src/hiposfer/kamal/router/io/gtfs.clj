@@ -60,6 +60,15 @@
 (def date-format (DateTimeFormatter/ofPattern "uuuuMMdd"))
 (defn- local-date [text] (LocalDate/parse text date-format))
 
+(defn- number
+  "this is to avoid using edn/read-string which fails when encountering
+  a number like 008"
+  [text]
+  (try
+    (Long/parseLong text)
+    (catch Exception e
+      (Double/parseDouble text))))
+
 (defn- timezone
   [text]
   (try
@@ -70,7 +79,7 @@
   [text]
   (cond ;; date before number due to the overlapping regex :(
     (re-matches re-date text)     (local-date text)
-    (re-matches re-number text)   (edn/read-string text)
+    (re-matches re-number text)   (number text)
     (re-matches re-duration text) (duration text)
     (re-matches re-timezone text) (timezone text)
     :else text)) ;; simple string
