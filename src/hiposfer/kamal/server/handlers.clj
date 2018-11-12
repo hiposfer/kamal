@@ -12,8 +12,10 @@
             [hiposfer.kamal.router.util.geometry :as geometry]
             [hiposfer.kamal.router.util.fastq :as fastq]
             [hiposfer.kamal.router.util.misc :as misc]
-            [hiposfer.kamal.router.io.gtfs :as gtfs])
-  (:import (java.time ZonedDateTime)))
+            [hiposfer.kamal.router.io.gtfs :as gtfs]
+            [clojure.java.io :as io])
+  (:import (java.time ZonedDateTime)
+           (java.util Properties)))
 
 (def max-distance 1000) ;; meters
 
@@ -119,11 +121,20 @@
         (assoc-in [:headers "Content-Disposition"]
                   "attachment; filename=\"gtfs.zip\""))))
 
+(defn- read-pom
+  "reads the pom properties file of Ahead of Time compiled code and returns the
+  version of the project"
+  [group-id artifact]
+  (let [pom        (str "META-INF/maven/" group-id "/" artifact "/pom.properties")
+        properties (doto (new Properties)
+                     (.load (io/reader (io/resource pom))))]
+    (into {} properties)))
+
 ;; ring handlers are matched in order
 (def server "all API handlers"
   (api/routes
     (api/GET "/" request
-      (code/ok {:version (System/getProperty "kamal.version")}))
+      (code/ok {:version (get (read-pom "hiposfer" "kamal") "version")}))
     (api/GET "/area" request (get-area request))
     (api/GET "/area/:area/directions" request
       (-> (update request :params misc/coerce directions-coercer)
