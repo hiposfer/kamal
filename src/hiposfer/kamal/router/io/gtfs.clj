@@ -60,6 +60,15 @@
 (def date-format (DateTimeFormatter/ofPattern "uuuuMMdd"))
 (defn- local-date [text] (LocalDate/parse text date-format))
 
+(defn- number
+  "this is to avoid using edn/read-string which fails when encountering
+  a number like 008"
+  [text]
+  (try
+    (Long/parseLong text)
+    (catch Exception e
+      (Double/parseDouble text))))
+
 (defn- timezone
   [text]
   (try
@@ -70,7 +79,7 @@
   [text]
   (cond ;; date before number due to the overlapping regex :(
     (re-matches re-date text)     (local-date text)
-    (re-matches re-number text)   (edn/read-string text)
+    (re-matches re-number text)   (number text)
     (re-matches re-duration text) (duration text)
     (re-matches re-timezone text) (timezone text)
     :else text)) ;; simple string
@@ -219,13 +228,20 @@
   not have a unique field to fetch from"
   {"stop_times.txt"
    (fn [network]
-     (for [trip (data/datoms network :aevt :trip/id)
+     (for [trip      (data/datoms network :aevt :trip/id)
            :let [std     (data/datoms network :avet :stop_time/trip (:e trip))
                  entries (map #(data/entity network (:e %)) std)]
            stop_time (sort-by :stop_time/stop_sequence entries)]
-       stop_time))})
+       stop_time))
+   "frequencies.txt"
+   (fn [network]
+     (for [trip      (data/datoms network :aevt :trip/id)
+           :let [fd      (data/datoms network :avet :frequency/trip (:e trip))
+                 entries (map #(data/entity network (:e %)) fd)]
+           frequency (sort-by :frequency/start_time entries)]
+       frequency))})
+   ;TODO
    ;calendar_dates.txt
-   ;frequencies.txt
    ;fare_rules.txt
    ;transfers.txt
    ;feed_info.txt
@@ -247,12 +263,15 @@
         field-id (first (filter :unique (:fields feed)))
         id       (reference/get-mapping filename (:field-name field-id))]
     (cond
+      ;; the feed contains a unique ID, use it to fetch all entities
       (some? id)
       (for [d (data/datoms network :avet (:keyword id))]
         (data/entity network (:e d)))
 
+      ;; if there is a feed hidrator for the feed use it to fetch entities
       (some? (feed-hidrator (:filename feed)))
       (apply (feed-hidrator (:filename feed)) [network]))))
+      ;; nothing found - ignore feed)))
 
 (defn- dump
   "returns a lazy sequence of [filename content] for each feed of the gtfs
@@ -267,6 +286,7 @@
          (for [path paths]
            (if (= 1 (count path))
              (encode (first path) (or (get-in entity path) ""))
+             ;; references MUST NOT be encoded
              (get-in entity path)))))]))
 
 (defn dump!
