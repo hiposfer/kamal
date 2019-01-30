@@ -13,7 +13,6 @@
 (s/def ::name    (s/and string? not-empty))
 (s/def ::bearing (s/and number? #(<= -180 % 180)))
 
-(s/def :maneuver/instruction    (s/and string? not-empty))
 (s/def :maneuver/modifier       (set (vals dir/bearing-turns)))
 (s/def :maneuver/type           #{"turn" "depart" "arrive" "exit vehicle"
                                   "notification" "continue"})
@@ -22,7 +21,6 @@
 
 (s/def ::maneuver  (s/keys :req [:maneuver/bearing_before
                                  :maneuver/bearing_after
-                                 :maneuver/instruction
                                  :maneuver/type]
                            :opt [:maneuver/modifier]))
 
