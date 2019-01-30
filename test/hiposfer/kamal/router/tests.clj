@@ -225,14 +225,3 @@
           (str (expound/expound-str ::dataspecs/directions result))))))
 
 ;(clojure.test/run-tests)
-#_(def foo
-    (prop/for-all [size (gen/large-integer* {:min 10 :max 20})]
-      (let [graph    (sim-area/osm-gen size)
-            request  (gen/generate (s/gen ::dataspecs/params))
-            conn     (data/conn-from-db graph)
-            _        (alter-meta! conn assoc :area/graph (graph/create graph))
-            result   (dir/direction conn request)]
-        (is (s/valid? ::dataspecs/directions result)
-            (str (expound/expound-str ::dataspecs/directions result))))))
-
-#_(tc/quick-check 100 foo)

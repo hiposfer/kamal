@@ -104,7 +104,7 @@
       (= prev-piece [(first piece)])
       "depart"
 
-      (= piece [(last next-piece)])
+      (= [(last piece)] next-piece)
       "arrive"
 
       ;; change conditions, e.g. change of mode from walking to transit
@@ -167,9 +167,11 @@
 (defn- route-steps
   "returns a route-steps vector or an empty vector if no steps are needed"
   [pieces zone-midnight] ;; piece => [[trace via] ...]
-  (let [start     [[(first (first pieces))]] ;; add depart and arrival pieces into the calculation
-        end       [[(last (last pieces))]] ;; use only the last point as end - not the entire piece
-        extended  (concat start pieces end)]
+  (let [start     [[(first (first pieces))]]
+        ;; use only the last point as end - not the entire piece
+        end       [[(last (last pieces))]]
+        ;; add depart and arrival pieces into the calculation
+        extended  (vec (concat start pieces end))]
     (map step (repeat zone-midnight)
               extended
               (rest extended)
