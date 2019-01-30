@@ -1,6 +1,7 @@
 (ns hiposfer.kamal.router.tests
   (:require [clojure.spec.alpha :as s]
             [clojure.test :refer [is deftest]]
+            [clojure.test.check :as tc]
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
@@ -224,3 +225,14 @@
           (str (expound/expound-str ::dataspecs/directions result))))))
 
 ;(clojure.test/run-tests)
+#_(def foo
+    (prop/for-all [size (gen/large-integer* {:min 10 :max 20})]
+      (let [graph    (sim-area/osm-gen size)
+            request  (gen/generate (s/gen ::dataspecs/params))
+            conn     (data/conn-from-db graph)
+            _        (alter-meta! conn assoc :area/graph (graph/create graph))
+            result   (dir/direction conn request)]
+        (is (s/valid? ::dataspecs/directions result)
+            (str (expound/expound-str ::dataspecs/directions result))))))
+
+#_(tc/quick-check 100 foo)

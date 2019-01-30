@@ -38,7 +38,8 @@
                   [id {:db.unique :db.unique/identity}]))
               ;; references
               (into {}
-                (for [f gtfs.edn/fields :when (gtfs/ref? f)]
+                (for [f (gtfs.edn/fields (gtfs.edn/spec))
+                      :when (gtfs/ref? f)]
                   [(f :keyword) {:db/type :db.type/ref}]))))
 
 (defn network

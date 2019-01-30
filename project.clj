@@ -23,9 +23,9 @@
                  ;; http content negotiation - accept header
                  [ring-middleware-accept "2.0.3"]
                  [hiposfer/geojson.specs "0.2.0"]
-                 [hiposfer/gtfs.edn "0.1.1"]
+                 [hiposfer/gtfs.edn "0.2.0"]
                  ;; system builder and resource management
-                 [com.stuartsierra/component "0.3.2"]
+                 [com.stuartsierra/component "0.4.0"]
                  ;; for performance in dijkstra routing
                  [org.teneighty/java-heaps "1.0.0"]
                  ;; for gtfs parsing
@@ -37,11 +37,11 @@
                  [ch.hsr/geohash "1.3.0"]
                  ;; needed for heroku - JVM platform metrics
                  ;; otherwise we get - Exception in thread "heroku-java-metrics-agent" java.lang.NoSuchMethodError: com.fasterxml.jackson.databind.JavaType.isReferenceType()Z
-                 [com.fasterxml.jackson.core/jackson-databind "2.6.4"]]
+                 [com.fasterxml.jackson.core/jackson-databind "2.9.8"]]
   ;; preprocessor - env vars are not passed along, so better run manually
   ;; ["trampoline" "run" "-m" "hiposfer.kamal.preprocessor"]}
   :profiles {:dev     {:dependencies [[criterium "0.4.4"]   ;; benchmark
-                                      [expound "0.7.1"]
+                                      [expound "0.7.2"]
                                       [org.clojure/test.check "0.9.0"] ;; generators
                                       [org.clojure/tools.namespace "0.2.11"]]
                        :plugins      [[jonase/eastwood "0.2.9"]]

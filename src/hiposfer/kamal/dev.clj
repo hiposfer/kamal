@@ -44,7 +44,8 @@
 
 (defn custom-printer
   [explain-data]
-  (let [printer (expound/custom-printer {:show-valid-values? true
+  (let [printer (expound/custom-printer {:show-valid-values? false
+                                         :theme :figwheel-theme
                                          :print-specs? false})]
     (printer explain-data)))
 
