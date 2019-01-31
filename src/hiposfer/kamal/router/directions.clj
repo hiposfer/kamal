@@ -51,50 +51,6 @@
     (val (last (subseq bearing-turns <= angle)))))
 
 ;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
-(defn- instruction
-  "returns a human readable version of the maneuver to perform"
-  [_type _modifier piece next-piece]
-  (let [context (transit/context piece)
-        _name   (transit/name context)
-        next-context (transit/context next-piece)
-        next-name (transit/name next-context)]
-    (case _type
-      ;; walking normally
-      "turn" ;; only applies for walking
-      (str "Take " _modifier (when _name (str " on " _name)))
-
-      ;; taking a trip on a public transport vehicle
-      "continue" ;; only applies to transit
-      (let [stoptime (:stop_time/to (val (first piece)))
-            route    (:trip/route (:stop_time/trip stoptime))
-            vehicle  (transit/route-types (:route/type route))
-            id       (str vehicle " " (or (:route/short_name route)
-                                          (:route/long_name route)))]
-        (str "Continue on " id))
-
-      "notification"
-      (let [stoptime (:stop_time/to (val (first next-piece)))
-            trip     (:stop_time/trip stoptime)
-            route    (:trip/route trip)
-            vehicle  (transit/route-types (:route/type route))
-            id       (str vehicle " " (or (:route/short_name route)
-                                          (:route/long_name route)))]
-        (str "Hop on " id " to " (:trip/headsign trip)))
-
-      ;; exiting a vehicle
-      "exit vehicle"
-      (str "Exit the vehicle")
-
-      ;; This is the first instruction that the user gets
-      "depart"
-      (if (empty? next-name) "depart"
-        (str "Head on to " next-name))
-
-      ;; This is the last instruction that the user gets
-      "arrive"
-      "You have arrived at your destination")))
-
-;; https://www.mapbox.com/api-documentation/#stepmaneuver-object
 (defn- maneuver-type
   [prev-piece piece next-piece]
   (let [last-context (transit/context prev-piece)
@@ -104,7 +60,7 @@
       (= prev-piece [(first piece)])
       "depart"
 
-      (= piece [(last next-piece)])
+      (= [(last piece)] next-piece)
       "arrive"
 
       ;; change conditions, e.g. change of mode from walking to transit
@@ -132,12 +88,10 @@
                                        (location (key (first next-piece))))
         angle        (geometry/angle pre-bearing post-bearing)
         _type        (maneuver-type prev-piece piece next-piece)
-        _modifier    (modifier angle _type)
-        human-text   (instruction _type _modifier piece next-piece)]
+        _modifier    (modifier angle _type)]
     (merge {:maneuver/bearing_before pre-bearing
             :maneuver/bearing_after  post-bearing
-            :maneuver/type _type
-            :maneuver/instruction human-text}
+            :maneuver/type _type}
            (when (= _type "turn")
              {:maneuver/modifier _modifier}))))
 
@@ -167,9 +121,11 @@
 (defn- route-steps
   "returns a route-steps vector or an empty vector if no steps are needed"
   [pieces zone-midnight] ;; piece => [[trace via] ...]
-  (let [start     [[(first (first pieces))]] ;; add depart and arrival pieces into the calculation
-        end       [[(last (last pieces))]] ;; use only the last point as end - not the entire piece
-        extended  (concat start pieces end)]
+  (let [start     [[(first (first pieces))]]
+        ;; use only the last point as end - not the entire piece
+        end       [[(last (last pieces))]]
+        ;; add depart and arrival pieces into the calculation
+        extended  (vec (concat start pieces end))]
     (map step (repeat zone-midnight)
               extended
               (rest extended)

@@ -1,6 +1,7 @@
 (ns hiposfer.kamal.router.tests
   (:require [clojure.spec.alpha :as s]
             [clojure.test :refer [is deftest]]
+            [clojure.test.check :as tc]
             [clojure.test.check.generators :as gen]
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]

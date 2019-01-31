@@ -6,10 +6,13 @@
             [hiposfer.kamal.router.directions :as dir])
   (:import (java.time ZoneOffset ZonedDateTime Instant)))
 
+(def trip-keys (set (for [field (gtfs/fields (gtfs/spec))
+                          :when (= "trips.txt" (:filename field))]
+                      (:keyword field))))
+
 (s/def ::name    (s/and string? not-empty))
 (s/def ::bearing (s/and number? #(<= -180 % 180)))
 
-(s/def :maneuver/instruction    (s/and string? not-empty))
 (s/def :maneuver/modifier       (set (vals dir/bearing-turns)))
 (s/def :maneuver/type           #{"turn" "depart" "arrive" "exit vehicle"
                                   "notification" "continue"})
@@ -18,10 +21,9 @@
 
 (s/def ::maneuver  (s/keys :req [:maneuver/bearing_before
                                  :maneuver/bearing_after
-                                 :maneuver/instruction]
+                                 :maneuver/type]
                            :opt [:maneuver/modifier]))
 
-(def trip-keys (set (map :keyword (filter #(= "trips.txt" (:filename %)) gtfs/fields))))
 (s/def ::trip (s/map-of trip-keys some? :min-count 1 :conform-keys true))
 
 (s/def :step/name      ::name)
@@ -37,14 +39,28 @@
 (s/def :base/step    (s/keys :req [:step/mode :step/distance :step/geometry
                                    :step/arrive]
                              :opt [:step/name :step/wait]))
+
 (s/def ::step        (s/or :transit (s/merge :base/step :transit/step)
                            :walk    (s/and :base/step #(not (contains? % :step/trip)))))
+
+(s/def :first/step   (s/and ::step
+                       (fn [conformed-step]
+                         (let [step (second conformed-step)]
+                           (= "depart" (:maneuver/type (:step/maneuver step)))))))
+(s/def :last/step    (s/and ::step
+                       (fn [conformed-step]
+                         (let [step (second conformed-step)]
+                           (= "arrive" (:maneuver/type (:step/maneuver step)))))))
 
 (s/def :waypoint/name     (s/nilable ::name))
 (s/def :waypoint/location :hiposfer.geojson.specs.point/coordinates)
 (s/def ::waypoint         (s/keys :req [:waypoint/name :waypoint/location]))
 
-(s/def :directions/steps      (s/coll-of ::step :kind sequential?))
+(s/def :directions/steps      (s/or :empty empty?
+                                    :steps (s/cat :depart :first/step
+                                                  :more (s/* ::step)
+                                                  :arrive :last/step)))
+
 (s/def :directions/distance  #(not (neg? %)))
 (s/def :directions/waypoints  (s/coll-of ::waypoint :kind sequential? :min-count 2))
 (s/def :route/uuid            uuid?)

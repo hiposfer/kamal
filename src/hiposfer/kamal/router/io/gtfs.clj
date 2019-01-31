@@ -18,9 +18,9 @@
   (:require [hiposfer.gtfs.edn :as reference]
             [clojure.java.io :as io]
             [clojure.data.csv :as csv]
-            [clojure.edn :as edn]
             [datascript.impl.entity :as dimp]
-            [datascript.core :as data])
+            [datascript.core :as data]
+            [hiposfer.gtfs.edn :as gtfs])
   (:import (java.util.zip ZipInputStream ZipEntry ZipOutputStream)
            (java.time Duration LocalDate ZoneId)
            (java.time.format DateTimeFormatter)
@@ -98,11 +98,13 @@
   {"routes.txt"   #(dissoc % :route/url)
    "trips.txt"    #(dissoc % :trip/shape)})
 
+(def gtfs-spec (gtfs/spec))
+
 (defn ref?
   "a reference is a field that links to a unique field in another file
   and that is not that field itself"
   [field]
-  (and (contains? (set (map :field-name reference/identifiers))
+  (and (contains? (set (map :field-name (reference/identifiers gtfs-spec)))
                   (:field-name field))
        (not (:unique field))))
 
@@ -113,7 +115,7 @@
   [^ZipInputStream zipstream filename]
   (let [file    (io/reader zipstream)
         content (csv/read-csv file)
-        head    (map #(reference/get-mapping filename %) (first content))
+        head    (map #(reference/get-mapping gtfs-spec filename %) (first content))
         fields  (into {} (map (juxt :keyword identity) head))]
     (for [row (rest content)]
       (into {}
@@ -173,8 +175,8 @@
 
 
 ;; just for convenience
-(def uniques (into #{} (comp (filter :unique) (map :keyword)) reference/fields))
-(def keywords (into #{} (map :keyword reference/fields)))
+(def uniques (into #{} (comp (filter :unique) (map :keyword)) (reference/fields gtfs-spec)))
+(def keywords (into #{} (map :keyword (reference/fields gtfs-spec))))
 
 (defn resource
   "takes a datascript entity and checks if any of its values are entities, if so
@@ -221,7 +223,7 @@
   (reduce (fn [_ entry] (when (= (:field-name field) (:field-name entry))
                           (reduced (:keyword entry))))
           nil
-          (filter :unique reference/fields)))
+          (filter :unique (reference/fields gtfs-spec))))
 
 (def feed-hidrator
   "A map of filename -> fn -> [entity ...]. Useful to fetch entities that do
@@ -261,7 +263,7 @@
   [network feed]
   (let [filename (:filename feed)
         field-id (first (filter :unique (:fields feed)))
-        id       (reference/get-mapping filename (:field-name field-id))]
+        id       (reference/get-mapping gtfs-spec filename (:field-name field-id))]
     (cond
       ;; the feed contains a unique ID, use it to fetch all entities
       (some? id)
@@ -277,7 +279,7 @@
   "returns a lazy sequence of [filename content] for each feed of the gtfs
    spec present in network"
   [network]
-  (for [feed (:feeds reference/gtfs-spec)
+  (for [feed (:feeds gtfs-spec)
         :let [paths (key-paths feed)]
         :when (not-empty (feed-entities network feed))]
     [(:filename feed)
