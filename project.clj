@@ -37,7 +37,9 @@
                  [ch.hsr/geohash "1.3.0"]
                  ;; needed for heroku - JVM platform metrics
                  ;; otherwise we get - Exception in thread "heroku-java-metrics-agent" java.lang.NoSuchMethodError: com.fasterxml.jackson.databind.JavaType.isReferenceType()Z
-                 [com.fasterxml.jackson.core/jackson-databind "2.9.8"]]
+                 [com.fasterxml.jackson.core/jackson-databind "2.9.8"]
+                 [org.xerial/sqlite-jdbc "3.20.0"]
+                 [org.clojure/java.jdbc "0.7.0"]]
   ;; preprocessor - env vars are not passed along, so better run manually
   ;; ["trampoline" "run" "-m" "hiposfer.kamal.preprocessor"]}
   :profiles {:dev     {:dependencies [[criterium "0.4.4"]   ;; benchmark

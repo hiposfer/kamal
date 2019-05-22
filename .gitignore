@@ -30,3 +30,4 @@ cmake-build-debug/
 resources/test
 /wget-log
 !/resources/test/README.md
+/resources/graph.db
