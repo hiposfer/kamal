@@ -1,6 +1,5 @@
 (ns hiposfer.kamal.router.io.osm
-  (:require [clojure.data.xml :as xml]
-            [hiposfer.kamal.router.algorithms.core :as record]))
+  (:require [clojure.data.xml :as xml]))
 
 ;;TODO: include routing attributes for penalties
 ;; bridge=yes      Also true/1/viaduct
@@ -19,12 +18,12 @@
 ;; <node id="298884269" lat="54.0901746" lon="12.2482632" user="SvenHRO"
 ;;      uid="46882" visible="true" version="1" changeset="676636"
 ;;      timestamp="2008-09-21T21:37:45Z"/>)
-(defn- point-entry
+(defn- node
   "takes an OSM node and returns a [id Node-instance]"
   [element]
   {:node/id  (Long/parseLong (:id  (:attrs element)))
-   :node/location (record/->Location (Double/parseDouble (:lon (:attrs element)))
-                                     (Double/parseDouble (:lat (:attrs element))))})
+   :node/lon (Double/parseDouble (:lon (:attrs element)))
+   :node/lat (Double/parseDouble (:lat (:attrs element)))})
 
 ; <way id="26659127" user="Masch" uid="55988" visible="true" version="5" changeset="4142606"
       ;timestamp="2010-03-16T11:47:08Z">
@@ -35,94 +34,30 @@
 ;   <tag k="highway" v="unclassified"/>
 ;   <tag k="name" v="Pastower Straße"/>
 ;  </way>
-(defn- ways-entry
+(defn- way
   "parse a OSM xml-way into a [way-id {attrs}] representing the same way"
   [element] ;; returns '(arc1 arc2 ...)
-  (let [attrs (eduction (filter #(= :tag (:tag %)))
-                        (filter #(contains? way-attrs (:k (:attrs %))))
-                        (map    #(vector (keyword "way" (:k (:attrs %)))
-                                         (:v (:attrs %))))
-                        (:content element))
-        nodes (eduction (filter #(= :nd (:tag %)))
-                        (map (comp :ref :attrs))
-                        (map #(Long/parseLong %))
-                        (:content element))]
-    (into {:way/id (Long/parseLong (:id (:attrs element)))
-           :way/nodes nodes}
-          attrs)))
-
-(defn- join-ways
-  "merges ways that are linked to each other by their head or their tail.
-
-  This is an optimization HACK.
-
-  We artificially merge ways because OSM might decide to break a road into
-  reusable pieces (ways) which makes the graph representation very redundant.
-  This way we reduce both the amount of way entries in Datascript and the
-  amount of nodes"
-  ([group] (join-ways (rest group) (first group) nil))
-  ([ways current result]
-   (let [fncurrent (first (:way/nodes current))
-         lncurrent (last (:way/nodes current))
-         [point match] (some (fn [way]
-                               (cond
-                                 (= fncurrent (last  (:way/nodes way)))
-                                 [:start way]
-
-                                 (= lncurrent (first (:way/nodes way)))
-                                 [:end way]))
-                             ways)]
-     (cond
-       (empty? ways)
-       (conj result current)
-
-       (some? point)
-       (recur (remove #(= % match) ways)
-              (if (= :start point)
-                (update match :way/nodes concat (rest (:way/nodes current)))
-                (update current :way/nodes concat (rest (:way/nodes match))))
-              result)
-
-       :else (recur (rest ways) (first ways) (conj result current))))))
-
-(defn- trim-ways
-  "returns the ways sequence including only the first/last and intersection
-   nodes i.e. the connected nodes in a graph structure.
-
-  Uses the :way/nodes of each way and counts which nodes appear more than once"
-  [ways]
-  (let [groups      (group-by :way/name ways)
-        point-count (frequencies (mapcat :way/nodes ways))]
-    (for [[way-name group] groups
-          :let [group-ways (if (empty? way-name) group
-                             (join-ways group))]
-          way group-ways]
-      (assoc way :way/nodes
-        (filter #(or (= % (first (:way/nodes way)))
-                     (>= (point-count %) 2)
-                     (= % (last (:way/nodes way))))
-                 (:way/nodes way))))))
-
-(defn- entries
-  "returns a [id node], {id way} or nil otherwise"
-  [xml-entry]
-  (case (:tag xml-entry)
-    :node (point-entry xml-entry)
-    :way  (ways-entry xml-entry)
-    nil))
+  (concat [{:way/id (Long/parseLong (:id (:attrs element)))}]
+    (for [child (:content element)]
+      (case (:tag child)
+        :tag (when (contains? way-attrs (:k (:attrs child)))
+               {:way.tag/key (:k (:attrs child))
+                :way.tag/value (:v (:attrs child))
+                :way.tag/way (Long/parseLong (:id (:attrs element)))})
+        :nd {:path/node (Long/parseLong (:ref (:attrs child)))
+             :path/way  (Long/parseLong (:id (:attrs element)))}
+        nil))))
 
 ;; We assume that preprocessing the files was already performed and that only
 ;; the useful data is part of the OSM file. See README
 (defn transaction!
   "read an OSM file and transforms it into a sequence of datascript transactions"
   [raw-data] ;; read all elements into memory
-  (let [nodes&ways    (keep entries (:content (xml/parse raw-data)))
-        ;; separate ways from nodes
-        ways          (trim-ways (filter :way/id nodes&ways))
-        ;; post-processing nodes
-        ids           (into #{} (mapcat :way/nodes) ways)
-        nodes         (filter #(contains? ids (:node/id %)) nodes&ways)]
-    (concat nodes ways)))
+  (for [xml-entry (:content (xml/parse raw-data))]
+    (case (:tag xml-entry)
+      :node [(node xml-entry)]
+      :way  (way xml-entry)
+      nil)))
 
 ;; https://www.wikiwand.com/en/Preferred_walking_speed
 (def walking-speed  1.4);; m/s

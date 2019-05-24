@@ -34,10 +34,9 @@ area["name"="Niederrad"]->.searchArea;
 )->.walkable;
 
 // compute the intersection of walkable and accessible
-way.accessible.walkable;
-// print ways
-out body;
-// find nodes of ways
->;
-// print nodes
+(
+  way.accessible.walkable;
+  node(w);
+);
+// print nodes, then ways
 out body;
