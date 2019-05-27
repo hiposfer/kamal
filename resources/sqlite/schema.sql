@@ -1,3 +1,5 @@
+PRAGMA foreign_keys=on;
+
 -- <node id="298884269" lat="54.0901746" lon="12.2482632" user="SvenHRO"
 --      uid="46882" visible="true" version="1" changeset="676636"
 --      timestamp="2008-09-21T21:37:45Z"/>)
@@ -5,13 +7,6 @@ create table if not exists node (
     id integer primary key not null,
     lat float not null,
     lon float not null
-);
-
---   <tag k="highway" v="unclassified"/>
-create table if not exists tag (
-    id integer primary key autoincrement,
-    key text not null,
-    value text not null
 );
 
 -- <way id="26659127" user="Masch" uid="55988" visible="true" version="5" changeset="4142606"
@@ -28,14 +23,18 @@ create table if not exists way (
 );
 
 -- the path that a way follows through the nodes
-create table if not exists path (
-    id integer primary key autoincrement,
+create table if not exists way_node (
+    way integer not null references way,
     node integer not null references node,
-    way integer not null references way
+    sequence integer not null check (sequence >= 0),
+
+    primary key (way, sequence)
 );
 
 create table if not exists way_tag (
-    id integer primary key autoincrement,
     way integer not null references way,
-    tag integer not null references tag
+    key text not null,
+    value text not null,
+
+    primary key (way, key)
 );

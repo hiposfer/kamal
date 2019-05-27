@@ -37,16 +37,18 @@
 (defn- way
   "parse a OSM xml-way into a [way-id {attrs}] representing the same way"
   [element] ;; returns '(arc1 arc2 ...)
-  (concat [{:way/id (Long/parseLong (:id (:attrs element)))}]
-    (for [child (:content element)]
-      (case (:tag child)
-        :tag (when (contains? way-attrs (:k (:attrs child)))
-               {:way.tag/key (:k (:attrs child))
-                :way.tag/value (:v (:attrs child))
-                :way.tag/way (Long/parseLong (:id (:attrs element)))})
-        :nd {:path/node (Long/parseLong (:ref (:attrs child)))
-             :path/way  (Long/parseLong (:id (:attrs element)))}
-        nil))))
+  (let [id (Long/parseLong (:id (:attrs element)))]
+    (concat [{:way/id id}]
+      (for [[index child] (map vector (range) (:content element))]
+        (case (:tag child)
+          :tag (when (contains? way-attrs (:k (:attrs child)))
+                 {:way.tag/key   (:k (:attrs child))
+                  :way.tag/value (:v (:attrs child))
+                  :way.tag/way   id})
+          :nd {:way.node/node     (Long/parseLong (:ref (:attrs child)))
+               :way.node/way      id
+               :way.node/sequence index}
+          nil)))))
 
 ;; We assume that preprocessing the files was already performed and that only
 ;; the useful data is part of the OSM file. See README

@@ -29,7 +29,7 @@
 (def outdir "resources/test/")
 (defn- osm-filename [area] (str outdir (:area/id area) ".osm"))
 
-(defn fetch-osm!
+(defn- fetch-osm!
   "read OSM data either from a local cache file or from the overpass api"
   [area]
   (if (.exists (io/file (osm-filename area)))
@@ -45,8 +45,13 @@
                (io/file (osm-filename area)))
       (println "OK - writing OSM cache file" (osm-filename area))
       (osm-filename area))))
-
 ;;(fetch-osm! {:area/id "frankfurt" :area/name "Frankfurt am Main"})
+
+
+(defn- table
+  [ns-key]
+  (str/replace (namespace ns-key) "." "_"))
+
 
 (defn -main
   "Script for preprocessing OSM and GTFS files into gzip files each with
@@ -55,19 +60,19 @@
   (try (io/delete-file graph-file)
        (println (str graph-file " deleted"))
        (catch IOException e))
-  (with-open [conn (jdbc/get-connection graph-uri)]
+  (with-open [conn (jdbc/get-connection graph-uri)
+              stream (io/input-stream (fetch-osm! {:area/id   "niederrad"
+                                                   :area/name "Niederrad"}))]
     ;; execute each statement separately
-    (jdbc/with-transaction [tx conn]
-      (doseq [statement (str/split schema #";\n")]
-        (jdbc/execute! tx [statement])))
-    (println (sql/insert! conn :node {:node/id 1 :node/lat 95 :node/lon 34}))
-    (println (sql/find-by-keys conn :node {:id 1})); {:qualifier :node}))
-    (with-open [stream (io/input-stream (fetch-osm! {:area/id   "niederrad"
-                                                     :area/name "Niederrad"}))]
-      (println (take 10 (for [tx (apply concat (osm/transaction! stream))
-                              :when (some? tx)
-                              :when (= "way" (namespace (ffirst tx)))]
-                          tx))))))
+    (doseq [statement (str/split schema #";\n")]
+      (jdbc/execute! conn [statement]))
+    (doseq [tx (apply concat (osm/transaction! stream))
+            :when (some? tx)]
+      (println tx)
+      (let [table-name (table (ffirst tx))]
+        (sql/insert! conn table-name tx)))))
     ;; TODO: execute in a terminal
     ;; .open graph-file
     ;; .dump
+
+;(-main)
