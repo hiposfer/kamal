@@ -1,6 +1,7 @@
 (ns hiposfer.kamal.sqlite
   (:gen-class)
-  (:require [clojure.java.jdbc :as jdbc]
+  (:require [next.jdbc :as jdbc]
+            [next.jdbc.sql :as sql]
             [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.spec.alpha :as s]
@@ -54,24 +55,19 @@
   (try (io/delete-file graph-file)
        (println (str graph-file " deleted"))
        (catch IOException e))
-  (let [conn (jdbc/get-connection {:connection-uri graph-uri})
-        db   {:connection conn}]
-    (println schema)
-    ;; somehow I have to split the statements for this to work :/
-    (println (jdbc/db-do-commands db (str/split schema #";\n")))
-    (println (jdbc/insert! db :node {:node/id 1 :node/lat 95 :node/lon 34}))
-    ;(println (jdbc/get-by-id db :node 1))
-    (println (jdbc/find-by-keys db :node {:id 1})); {:qualifier :node}))
+  (with-open [conn (jdbc/get-connection graph-uri)]
+    ;; execute each statement separately
+    (jdbc/with-transaction [tx conn]
+      (doseq [statement (str/split schema #";\n")]
+        (jdbc/execute! tx [statement])))
+    (println (sql/insert! conn :node {:node/id 1 :node/lat 95 :node/lon 34}))
+    (println (sql/find-by-keys conn :node {:id 1})); {:qualifier :node}))
     (with-open [stream (io/input-stream (fetch-osm! {:area/id   "niederrad"
                                                      :area/name "Niederrad"}))]
       (println (take 10 (for [tx (apply concat (osm/transaction! stream))
                               :when (some? tx)
                               :when (= "way" (namespace (ffirst tx)))]
-                          tx))))
-    ;; on stop
+                          tx))))))
     ;; TODO: execute in a terminal
     ;; .open graph-file
     ;; .dump
-    (. conn (close))))
-
-;(-main)
