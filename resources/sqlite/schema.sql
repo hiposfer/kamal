@@ -1,4 +1,4 @@
-PRAGMA foreign_keys=on;
+pragma foreign_keys=on;
 
 -- <node id="298884269" lat="54.0901746" lon="12.2482632" user="SvenHRO"
 --      uid="46882" visible="true" version="1" changeset="676636"
