@@ -4,9 +4,11 @@ pragma foreign_keys=on;
 --      uid="46882" visible="true" version="1" changeset="676636"
 --      timestamp="2008-09-21T21:37:45Z"/>)
 create table if not exists node (
-    id integer primary key not null,
+    id integer primary key,
     lat float not null,
     lon float not null
+    -- todo
+    -- geohash text not null
 );
 
 -- <way id="26659127" user="Masch" uid="55988" visible="true" version="5" changeset="4142606"
@@ -19,7 +21,7 @@ create table if not exists node (
 --   <tag k="name" v="Pastower Straße"/>
 --  </way>
 create table if not exists way (
-    id integer primary key not null
+    id integer primary key
 );
 
 -- the path that a way follows through the nodes
@@ -28,7 +30,7 @@ create table if not exists way_node (
     node integer not null references node,
     sequence integer not null check (sequence >= 0),
 
-    primary key (way, sequence)
+    constraint sequential_path primary key (way, sequence)
 );
 
 create table if not exists way_tag (
@@ -36,5 +38,18 @@ create table if not exists way_tag (
     key text not null,
     value text not null,
 
-    primary key (way, key)
+    constraint no_repeated_tag primary key (way, key)
 );
+
+create table if not exists link (
+    src integer not null references node,
+    dst integer not null references node,
+    -- the distance in meters
+    distance float not null,
+
+    constraint magnitude check (distance > 0),
+    constraint no_infinite_loop check (src != dst),
+    constraint no_parallel_link primary key (src, dst)
+);
+
+select * from link where distance > 0 and distance < 1

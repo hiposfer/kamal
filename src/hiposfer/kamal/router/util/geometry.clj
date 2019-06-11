@@ -1,6 +1,7 @@
 (ns hiposfer.kamal.router.util.geometry
-  (:refer-clojure :rename {contains? contains?!})
-  (:require [hiposfer.kamal.router.algorithms.protocols :as np]))
+  ;(:refer-clojure :rename {contains? contains?!})
+  (:require [hiposfer.kamal.router.algorithms.protocols :as np])
+  (:import (clojure.lang IPersistentVector APersistentMap)))
 
 ;; Note in these scripts, I generally use
 ;; - latitude, longitude in degrees
@@ -10,6 +11,18 @@
 ;; head-scratching bugs...
 
 (def RADIOUS 6372800); radious of the Earth in meters
+
+;; A vector of two numbers can be interpreted as a Point
+;; according to the GeoJson standard
+(extend-type IPersistentVector
+  np/GeoCoordinate
+  (lat [this] (second this))
+  (lon [this] (first this)))
+
+(extend-type APersistentMap
+  np/GeoCoordinate
+  (lat [this] (:lat this))
+  (lon [this] (:lon this)))
 
 (defn haversine
   "Compute the great-circle distance between two points on Earth given their
@@ -96,14 +109,14 @@
       (> result 180)  (- result 360)
       :else result)))
 
-(defn contains?
-  "checks if point is contained in bbox"
-  [bbox point]
-  (let [[min-lon min-lat max-lon max-lat] bbox]
-    (and (>= (np/lat point) min-lat)
-         (>= (np/lon point) min-lon)
-         (<= (np/lat point) max-lat)
-         (<= (np/lon point) max-lon))))
+#_(defn contains?
+    "checks if point is contained in bbox"
+    [bbox point]
+    (let [[min-lon min-lat max-lon max-lat] bbox]
+      (and (>= (np/lat point) min-lat)
+           (>= (np/lon point) min-lon)
+           (<= (np/lat point) max-lat)
+           (<= (np/lon point) max-lon))))
 
 ;(contains? (:bbox @(:saarland (:networks (:router hiposfer.kamal.dev/system))))
 ;           [7.0288485 49.1064844])

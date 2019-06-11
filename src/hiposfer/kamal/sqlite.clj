@@ -7,15 +7,16 @@
             [clojure.spec.alpha :as s]
             [clojure.spec.test.alpha :refer [instrument]]
             [expound.alpha :as expound]
-            [hiposfer.kamal.router.io.osm :as osm])
+            [hiposfer.kamal.router.io.osm :as osm]
+            [hiposfer.kamal.router.util.geometry :as geometry])
   (:import (java.io IOException)
            (java.net URL URLEncoder)))
 
-(alter-var-root #'s/*explain-out*
-                (constantly
-                  (expound/custom-printer {:show-valid-values? false
-                                           :theme              :figwheel-theme
-                                           :print-specs?       false})))
+(def expound-printer (expound/custom-printer {:show-valid-values? false
+                                              :theme              :figwheel-theme
+                                              :print-specs?       false}))
+
+(alter-var-root #'s/*explain-out* (constantly expound-printer))
 
 (instrument)
 
@@ -33,7 +34,8 @@
   "read OSM data either from a local cache file or from the overpass api"
   [area]
   (if (.exists (io/file (osm-filename area)))
-    (osm-filename area)
+    (do (println "OK - OSM file found")
+        (osm-filename area))
     (let [query (str/replace (slurp (io/resource "overpass-api-query.txt"))
                              "Niederrad"
                              (:area/name area))
@@ -46,11 +48,6 @@
       (println "OK - writing OSM cache file" (osm-filename area))
       (osm-filename area))))
 ;;(fetch-osm! {:area/id "frankfurt" :area/name "Frankfurt am Main"})
-
-
-(defn- table
-  [ns-key]
-  (str/replace (namespace ns-key) "." "_"))
 
 
 (defn -main
@@ -68,11 +65,20 @@
       (jdbc/execute! conn [statement]))
     (doseq [tx (apply concat (osm/transaction! stream))
             :when (some? tx)]
-      (println tx)
-      (let [table-name (table (ffirst tx))]
-        (sql/insert! conn table-name tx)))))
+      (sql/insert! conn (namespace (ffirst tx)) tx))))
     ;; TODO: execute in a terminal
     ;; .open graph-file
     ;; .dump
 
 ;(-main)
+
+#_(with-open [conn (jdbc/get-connection graph-uri)]
+    (let [rows      (jdbc/execute! conn ["select * from way_node join node on way_node.node = node.id"])]
+      (doseq [path      (partition-by :way_node/way rows)
+              [from to] (map vector path (rest path))]
+        (let [distance (geometry/haversine [(:node/lon from) (:node/lat from)]
+                                           [(:node/lon to) (:node/lat to)])]
+          (sql/insert! conn "link"
+            {:link/src      (:way_node/node from)
+             :link/dst      (:way_node/node to)
+             :link/distance distance})))))

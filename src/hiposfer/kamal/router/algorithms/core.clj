@@ -1,7 +1,6 @@
 (ns hiposfer.kamal.router.algorithms.core
   (:require [hiposfer.kamal.router.algorithms.protocols :as np])
-  (:import (clojure.lang APersistentMap IPersistentVector)
-           (ch.hsr.geohash GeoHash)))
+  (:import (ch.hsr.geohash GeoHash)))
 
 ;; a Point is a simple longitude, latitude pair used to
 ;; represent the geometry of a way in Open Street Maps
@@ -17,18 +16,6 @@
   (compareTo [_ y]
     (compare (GeoHash/withBitPrecision lat lon  64)
              (GeoHash/withBitPrecision (np/lat y) (np/lon y) 64))))
-
-;; A vector of two numbers can be interpreted as a Point
-;; according to the GeoJson standard
-(extend-type IPersistentVector
-  np/GeoCoordinate
-  (lat [this] (second this))
-  (lon [this] (first this)))
-
-(extend-type APersistentMap
-  np/GeoCoordinate
-  (lat [this] (:lat this))
-  (lon [this] (:lon this)))
 
 ;; A Number is the simplest way to represent the cost of traversing an Arc
 ;; in a Graph. Useful for Dijkstra and similar algorithms

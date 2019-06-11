@@ -39,7 +39,7 @@
                  ;; otherwise we get - Exception in thread "heroku-java-metrics-agent" java.lang.NoSuchMethodError: com.fasterxml.jackson.databind.JavaType.isReferenceType()Z
                  [com.fasterxml.jackson.core/jackson-databind "2.9.8"]
                  [org.xerial/sqlite-jdbc "3.20.0"]
-                 [seancorfield/next.jdbc "1.0.0-beta1"]]
+                 [seancorfield/next.jdbc "1.0.0-rc1"]]
   ;; preprocessor - env vars are not passed along, so better run manually
   ;; ["trampoline" "run" "-m" "hiposfer.kamal.preprocessor"]}
   :profiles {:dev     {:dependencies [[criterium "0.4.4"]   ;; benchmark

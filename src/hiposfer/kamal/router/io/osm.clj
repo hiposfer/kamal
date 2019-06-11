@@ -42,12 +42,12 @@
       (for [[index child] (map vector (range) (:content element))]
         (case (:tag child)
           :tag (when (contains? way-attrs (:k (:attrs child)))
-                 {:way.tag/key   (:k (:attrs child))
-                  :way.tag/value (:v (:attrs child))
-                  :way.tag/way   id})
-          :nd {:way.node/node     (Long/parseLong (:ref (:attrs child)))
-               :way.node/way      id
-               :way.node/sequence index}
+                 {:way_tag/key   (:k (:attrs child))
+                  :way_tag/value (:v (:attrs child))
+                  :way_tag/way   id})
+          :nd {:way_node/node     (Long/parseLong (:ref (:attrs child)))
+               :way_node/way      id
+               :way_node/sequence index}
           nil)))))
 
 ;; We assume that preprocessing the files was already performed and that only
