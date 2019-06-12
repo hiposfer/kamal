@@ -55,11 +55,12 @@
 (defn transaction!
   "read an OSM file and transforms it into a sequence of datascript transactions"
   [raw-data] ;; read all elements into memory
-  (for [xml-entry (:content (xml/parse raw-data))]
-    (case (:tag xml-entry)
-      :node [(node xml-entry)]
-      :way  (way xml-entry)
-      nil)))
+  (eduction cat (remove nil?)
+            (for [xml-entry (:content (xml/parse raw-data))]
+              (case (:tag xml-entry)
+                :node [(node xml-entry)]
+                :way  (way xml-entry)
+                nil))))
 
 ;; https://www.wikiwand.com/en/Preferred_walking_speed
 (def walking-speed  1.4);; m/s

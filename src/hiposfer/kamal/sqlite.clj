@@ -20,6 +20,10 @@
 
 (instrument)
 
+(def queries-content (slurp "resources/sqlite/queries.sql"))
+(def queries (zipmap [:link/query]
+                     (map str/trim (str/split queries-content #";\n"))))
+
 (def schema (slurp "resources/sqlite/schema.sql"))
 
 ;(def db-uri "jdbc:sqlite::memory:")
@@ -49,6 +53,17 @@
       (osm-filename area))))
 ;;(fetch-osm! {:area/id "frankfurt" :area/name "Frankfurt am Main"})
 
+(defn- links
+  "returns a lazy sequence of link entries that can be directly transacted
+  into sql"
+  [rows]
+  (for [path      (partition-by :way_node/way rows)
+        [from to] (map vector path (rest path))]
+    (let [distance (geometry/haversine [(:node/lon from) (:node/lat from)]
+                                       [(:node/lon to) (:node/lat to)])]
+      {:link/src      (:way_node/node from)
+       :link/dst      (:way_node/node to)
+       :link/distance distance})))
 
 (defn -main
   "Script for preprocessing OSM and GTFS files into gzip files each with
@@ -63,22 +78,12 @@
     ;; execute each statement separately
     (doseq [statement (str/split schema #";\n")]
       (jdbc/execute! conn [statement]))
-    (doseq [tx (apply concat (osm/transaction! stream))
-            :when (some? tx)]
-      (sql/insert! conn (namespace (ffirst tx)) tx))))
+    (doseq [tx (osm/transaction! stream)]
+      (sql/insert! conn (namespace (ffirst tx)) tx))
+    (doseq [link (links (jdbc/execute! conn [(:link/query queries)]))]
+      (sql/insert! conn "link" link))))
     ;; TODO: execute in a terminal
     ;; .open graph-file
     ;; .dump
 
 ;(-main)
-
-#_(with-open [conn (jdbc/get-connection graph-uri)]
-    (let [rows      (jdbc/execute! conn ["select * from way_node join node on way_node.node = node.id"])]
-      (doseq [path      (partition-by :way_node/way rows)
-              [from to] (map vector path (rest path))]
-        (let [distance (geometry/haversine [(:node/lon from) (:node/lat from)]
-                                           [(:node/lon to) (:node/lat to)])]
-          (sql/insert! conn "link"
-            {:link/src      (:way_node/node from)
-             :link/dst      (:way_node/node to)
-             :link/distance distance})))))
