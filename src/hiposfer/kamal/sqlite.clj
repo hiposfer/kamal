@@ -76,10 +76,13 @@
               stream (io/input-stream (fetch-osm! {:area/id   "niederrad"
                                                    :area/name "Niederrad"}))]
     ;; execute each statement separately
+    (println "creating tables")
     (doseq [statement (str/split schema #";\n")]
       (jdbc/execute! conn [statement]))
+    (println "importing OSM")
     (doseq [tx (osm/transaction! stream)]
       (sql/insert! conn (namespace (ffirst tx)) tx))
+    (println "linking nodes - creating graph")
     (doseq [link (links (jdbc/execute! conn [(:link/query queries)]))]
       (sql/insert! conn "link" link))))
     ;; TODO: execute in a terminal

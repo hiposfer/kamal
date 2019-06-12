@@ -51,5 +51,3 @@ create table if not exists link (
     constraint no_infinite_loop check (src != dst),
     constraint no_parallel_link primary key (src, dst)
 );
-
-select * from link where distance > 0 and distance < 1
