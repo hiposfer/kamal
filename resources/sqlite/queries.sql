@@ -11,8 +11,8 @@ with recursive
  path(src, dst, cost, settled) as (
     values (null, 2708331052, 0, 1)
     union all
-    select link.src, link.dst, link.distance, 0
-     from path, link
-     where link.src = path.dst
+    select link.src, link.dst, link.distance + path.cost as cost, 0
+     from path join link on link.src = path.dst
+     order by cost
  )
 select * from path;
