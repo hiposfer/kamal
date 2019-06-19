@@ -24,6 +24,7 @@ create table if not exists way (
     id integer primary key
 );
 
+-- todo: do I need this ? or is the link table enough ?
 -- the path that a way follows through the nodes
 create table if not exists way_node (
     way integer not null references way,
