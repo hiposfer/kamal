@@ -42,7 +42,7 @@ create table if not exists way_tag (
     constraint no_repeated_tag primary key (way, key)
 );
 
-create table if not exists link (
+create table if not exists arc (
     src integer not null references node,
     dst integer not null references node,
     -- the distance in meters
@@ -50,5 +50,5 @@ create table if not exists link (
 
     constraint magnitude check (distance > 0),
     constraint no_infinite_loop check (src != dst),
-    constraint no_parallel_link primary key (src, dst)
+    constraint no_parallel_arc primary key (src, dst)
 );

@@ -2,8 +2,8 @@
 -- used for a graph representation of the road network
 select * from way_node join node on way_node.node = node.id;
 
-select * from link join node as source on link.src = source.id
-                   join node as destination on link.dst = destination.id
+select * from arc join node as source on arc.src = source.id
+                  join node as destination on arc.dst = destination.id
 
 -- src 2708331052, dst 561065
 
@@ -15,9 +15,9 @@ with recursive
  beacon(src, dst, cost) as (
     values (null, :SOURCE, 0)
         union all
-    select link.src, link.dst, link.distance + beacon.cost as cost
+    select arc.src, arc.dst, arc.distance + beacon.cost as cost
      from beacon
-      join link on link.src = beacon.dst
+      join arc on arc.src = beacon.dst
       order by cost
       limit 100000
  )
@@ -32,10 +32,10 @@ with recursive
  graph_traversal(src, dst, cost) as (
     values (null, :SOURCE, 0)
         union all
-    select link.src, link.dst, round(link.distance + graph_traversal.cost) as cost
+    select arc.src, arc.dst, round(arc.distance + graph_traversal.cost) as cost
      from graph_traversal
-      join link on link.src = graph_traversal.dst
-      where round(link.distance + graph_traversal.cost) <= :RADIOUS
+      join arc on arc.src = graph_traversal.dst
+      where round(arc.distance + graph_traversal.cost) <= :RADIOUS
       order by cost
  ),
  -- perform a proper dijkstra by keeping only the nodes from the tree with the

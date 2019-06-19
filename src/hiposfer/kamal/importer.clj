@@ -43,18 +43,18 @@
       (osm-filename area))))
 ;;(fetch-osm! {:area/id "frankfurt" :area/name "Frankfurt am Main"})
 
-;; TODO: add link from dst to src
-(defn- links
-  "returns a lazy sequence of link entries that can be directly transacted
+;; TODO: add arc from dst to src
+(defn- arcs
+  "returns a lazy sequence of arc entries that can be directly transacted
   into sql"
   [rows]
   (for [path      (partition-by :way_node/way rows)
         [from to] (map vector path (rest path))]
     (let [distance (geometry/haversine [(:node/lon from) (:node/lat from)]
                                        [(:node/lon to) (:node/lat to)])]
-      {:link/src      (:way_node/node from)
-       :link/dst      (:way_node/node to)
-       :link/distance distance})))
+      {:arc/src      (:way_node/node from)
+       :arc/dst      (:way_node/node to)
+       :arc/distance distance})))
 
 (defn -main
   "Script for preprocessing OSM and GTFS files into gzip files each with
@@ -74,8 +74,8 @@
     (doseq [tx (osm/transaction! stream)]
       (sql/insert! conn (namespace (ffirst tx)) tx))
     (println "linking nodes - creating graph")
-    (doseq [link (links (jdbc/execute! conn [(:select.way/nodes sqlite/queries)]))]
-      (sql/insert! conn "link" link))))
+    (doseq [arc (arcs (jdbc/execute! conn [(:select.way/nodes sqlite/queries)]))]
+      (sql/insert! conn "arc" arc))))
     ;; TODO: execute in a terminal
     ;; .open graph-file
     ;; .dump
