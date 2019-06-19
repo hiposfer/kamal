@@ -13,7 +13,7 @@ select * from link join node as source on link.src = source.id
 -- and as a way to stop the graph_traversal recursive query below
 with recursive
  beacon(src, dst, cost) as (
-    values (null, 2708331052, 0)
+    values (null, :SOURCE, 0)
         union all
     select link.src, link.dst, link.distance + beacon.cost as cost
      from beacon
@@ -21,7 +21,7 @@ with recursive
       order by cost
       limit 100000
  )
- select * from beacon where beacon.dst = 1125302338 limit 1;
+ select * from beacon where beacon.dst = :DESTINATION limit 1;
 
 -- compute the shortest path from source to destination using
 -- a plain dijkstra algorithm; done here in several steps due
@@ -30,12 +30,12 @@ with recursive
  -- traverse the graph until the cost to target is reached. At that point we
  -- would have a big traversal tree with repeated nodes but different weights
  graph_traversal(src, dst, cost) as (
-    values (null, 2708331052, 0)
+    values (null, :SOURCE, 0)
         union all
     select link.src, link.dst, round(link.distance + graph_traversal.cost) as cost
      from graph_traversal
       join link on link.src = graph_traversal.dst
-      where round(link.distance + graph_traversal.cost) <= 760
+      where round(link.distance + graph_traversal.cost) <= :RADIOUS
       order by cost
  ),
  -- perform a proper dijkstra by keeping only the nodes from the tree with the
@@ -49,7 +49,7 @@ with recursive
  -- compute the shortest path by backtracking from the destination to the
  -- source
  shortest_path as (
-    select * from dijkstra where dijkstra.dst = 1125302338
+    select * from dijkstra where dijkstra.dst = :DESTINATION
         union all
     select dijkstra.*
     from shortest_path, dijkstra
