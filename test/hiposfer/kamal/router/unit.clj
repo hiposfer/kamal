@@ -10,39 +10,21 @@
 ;; Example taken from
 ;; https://rosettacode.org/wiki/Dijkstra%27s_algorithm
 ;; we assume bidirectional links
-(def rosetta [{:node/id 1}
-              {:node/id 2}
-              {:node/id 3}
-              {:node/id 4}
-              {:node/id 5}
-              {:node/id 6}
-              {:edge/src [:node/id 1]
-               :edge/dst [:node/id 2]
-               :arc/length 7}
-              {:edge/src [:node/id 1]
-               :edge/dst [:node/id 3]
-               :arc/length 9}
-              {:edge/src [:node/id 1]
-               :edge/dst [:node/id 6]
-               :arc/length 14}
-              {:edge/src [:node/id 2]
-               :edge/dst [:node/id 3]
-               :arc/length 10}
-              {:edge/src [:node/id 2]
-               :edge/dst [:node/id 4]
-               :arc/length 15}
-              {:edge/src [:node/id 3]
-               :edge/dst [:node/id 4]
-               :arc/length 11}
-              {:edge/src [:node/id 3]
-               :edge/dst [:node/id 6]
-               :arc/length 2}
-              {:edge/src [:node/id 4]
-               :edge/dst [:node/id 5]
-               :arc/length 6}
-              {:edge/src [:node/id 5]
-               :edge/dst [:node/id 6]
-               :arc/length 9}])
+(def rosetta [{:node/id 1 :node/lat 1 :node/lon 1}
+              {:node/id 2 :node/lat 1 :node/lon 1}
+              {:node/id 3 :node/lat 1 :node/lon 1}
+              {:node/id 4 :node/lat 1 :node/lon 1}
+              {:node/id 5 :node/lat 1 :node/lon 1}
+              {:node/id 6 :node/lat 1 :node/lon 1}
+              {:arc/src 1 :arc/dst 2 :arc/distance 7}
+              {:arc/src 1 :arc/dst 3 :arc/distance 9}
+              {:arc/src 1 :arc/dst 6 :arc/distance 14}
+              {:arc/src 2 :arc/dst 3 :arc/distance 10}
+              {:arc/src 2 :arc/dst 4 :arc/distance 15}
+              {:arc/src 3 :arc/dst 4 :arc/distance 11}
+              {:arc/src 3 :arc/dst 6 :arc/distance 2}
+              {:arc/src 4 :arc/dst 5 :arc/distance 6}
+              {:arc/src 5 :arc/dst 6 :arc/distance 9}])
 
 ;; --- directed arcs
 ;Distances from 1: ((1 0) (2 7) (3 9) (4 20) (5 26) (6 11))
@@ -54,20 +36,20 @@
 
 (extend-type Entity
   np/Arc
-  (src [this] (:db/id (:edge/src this)))
-  (dst [this] (:db/id (:edge/dst this)))
+  (src [this] (:db/id (:arc/src this)))
+  (dst [this] (:db/id (:arc/dst this)))
   np/Node
   (successors [this]
     (let [db (data/entity-db this)]
       (map #(data/entity db (:e %))
-           (data/datoms db :avet :edge/src (:db/id this))))))
+           (data/datoms db :avet :arc/src (:db/id this))))))
 
 (defrecord RosettaRouter [network]
   np/Dijkstra
   (node [this k] (data/entity network k))
   (relax [this arc trail]
     (+ (val (first trail))
-       (:arc/length arc))))
+       (:arc/distance arc))))
 
 (deftest shortest-path
   (let [network   (-> (data/empty-db router/schema)
