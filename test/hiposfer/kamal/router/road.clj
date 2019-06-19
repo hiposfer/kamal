@@ -6,7 +6,7 @@
             [clojure.test.check.properties :as prop]
             [clojure.test.check.clojure-test :refer [defspec]]
             [hiposfer.kamal.server.specs.directions :as dataspecs]
-            [hiposfer.kamal.router.tests :as rt]
+            [hiposfer.kamal.router.generative :as rt]
             [hiposfer.kamal.router.core :as router]
             [hiposfer.kamal.router.directions :as dir]))
 

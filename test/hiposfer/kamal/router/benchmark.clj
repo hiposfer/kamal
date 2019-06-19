@@ -4,7 +4,7 @@
             [datascript.core :as data]
             [hiposfer.kamal.router.util.geometry :as geometry]
             [hiposfer.kamal.router.util.fastq :as fastq]
-            [hiposfer.kamal.router.tests :as kt]
+            [hiposfer.kamal.router.generative :as kt]
             [hiposfer.kamal.router.road :as road]
             [hiposfer.kamal.router.transit :as transit]
             [hiposfer.kamal.router.generators :as fake-area]
