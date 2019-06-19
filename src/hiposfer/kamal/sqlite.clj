@@ -21,7 +21,8 @@
 (instrument)
 
 (def queries-content (slurp "resources/sqlite/queries.sql"))
-(def queries (zipmap [:link/query]
+(def queries (zipmap [:select.way/nodes :select/links
+                      :find/destination :find/shortest-path]
                      (map str/trim (str/split queries-content #";\n"))))
 
 (def schema (slurp "resources/sqlite/schema.sql"))
@@ -83,7 +84,7 @@
     (doseq [tx (osm/transaction! stream)]
       (sql/insert! conn (namespace (ffirst tx)) tx))
     (println "linking nodes - creating graph")
-    (doseq [link (links (jdbc/execute! conn [(:link/query queries)]))]
+    (doseq [link (links (jdbc/execute! conn [(:select.way/nodes queries)]))]
       (sql/insert! conn "link" link))))
     ;; TODO: execute in a terminal
     ;; .open graph-file
