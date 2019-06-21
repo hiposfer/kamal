@@ -1,4 +1,4 @@
-(ns hiposfer.kamal.router.benchmark
+(ns hiposfer.kamal.tests.benchmark.core
   (:require [criterium.core :as c]
             [clojure.test :as test]
             [datascript.core :as data]

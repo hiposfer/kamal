@@ -1,4 +1,4 @@
-(ns hiposfer.kamal.router.generators
+(ns hiposfer.kamal.tests.generative.generators
   (:require [clojure.test.check.generators :as gen]
             [clojure.string :as str]
             [clojure.spec.alpha :as s]

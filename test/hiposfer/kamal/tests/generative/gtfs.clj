@@ -1,4 +1,4 @@
-(ns hiposfer.kamal.router.generative
+(ns hiposfer.kamal.tests.generative.gtfs
   (:require [clojure.spec.alpha :as s]
             [clojure.test :refer [is deftest]]
             [clojure.test.check :as tc]

@@ -1,4 +1,4 @@
-(ns hiposfer.kamal.router.road
+(ns hiposfer.kamal.tests.generative.road
   (:require [clojure.spec.alpha :as s]
             [expound.alpha :as expound]
             [clojure.test :refer [is deftest]]

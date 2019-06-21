@@ -1,4 +1,4 @@
-(ns hiposfer.kamal.router.unit
+(ns hiposfer.kamal.tests.unit
   (:require [clojure.test :refer [is deftest]]
             [clojure.test.check.clojure-test :refer [defspec]]
             [next.jdbc.sql :as sql]

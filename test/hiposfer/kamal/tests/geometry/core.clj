@@ -1,4 +1,4 @@
-(ns hiposfer.kamal.router.geometry-test
+(ns hiposfer.kamal.tests.geometry.core
   (:require [clojure.test :refer :all]
             [hiposfer.kamal.router.util.geometry :as geometry]))
 
