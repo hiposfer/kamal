@@ -42,7 +42,7 @@
       (osm-filename area))))
 ;;(fetch-osm! {:area/id "frankfurt" :area/name "Frankfurt am Main"})
 
-(defn populate!
+(defn insert-osm!
   [conn area]
   (with-open [stream (io/input-stream (fetch-osm! area))]
     (println "importing OSM")
@@ -63,8 +63,8 @@
     ;; execute each statement separately
     (println "creating tables")
     (sqlite/setup! conn)
-    (populate! conn {:area/id   "niederrad"
-                     :area/name "Niederrad"})))
+    (insert-osm! conn {:area/id "niederrad"
+                       :area/name "Niederrad"})))
     ;; TODO: execute in a terminal
     ;; .open graph-file
     ;; .dump
