@@ -23,6 +23,7 @@
 (def outdir "resources/test/")
 (defn osm-filename [area] (str outdir (:area/id area) ".osm"))
 
+
 (defn fetch-osm!
   "read OSM data either from a local cache file or from the overpass api"
   [area]
@@ -42,15 +43,21 @@
       (osm-filename area))))
 ;;(fetch-osm! {:area/id "frankfurt" :area/name "Frankfurt am Main"})
 
-(defn insert-osm!
+
+(defn populate!
   [conn area]
   (with-open [stream (io/input-stream (fetch-osm! area))]
     (println "importing OSM")
     (doseq [tx (osm/transaction! stream)]
       (sql/insert! conn (namespace (ffirst tx)) tx))
     (println "linking nodes - creating graph")
-    (doseq [arc (osm/arcs (jdbc/execute! conn [(:select.way/nodes sqlite/queries)]))]
-      (sql/insert! conn "arc" arc))))
+    (doseq [[outgoing incoming] (osm/arcs
+                                  (jdbc/execute! conn
+                                    [(:select.way/nodes sqlite/queries)]))]
+      (sql/insert! conn "arc" outgoing)
+      (sql/insert! conn "arc" incoming))
+    (println "DONE\n")))
+
 
 (defn -main
   "Script for preprocessing OSM and GTFS files into gzip files each with
@@ -63,8 +70,8 @@
     ;; execute each statement separately
     (println "creating tables")
     (sqlite/setup! conn)
-    (insert-osm! conn {:area/id "niederrad"
-                       :area/name "Niederrad"})))
+    (populate! conn {:area/id   "niederrad"
+                     :area/name "Niederrad"})))
     ;; TODO: execute in a terminal
     ;; .open graph-file
     ;; .dump

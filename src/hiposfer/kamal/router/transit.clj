@@ -5,7 +5,7 @@
   (:require [hiposfer.kamal.router.algorithms.protocols :as np]
             [hiposfer.kamal.router.util.fastq :as fastq]
             [hiposfer.kamal.router.util.geometry :as geometry]
-            [hiposfer.kamal.router.io.osm :as osm]
+            [hiposfer.kamal.io.osm :as osm]
             [hiposfer.kamal.router.graph :as graph]
             [datascript.core :as data]
             [clojure.set :as set]))

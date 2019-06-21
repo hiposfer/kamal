@@ -85,9 +85,9 @@
         [from to] (map vector path (rest path))]
     (let [distance (geometry/haversine [(:node/lon from) (:node/lat from)]
                                        [(:node/lon to) (:node/lat to)])]
-      {:arc/src      (:way_node/node to)
-       :arc/dst      (:way_node/node from)
-       :arc/distance distance}
-      {:arc/src      (:way_node/node from)
-       :arc/dst      (:way_node/node to)
-       :arc/distance distance})))
+      [{:arc/src      (:way_node/node from)
+        :arc/dst      (:way_node/node to)
+        :arc/distance distance}
+       {:arc/src      (:way_node/node to)
+        :arc/dst      (:way_node/node from)
+        :arc/distance distance}])))

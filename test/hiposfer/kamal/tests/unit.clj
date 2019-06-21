@@ -45,6 +45,7 @@
                                    :arc/src (:arc/dst entry)
                                    :arc/dst (:arc/src entry)))))
 
+
 (deftest destination-exists
   (with-open [conn (jdbc/get-connection sqlite/volatile)]
     (sqlite/setup! conn)
@@ -55,6 +56,7 @@
       (is (not (empty? result)) "destination not found")
       (is (= dst (:arc/dst result)))
       (is (= 20.0  (:cost result))))))
+
 
 (deftest shortest-path
   (with-open [conn (jdbc/get-connection sqlite/volatile)]
