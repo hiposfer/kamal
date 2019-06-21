@@ -77,7 +77,6 @@
 ;; - only highways                   470230
 ;; - only connecting highways         73614
 
-;; TODO: add arc from dst to src
 (defn arcs
   "returns a lazy sequence of arc entries that can be directly transacted
   into sql"
@@ -86,6 +85,9 @@
         [from to] (map vector path (rest path))]
     (let [distance (geometry/haversine [(:node/lon from) (:node/lat from)]
                                        [(:node/lon to) (:node/lat to)])]
+      {:arc/src      (:way_node/node to)
+       :arc/dst      (:way_node/node from)
+       :arc/distance distance}
       {:arc/src      (:way_node/node from)
        :arc/dst      (:way_node/node to)
        :arc/distance distance})))
