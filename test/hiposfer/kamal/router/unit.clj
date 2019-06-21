@@ -1,11 +1,9 @@
 (ns hiposfer.kamal.router.unit
   (:require [clojure.test :refer [is deftest]]
             [clojure.test.check.clojure-test :refer [defspec]]
-            [hiposfer.kamal.router.algorithms.dijkstra :as dijkstra]
-            [hiposfer.kamal.router.algorithms.protocols :as np]
-            [hiposfer.kamal.router.core :as router]
-            [datascript.core :as data])
-  (:import (datascript.impl.entity Entity)))
+            [next.jdbc.sql :as sql]
+            [next.jdbc :as jdbc]
+            [hiposfer.kamal.sqlite :as sqlite]))
 
 ;; Example taken from
 ;; https://rosettacode.org/wiki/Dijkstra%27s_algorithm
@@ -34,48 +32,41 @@
 ;Distances from 1: ((1 0) (2 7) (3 9) (4 20) (5 20) (6 11))
 ;Shortest path: (1 3 6 5)
 
-(extend-type Entity
-  np/Arc
-  (src [this] (:db/id (:arc/src this)))
-  (dst [this] (:db/id (:arc/dst this)))
-  np/Node
-  (successors [this]
-    (let [db (data/entity-db this)]
-      (map #(data/entity db (:e %))
-           (data/datoms db :avet :arc/src (:db/id this))))))
+(defn- populate!
+  "inserts the data from `rosetta` into sqlite; assuming bidirectional arcs"
+  [conn]
+  (doseq [entry rosetta
+          :when (= "node" (namespace (ffirst entry)))]
+    (sql/insert! conn "node" entry))
+  (doseq [entry rosetta
+          :when (= "arc" (namespace (ffirst entry)))]
+    (sql/insert! conn "arc" entry)
+    (sql/insert! conn "arc" (assoc entry
+                                   :arc/src (:arc/dst entry)
+                                   :arc/dst (:arc/src entry)))))
 
-(defrecord RosettaRouter [network]
-  np/Dijkstra
-  (node [this k] (data/entity network k))
-  (relax [this arc trail]
-    (+ (val (first trail))
-       (:arc/distance arc))))
+(deftest destination-exists
+  (with-open [conn (jdbc/get-connection sqlite/volatile)]
+    (sqlite/setup! conn)
+    (populate! conn)
+    (let [[src dst] [1 5]
+          query     (sqlite/parametrize (:find/destination sqlite/queries))
+          result    (first (jdbc/execute! conn [query src dst]))]
+      (is (not (empty? result)) "destination not found")
+      (is (= dst (:arc/dst result)))
+      (is (= 20.0  (:cost result))))))
 
 (deftest shortest-path
-  (let [network   (-> (data/empty-db router/schema)
-                      (data/with rosetta)
-                      (:db-after))
-        dst       (:db/id (data/entity network [:node/id 5]))
-        src       (:db/id (data/entity network [:node/id 1]))
-        router    (->RosettaRouter network)
-        traversal (dijkstra/shortest-path router #{src} dst)]
-    (is (not (empty? traversal))
-        "shortest path not found")
-    (is (= '(5 4 3 1) (map key traversal))
-        "shortest path doesnt traverse expected nodes")))
-
-(deftest all-paths
-  (let [network   (-> (data/empty-db router/schema)
-                      (data/with rosetta)
-                      (:db-after))
-        src       (:db/id (data/entity network [:node/id 1]))
-        router    (->RosettaRouter network)
-        view      (dijkstra/view router #{src})
-        traversal (into {} (comp (map first)
-                                 (map (juxt key (comp np/cost val))))
-                        view)]
-    (is (not (nil? traversal))
-        "shortest path not found")
-    (is (= {1 0, 2 7, 3 9, 4 20, 5 26, 6 11}
-           traversal)
-        "shortest path doesnt traverse expected nodes")))
+  (with-open [conn (jdbc/get-connection sqlite/volatile)]
+    (sqlite/setup! conn)
+    (populate! conn)
+    (let [[src dst] [1 5]
+          beacon   (sqlite/parametrize (:find/destination sqlite/queries))
+          radious  (first (jdbc/execute! conn [beacon src dst]))
+          dijkstra (sqlite/parametrize (:find/shortest-path sqlite/queries))
+          result   (jdbc/execute! conn [dijkstra src (:cost radious) dst])]
+      (is (not (empty? result))
+          "shortest path not found")
+      (is (= '([5 20.0] [6 11.0] [3 9.0] [1 0])
+              (map (juxt :arc/dst :cost) result))
+          "shortest path doesnt traverse expected nodes"))))

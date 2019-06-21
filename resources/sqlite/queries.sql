@@ -2,11 +2,12 @@
 -- used for a graph representation of the road network
 select * from way_node join node on way_node.node = node.id;
 
+
 select * from arc join node as source on arc.src = source.id
-                  join node as destination on arc.dst = destination.id
+                  join node as destination on arc.dst = destination.id;
+
 
 -- src 2708331052, dst 561065
-
 -- "sends a radar beacon to know the distance to the destination"
 -- This query is only useful to know the cost of the shortest path
 -- until the destination. We can use it to display it to the user
@@ -15,13 +16,14 @@ with recursive
  beacon(src, dst, cost) as (
     values (null, :SOURCE, 0)
         union all
-    select arc.src, arc.dst, arc.distance + beacon.cost as cost
+    select arc.src, arc.dst, round(arc.distance + beacon.cost) as cost
      from beacon
       join arc on arc.src = beacon.dst
       order by cost
       limit 100000
  )
  select * from beacon where beacon.dst = :DESTINATION limit 1;
+
 
 -- compute the shortest path from source to destination using
 -- a plain dijkstra algorithm; done here in several steps due

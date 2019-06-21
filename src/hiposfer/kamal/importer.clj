@@ -68,8 +68,7 @@
                                                    :area/name "Niederrad"}))]
     ;; execute each statement separately
     (println "creating tables")
-    (doseq [statement (str/split sqlite/schema #";\n")]
-      (jdbc/execute! conn [statement]))
+    (sqlite/setup! conn)
     (println "importing OSM")
     (doseq [tx (osm/transaction! stream)]
       (sql/insert! conn (namespace (ffirst tx)) tx))
