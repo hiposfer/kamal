@@ -18,9 +18,9 @@ with recursive
         union all
     select arc.src, arc.dst, round(arc.distance + beacon.cost) as cost
      from beacon
-      join arc on arc.src = beacon.dst
-      order by cost
-      limit 100000
+     join arc on arc.src = beacon.dst
+     order by cost
+     limit 100000
  )
  select * from beacon where beacon.dst = :DESTINATION limit 1;
 
@@ -36,9 +36,9 @@ with recursive
         union all
     select arc.src, arc.dst, round(arc.distance + graph_traversal.cost) as cost
      from graph_traversal
-      join arc on arc.src = graph_traversal.dst
-      where round(arc.distance + graph_traversal.cost) <= :RADIOUS
-      order by cost
+     join arc on arc.src = graph_traversal.dst
+     where round(arc.distance + graph_traversal.cost) <= :RADIOUS
+     order by cost
  ),
  -- perform a proper dijkstra by keeping only the nodes from the tree with the
  -- minimum cost
@@ -54,8 +54,8 @@ with recursive
     select * from dijkstra where dijkstra.dst = :DESTINATION
         union all
     select dijkstra.*
-    from shortest_path, dijkstra
-    where dijkstra.dst = shortest_path.src
+      from shortest_path, dijkstra
+      where dijkstra.dst = shortest_path.src
  )
  -- the src of each row is redundant so we can remove it ;)
  select shortest_path.dst, shortest_path.cost
