@@ -58,7 +58,7 @@
 ; -------------------------------------------------------------------
 ; If the distance of two nodes is 0 and no edge has a 0 cost,
 ; then the two nodes MUST be the same
-; Ddf(P,Q) = 0 if P = Q
+; cost(P,Q) = 0 if P = Q
 (deftest symmetry
   (with-open [conn (jdbc/get-connection sqlite/volatile)]
     (sqlite/setup! conn)

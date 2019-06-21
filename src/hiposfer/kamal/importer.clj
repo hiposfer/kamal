@@ -45,6 +45,8 @@
 
 
 (defn populate!
+  "import all OSM data into an sqlite db and transform it into
+  a graph representation for routing purposes"
   [conn area]
   (with-open [stream (io/input-stream (fetch-osm! area))]
     (println "importing OSM")
